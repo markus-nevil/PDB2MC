@@ -1,0 +1,23 @@
+1. View modes
+  -Backbone = only backbone
+  -Skeleton = only backbone + sidechain backbone
+  -Space filling = spheres only, sphere diamater automatically determined based on whole model scale
+  -X-ray = Atoms are glass, backbone + side chain plotted with opaque blocks
+  -X-ray backbone = Atoms are glass, backbone plotted with opaque blocks
+  -Max = scaled model to world height
+  -Min = scale model to smallest size possible (no scale)
+
+2. GUI
+  -Scale (bond distance) control
+  -Atom diamater control
+  -Atom color
+  -Bond (backbone and sidechain) color
+  -Choose file
+  -Choose output directory
+  
+3. Better plot area determination
+  -Drop command block and model relative to player orientation
+  -Plot so that bottom most block is at Y of command block
+
+4. Better output directory.
+  - select only the save, automatically add the correct file structure to the /datapacks folder
