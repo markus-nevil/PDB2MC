@@ -77,3 +77,4 @@ def create_master_function(df, name, directory):
             f.write(f'{commands[i]}\n')
     with open(os.path.join(directory, f"drop_{name}.mcfunction"), 'w') as f:
         f.write(f'setblock ~ ~ ~ minecraft:command_block{{Command:"function protein:make_{name}"}}\n')
+        f.write(f'setblock ~1 ~ ~ minecraft:stone_button 1')
