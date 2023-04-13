@@ -43,27 +43,6 @@ def find_mcfunctions(directory, name):
     df = pd.DataFrame({"group": file_list})
     return df
 
-
-# def create_master_function(df, name, output_dir):
-#     # Create a dictionary to store the functions by type
-#     functions_by_type = {}
-#     for index, row in df.iterrows():
-#         group = row['group']
-#         func_type = group.split("_")[1]
-#         if func_type not in functions_by_type:
-#             functions_by_type[func_type] = []
-#         functions_by_type[func_type].append(group)
-#
-#     # Concatenate the functions in the proper order
-#     commands = []
-#     for func_type in ["backbone", "sidechain", "atoms"]:
-#         if func_type in functions_by_type:
-#             commands += [f"/function {name}_{x}" for x in functions_by_type[func_type]]
-#
-#     # Write the commands to a file
-#     with open(f"{output_dir}/make_{name}.mcfunction", "w") as f:
-#         f.write("\n".join(commands))
-
 def create_master_function(df, name, directory):
     name = name.lower()
     # sort df by the naming convention
@@ -77,4 +56,4 @@ def create_master_function(df, name, directory):
             f.write(f'{commands[i]}\n')
     with open(os.path.join(directory, f"drop_{name}.mcfunction"), 'w') as f:
         f.write(f'setblock ~ ~ ~ minecraft:command_block{{Command:"function protein:make_{name}"}}\n')
-        f.write(f'setblock ~1 ~ ~ minecraft:stone_button 1')
+        f.write(f'setblock ~ ~ ~1 minecraft:stone_button[facing=south,powered=false]')

@@ -423,16 +423,19 @@ if __name__ == '__main__':
     if not os.path.isfile("config.json"):
         # If it doesn't exist, create it
         config = {
+            "scale":1.0,
             "atoms": {
                 "C": "black_concrete",
                 "O": "red_concrete",
                 "N": "blue_concrete",
-                "S": "yellow_concrete"
+                "S": "yellow_concrete",
+                "backbone_atom": "gray_concrete",
+                "sidechain_atom": "gray_concrete",
+                "other_atom": "pink_concrete"
             },
             "mode": "Default",
             "backbone": True,
             "sidechain": True,
-            "scale": 1.0,
             "pdb_file": "",
             "save_path": ""
         }
@@ -443,10 +446,13 @@ if __name__ == '__main__':
 
 # Define the layout of the window
 layout = [
-    [sg.Text("Select C atom"), sg.DropDown(decorative_blocks, key="C", default_value="black_concrete", background_color=(255, 0, 0), auto_size_text=True)],
-    [sg.Text("Select O atom"), sg.DropDown(decorative_blocks, key="O", default_value="red_concrete", background_color=block_colors)],
-    [sg.Text("Select N atom"), sg.DropDown(decorative_blocks, key="N", default_value="blue_concrete", background_color=block_colors)],
-    [sg.Text("Select S atom"), sg.DropDown(decorative_blocks, key="S", default_value="yellow_concrete", background_color=block_colors)],
+    [sg.Text("Select C atom"), sg.DropDown(decorative_blocks, key="C", default_value="black_concrete")],
+    [sg.Text("Select O atom"), sg.DropDown(decorative_blocks, key="O", default_value="red_concrete")],
+    [sg.Text("Select N atom"), sg.DropDown(decorative_blocks, key="N", default_value="blue_concrete")],
+    [sg.Text("Select S atom"), sg.DropDown(decorative_blocks, key="S", default_value="yellow_concrete")],
+    [sg.Text("Select backbone atom"), sg.DropDown(decorative_blocks, key="backbone_atom", default_value="gray_concrete")],
+    [sg.Text("Select side chain atom"), sg.DropDown(decorative_blocks, key="sidechain_atom", default_value="gray_concrete")],
+    [sg.Text("Select other atom"), sg.DropDown(decorative_blocks, key="other_atom", default_value="pink_concrete")],
     [sg.Text("Select mode"), sg.DropDown(["Default", "Skeleton"], key="mode", default_value="Default")],
     [sg.Checkbox("Backbone", default=True, key="backbone"), sg.Checkbox("Sidechain", default=True, key="sidechain")],
     [sg.Text("Scale"), sg.InputText(default_text="1.0", key="scale")],

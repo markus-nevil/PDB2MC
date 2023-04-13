@@ -1,0 +1,18 @@
+{
+    "scale": 1.0,
+    "atoms": {
+        "C": "black_concrete",
+        "N": "blue_concrete",
+        "O": "red_concrete",
+        "S": "yellow_concrete",
+        "H": "white_concrete",
+        "backbone_atom": "gray_concrete",
+        "sidechain_atom": "gray_concrete",
+        "other_atom": "pink_concrete"
+    },
+    "mode": "Default",
+    "backbone": "True",
+    "sidechain": "True",
+    "pdb_file": "C:/Users/marku/Downloads/3alr.pdb",
+    "save_path": "C:/Users/marku/AppData/Roaming/.minecraft/saves/creativey/datapacks\\mcPDB/data/protein/functions"
+}
