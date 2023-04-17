@@ -412,14 +412,16 @@ def rasterized_sphere(radius):
 #     sphere_df = pd.DataFrame(new_rows, columns=['X', 'Y', 'Z', 'atom'])
 #     return sphere_df
 
-def add_sphere_coordinates(sphere_array, center, df):
+def add_sphere_coordinates(sphere_array, center, df, mesh=False):
     sphere_coords = np.transpose(np.nonzero(sphere_array))
     new_rows = []
     for row_index, row in df.iterrows():
         for i, j, k in sphere_coords:
             i_norm, j_norm, k_norm = i - center[0], j - center[1], k - center[2]
             distance = math.sqrt(i_norm ** 2 + j_norm ** 2 + k_norm ** 2)
-            if abs(distance - math.ceil(sphere_array.shape[0] / 2)) <= 2:
+            if abs(distance - math.ceil(sphere_array.shape[0] / 2)) <= 1 and mesh == True:
+                new_rows.append([row['X'] + i_norm, row['Y'] + j_norm, row['Z'] + k_norm, row['atom']])
+            if abs(distance - math.ceil(sphere_array.shape[0] / 2)) <= 2 and mesh == False:
                 new_rows.append([row['X'] + i_norm, row['Y'] + j_norm, row['Z'] + k_norm, row['atom']])
     sphere_df = pd.DataFrame(new_rows, columns=['X', 'Y', 'Z', 'atom'])
     return sphere_df
