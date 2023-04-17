@@ -43,7 +43,8 @@ if __name__ == '__main__':
         [sg.Text("Select other atom"), sg.DropDown(decorative_blocks, key="other_atom", default_value="pink_concrete")],
         [sg.Text("Select mode"), sg.DropDown(["Default", "Skeleton"], key="mode", default_value="Default")],
         [sg.Checkbox("Backbone", default=True, key="backbone"), sg.Checkbox("Sidechain", default=True, key="sidechain")],
-        [sg.Text("Scale"), sg.InputText(default_text="1.0", key="scale")],
+        [sg.Text("Protein scale"), sg.Input(default_text='1.0', key="scale")],
+        [sg.Text("Atom scale"), sg.Input(default_text='1.5', key="atom_scale")],
         [sg.Button("Select PDB file"), sg.Button("Select Minecraft Save")],
         [sg.Button("Calculate", bind_return_key=True)]
     ]
@@ -92,8 +93,41 @@ if __name__ == '__main__':
 
             ## actual code goes here
 
-            with open('config.json') as f:
-                config_data = json.load(f)
+            # Save the window variables to config.json
+            with open("config.json", "r+") as f:
+                config = json.load(f)
+                config["scale"] = float(values["scale"])
+                config["atom_scale"] = float(values["atom_scale"])
+                config["atoms"]["C"] = values["C"]
+                config["atoms"]["N"] = values["N"]
+                config["atoms"]["O"] = values["O"]
+                config["atoms"]["S"] = values["S"]
+                # config["atoms"]["H"] = values["H"]
+                config["atoms"]["backbone_atom"] = values["backbone_atom"]
+                config["atoms"]["sidechain_atom"] = values["sidechain_atom"]
+                config["atoms"]["other_atom"] = values["other_atom"]
+                config["mode"] = values["mode"]
+                config["backbone"] = values["backbone"]
+                config["sidechain"] = values["sidechain"]
+                f.seek(0)
+                json.dump(config, f, indent=4)
+                f.truncate()
+
+            f = open('config.json')
+            config_data = json.load(f)
+            f.close
+            print(config_data)
+            print(config_data["pdb_file"])
+
+            # with open('config.json', 'r') as f:
+            #     read_in_json = f.read()
+            #     config_data = json.load(read_in_json)
+            #     #config_data = json.loads(read_in_json, object_hook=lambda d: {
+            #     #    k: v if not isinstance(v, str) else (int(v) if v.isdigit() else (float(v) if '.' in v else v)) for
+            #     #    k, v in d.items()})
+            #     print(config_data)
+            #     print(config_data["pdb_file"])
+
             #pdb_file = choose_file()
 
             pdb_file = config_data['pdb_file']
@@ -101,8 +135,9 @@ if __name__ == '__main__':
             pdb_df = read_pdb(pdb_file)
             pdb_name = get_pdb_code(pdb_file)
 
-            scalar = 5.0
-            #scalar = config_data['scale']
+            #scalar = 5.0
+            scalar = config_data['scale']
+            #print(scalar)
             clipped = clip_coords(pdb_df)
             scaled = scale_coordinates(clipped, scalar)
             moved = move_coordinates(scaled)
@@ -115,28 +150,32 @@ if __name__ == '__main__':
             # sidechain = atom_subset(rounded_two, ['C', 'N', 'CA'], include=False)
             intermediate = find_intermediate_points(backbone)
 
-            coord = rasterized_sphere((2, 2, 2), 1.5, (5, 5, 5))
+            #coord = rasterized_sphere((2, 2, 2), 1.5, (5, 5, 5))
+            coord = rasterized_sphere(config_data['atom_scale'])
+            center = sphere_center(config_data['atom_scale'])
 
             shortened = shorten_atom_names(rounded)
-            spheres = add_sphere_coordinates(coord, (2, 2, 2), shortened)
+            spheres = add_sphere_coordinates(coord, center, shortened)
+
+            # spheres = process_coordinates(spheres)
 
             #mcfunctions = choose_subdir("")
 
-            mcfunctions = config_data['save_path']
+            mc_dir = config_data['save_path']
 
             pdb_backbone = pdb_name + "_backbone"
-            create_minecraft_functions(intermediate, pdb_backbone, False, mcfunctions)
+            create_minecraft_functions(intermediate, pdb_backbone, False, mc_dir, config_data['atoms'])
 
             pdb_sidechain = pdb_name + "_sidechain"
-            create_minecraft_functions(branches, pdb_sidechain, False, mcfunctions)
+            create_minecraft_functions(branches, pdb_sidechain, False, mc_dir, config_data['atoms'])
 
             pdb_atoms = pdb_name + "_atoms"
-            create_minecraft_functions(spheres, pdb_atoms, False, mcfunctions)
+            create_minecraft_functions(spheres, pdb_atoms, False, mc_dir, config_data['atoms'])
 
-            mcfiles = find_mcfunctions(mcfunctions, pdb_name.lower())
+            mcfiles = find_mcfunctions(mc_dir, pdb_name.lower())
             print(mcfiles)
 
-            create_master_function(mcfiles, pdb_name, mcfunctions)
+            create_master_function(mcfiles, pdb_name, mc_dir)
 
             sg.popup("Finished! Remember to /reload in your world and /function protein:drop_###")
 

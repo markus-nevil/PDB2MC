@@ -3,7 +3,7 @@ import os
 import tkinter as tk
 from tkinter import filedialog
 import numpy as np
-
+import math
 
 def choose_file():
     root = tk.Tk()
@@ -368,7 +368,20 @@ def sphere_coordinates(center, radius, num_points):
 
     return x, y, z
 
-def rasterized_sphere(center, radius, shape):
+def sphere_center(radius):
+    diameter = math.ceil(radius)*2 | 1
+    mid_point = diameter // 2
+    center = (mid_point, mid_point, mid_point)
+    return(center)
+
+#def rasterized_sphere(center, radius, shape):
+def rasterized_sphere(radius):
+    diameter = math.ceil(radius)*2 | 1
+    mid_point = diameter // 2
+
+    center = (mid_point, mid_point, mid_point)
+    shape = (diameter, diameter, diameter)
+
     # Create a 3D grid of integers
     x, y, z = np.indices(shape, dtype=np.float32)
 
@@ -389,17 +402,63 @@ def rasterized_sphere(center, radius, shape):
 
     return sphere
 
+# def add_sphere_coordinates(sphere_array, center, df):
+#     sphere_coords = np.transpose(np.nonzero(sphere_array))
+#     new_rows = []
+#     for row_index, row in df.iterrows():
+#         for i, j, k in sphere_coords:
+#             i_norm, j_norm, k_norm = i - center[0], j - center[1], k - center[2]
+#             new_rows.append([row['X'] + i_norm, row['Y'] + j_norm, row['Z'] + k_norm, row['atom']])
+#     sphere_df = pd.DataFrame(new_rows, columns=['X', 'Y', 'Z', 'atom'])
+#     return sphere_df
+
 def add_sphere_coordinates(sphere_array, center, df):
     sphere_coords = np.transpose(np.nonzero(sphere_array))
     new_rows = []
     for row_index, row in df.iterrows():
         for i, j, k in sphere_coords:
             i_norm, j_norm, k_norm = i - center[0], j - center[1], k - center[2]
-            new_rows.append([row['X'] + i_norm, row['Y'] + j_norm, row['Z'] + k_norm, row['atom']])
+            distance = math.sqrt(i_norm ** 2 + j_norm ** 2 + k_norm ** 2)
+            if abs(distance - math.ceil(sphere_array.shape[0] / 2)) <= 2:
+                new_rows.append([row['X'] + i_norm, row['Y'] + j_norm, row['Z'] + k_norm, row['atom']])
     sphere_df = pd.DataFrame(new_rows, columns=['X', 'Y', 'Z', 'atom'])
     return sphere_df
+
+def process_coordinates(df):
+    # Create an empty "hidden" column
+    df["hidden"] = False
+
+    # Loop through each row in the dataframe
+    for i, row in df.iterrows():
+        # Extract the coordinates of the current row
+        x, y, z = row["X"], row["Y"], row["Z"]
+
+        # Create a boolean array indicating whether each of the 6 surrounding coordinates exists in the dataframe
+        surrounding = ((df["X"] == x + 1) & (df["Y"] == y) & (df["Z"] == z)) | \
+                      ((df["X"] == x - 1) & (df["Y"] == y) & (df["Z"] == z)) | \
+                      ((df["X"] == x) & (df["Y"] == y + 1) & (df["Z"] == z)) | \
+                      ((df["X"] == x) & (df["Y"] == y - 1) & (df["Z"] == z)) | \
+                      ((df["X"] == x) & (df["Y"] == y) & (df["Z"] == z + 1)) | \
+                      ((df["X"] == x) & (df["Y"] == y) & (df["Z"] == z - 1))
+        print(surrounding)
+
+        # Count the number of surrounding coordinates that exist in the dataframe
+        num_surrounding = np.sum(surrounding)
+
+        # Set the "hidden" column to True if there are 6 surrounding coordinates, False otherwise
+        df.at[i, "hidden"] = num_surrounding == 6
+
+    # Remove any rows where "hidden" is True
+    df = df[df["hidden"] == False]
+
+    # Remove the "hidden" column
+    df = df.drop("hidden", axis=1)
+
+    return df
+
 
 def shorten_atom_names(df):
     df['atom'] = df['atom'].str[0]
     return df
 
+#print(rasterized_sphere(3))

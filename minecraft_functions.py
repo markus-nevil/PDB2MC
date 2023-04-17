@@ -2,9 +2,10 @@ import pandas as pd
 import os
 import glob
 
-def create_minecraft_functions(df, name, air, dir):
-    block_dict = {'C': 'black_concrete', 'N': 'blue_concrete', 'O': 'red_concrete',
-                  'H': 'white_concrete', 'S': 'yellow_concrete'}
+def create_minecraft_functions(df, name, air, dir, blocks):
+    block_dict = blocks
+    # block_dict = {'C': 'black_concrete', 'N': 'blue_concrete', 'O': 'red_concrete',
+    #               'H': 'white_concrete', 'S': 'yellow_concrete'}
     block_type = 'air' if air else 'block'
     functions = []
     name = name.lower()
@@ -13,7 +14,8 @@ def create_minecraft_functions(df, name, air, dir):
         if 'atom' in df.columns:
             block = block_dict.get(row['atom'], 'pink_concrete')
         else:
-            block = 'gray_concrete'
+            block = block_dict['backbone_atom']
+            #block = 'gray_concrete'
         if air:
             block = 'air'
         x += 100
