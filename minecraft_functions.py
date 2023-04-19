@@ -4,6 +4,7 @@ import glob
 
 def create_minecraft_functions(df, name, air, dir, blocks):
     block_dict = blocks
+    #print(block_dict)
     # block_dict = {'C': 'black_concrete', 'N': 'blue_concrete', 'O': 'red_concrete',
     #               'H': 'white_concrete', 'S': 'yellow_concrete'}
     block_type = 'air' if air else 'block'

@@ -1,19 +1,20 @@
 {
     "scale": 6.0,
     "atoms": {
-        "C": "black_stained_glass",
-        "N": "blue_stained_glass",
-        "O": "red_stained_glass",
-        "S": "yellow_stained_glass",
+        "C": "black_concrete",
+        "N": "blue_concrete",
+        "O": "red_concrete",
+        "S": "yellow_concrete",
         "H": "white_concrete",
         "backbone_atom": "gray_concrete",
         "sidechain_atom": "gray_concrete",
         "other_atom": "pink_concrete"
     },
-    "mode": "Default",
+    "mode": "X-ray",
     "backbone": true,
     "sidechain": true,
-    "pdb_file": "C:/Users/marku/Desktop/DILP.pdb",
+    "show_atoms": true,
+    "pdb_file": "C:/Users/marku/Desktop/GFP_short.pdb",
     "save_path": "C:/Users/marku/AppData/Roaming/.minecraft/saves/creativey/datapacks\\mcPDB/data/protein/functions",
     "atom_scale": 4.0
 }

@@ -24,6 +24,7 @@ if __name__ == '__main__':
             "mode": "Default",
             "backbone": True,
             "sidechain": True,
+            "show_atoms": True,
             "pdb_file": "",
             "save_path": ""
         }
@@ -41,8 +42,11 @@ if __name__ == '__main__':
         [sg.Text("Select side chain atom"),
          sg.DropDown(decorative_blocks, key="sidechain_atom", default_value="gray_concrete")],
         [sg.Text("Select other atom"), sg.DropDown(decorative_blocks, key="other_atom", default_value="pink_concrete")],
-        [sg.Text("Select mode"), sg.DropDown(["Default", "Skeleton"], key="mode", default_value="Default")],
-        [sg.Checkbox("Backbone", default=True, key="backbone"), sg.Checkbox("Sidechain", default=True, key="sidechain")],
+        [sg.Text("Select mode"),
+         sg.DropDown(["Default", "Backbone", "Skeleton", "Space Filling", "X-ray", "X-ray Backbone", "Max", "Min"],
+                     key="mode", default_value="Default")],
+        [sg.Checkbox("Backbone", default=True, key="backbone"),
+         sg.Checkbox("Sidechain", default=True, key="sidechain")],
         [sg.Text("Protein scale"), sg.Input(default_text='1.0', key="scale")],
         [sg.Text("Atom scale"), sg.Input(default_text='1.5', key="atom_scale")],
         [sg.Button("Select PDB file"), sg.Button("Select Minecraft Save")],
@@ -116,28 +120,17 @@ if __name__ == '__main__':
             f = open('config.json')
             config_data = json.load(f)
             f.close
-            print(config_data)
-            print(config_data["pdb_file"])
 
-            # with open('config.json', 'r') as f:
-            #     read_in_json = f.read()
-            #     config_data = json.load(read_in_json)
-            #     #config_data = json.loads(read_in_json, object_hook=lambda d: {
-            #     #    k: v if not isinstance(v, str) else (int(v) if v.isdigit() else (float(v) if '.' in v else v)) for
-            #     #    k, v in d.items()})
-            #     print(config_data)
-            #     print(config_data["pdb_file"])
+            if config_data["mode"] != "Default":
+                config_data = change_mode(config_data)
 
-            #pdb_file = choose_file()
 
             pdb_file = config_data['pdb_file']
 
             pdb_df = read_pdb(pdb_file)
             pdb_name = get_pdb_code(pdb_file)
 
-            #scalar = 5.0
             scalar = config_data['scale']
-            #print(scalar)
             clipped = clip_coords(pdb_df)
             scaled = scale_coordinates(clipped, scalar)
             moved = move_coordinates(scaled)
@@ -150,30 +143,29 @@ if __name__ == '__main__':
             # sidechain = atom_subset(rounded_two, ['C', 'N', 'CA'], include=False)
             intermediate = find_intermediate_points(backbone)
 
-            #coord = rasterized_sphere((2, 2, 2), 1.5, (5, 5, 5))
             coord = rasterized_sphere(config_data['atom_scale'])
             center = sphere_center(config_data['atom_scale'])
 
             shortened = shorten_atom_names(rounded)
             spheres = add_sphere_coordinates(coord, center, shortened)
 
-            # spheres = process_coordinates(spheres)
-
-            #mcfunctions = choose_subdir("")
-
             mc_dir = config_data['save_path']
 
-            pdb_backbone = pdb_name + "_backbone"
-            create_minecraft_functions(intermediate, pdb_backbone, False, mc_dir, config_data['atoms'])
+            if config_data["backbone"] == True:
+                pdb_backbone = pdb_name + "_backbone"
+                create_minecraft_functions(intermediate, pdb_backbone, False, mc_dir, config_data['atoms'])
 
-            pdb_sidechain = pdb_name + "_sidechain"
-            create_minecraft_functions(branches, pdb_sidechain, False, mc_dir, config_data['atoms'])
+            if config_data["sidechain"] == True:
+                pdb_sidechain = pdb_name + "_sidechain"
+                create_minecraft_functions(branches, pdb_sidechain, False, mc_dir, config_data['atoms'])
 
-            pdb_atoms = pdb_name + "_atoms"
-            create_minecraft_functions(spheres, pdb_atoms, False, mc_dir, config_data['atoms'])
+            if config_data["show_atoms"] == True:
+                pdb_atoms = pdb_name + "_atoms"
+                create_minecraft_functions(spheres, pdb_atoms, False, mc_dir, config_data['atoms'])
 
             mcfiles = find_mcfunctions(mc_dir, pdb_name.lower())
             print(mcfiles)
+            print(config_data)
 
             create_master_function(mcfiles, pdb_name, mc_dir)
 

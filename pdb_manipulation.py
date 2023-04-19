@@ -5,11 +5,13 @@ from tkinter import filedialog
 import numpy as np
 import math
 
+
 def choose_file():
     root = tk.Tk()
     root.withdraw()
     file_path = filedialog.askopenfilename()
     return file_path
+
 
 def choose_subdir(file_path):
     if not file_path:
@@ -27,6 +29,7 @@ def choose_subdir(file_path):
     subdirectory = filedialog.askdirectory(initialdir=file_path)
     return os.path.join(file_path, subdirectory)
 
+
 def read_pdb(filename):
     atom_data = []
     with open(filename, 'r') as f:
@@ -43,6 +46,7 @@ def read_pdb(filename):
     pdb_df = pd.DataFrame(atom_data)
     return pdb_df
 
+
 def get_pdb_code(file_path):
     with open(file_path, 'r') as f:
         for line in f:
@@ -57,12 +61,14 @@ def clip_coords(dataframe):
     tmp_df[['X', 'Y', 'Z']] = tmp_df[['X', 'Y', 'Z']].astype(float)
     return tmp_df
 
+
 def move_coordinates(df):
     first_row = df.iloc[0]
     coords_df = df[['X', 'Y', 'Z']]
     coords_df -= first_row[['X', 'Y', 'Z']]
     df[['X', 'Y', 'Z']] = coords_df
     return df
+
 
 def calculate_vectors(pdb_df):
     coords = pdb_df[['X', 'Y', 'Z']].values.astype(float)
@@ -71,6 +77,7 @@ def calculate_vectors(pdb_df):
     vector_df = pd.DataFrame(vectors, columns=['dX', 'dY', 'dZ'])
     vector_df.iloc[0] = [0, 0, 0]
     return vector_df
+
 
 def scale_coordinates(vector_df, scalar):
     # extract the 'atom' column and remove it temporarily
@@ -84,6 +91,7 @@ def scale_coordinates(vector_df, scalar):
     scaled_df['atom'] = atom_col
     return scaled_df
 
+
 def round_df(df):
     # extract the 'atom' column and remove it temporarily
     atom_col = df['atom']
@@ -94,6 +102,7 @@ def round_df(df):
 
     df['atom'] = atom_col
     return df
+
 
 def unvectorize_df(df):
     # Initialize the X, Y, Z coordinates with the first row of the input dataframe
@@ -112,6 +121,7 @@ def unvectorize_df(df):
     replot_df = pd.DataFrame({'X': x, 'Y': y, 'Z': z})
 
     return replot_df
+
 
 def bresenham_line(x0, y0, z0, x1, y1, z1):
     """Bresenham's line algorithm"""
@@ -167,12 +177,14 @@ def bresenham_line(x0, y0, z0, x1, y1, z1):
             z += sz
     return np.array(points)
 
+
 def atom_subset(df, atoms, include=True):
     if include:
         subset = df[df['atom'].isin(atoms)]
     else:
         subset = df[~df['atom'].isin(atoms)]
     return subset.reset_index(drop=True)
+
 
 def find_intermediate_points(replot_df):
     # Initialize the new dataframe
@@ -191,6 +203,7 @@ def find_intermediate_points(replot_df):
     # Create the new dataframe and return it
     return pd.DataFrame(new_data, columns=columns)
 
+
 def sidechain(df):
     coordinates = []
     new_data = []
@@ -201,7 +214,7 @@ def sidechain(df):
     # try:
     for i, row in df.iterrows():
 
-        #Detect what level of a chain it is on.
+        # Detect what level of a chain it is on.
         if row['atom'] == 'CA':
             prev_atom_pos = df.iloc[i]
             sidechain_bool = True
@@ -209,22 +222,22 @@ def sidechain(df):
             prev_atom_pos = df.iloc[i]
             sidechain_bool = True
         elif len(row['atom']) == 1 and row['atom'][0] == 'O':
-            prev_atom_pos = df.iloc[i-1]
+            prev_atom_pos = df.iloc[i - 1]
             sidechain_bool = True
         elif len(row['atom']) == 2 and (row['atom'][1] in ['B', 'G', 'D', 'E', 'Z']):
             k = 1
-            prev_atom_pos = df.iloc[i-1]
+            prev_atom_pos = df.iloc[i - 1]
             while len(prev_atom_pos['atom']) < 2:
                 prev_atom_pos = df.iloc[i - k]
                 k += 1
             sidechain_bool = True
         elif len(row['atom']) == 3:
-            prev_atom_pos = df.iloc[i-1]
+            prev_atom_pos = df.iloc[i - 1]
             sidechain_bool = True
             prev_atom_branch = True
         elif row['atom'] == 'OH':
             k = 1
-            prev_atom_pos = df.iloc[i-1]
+            prev_atom_pos = df.iloc[i - 1]
             while prev_atom_pos['atom'] != 'CZ':
                 prev_atom_pos = df.iloc[i - k]
                 k += 1
@@ -233,9 +246,9 @@ def sidechain(df):
             sidechain_bool = False
             prev_atom_branch = False
 
-        #Perform bresenham on the proper two atoms
+        # Perform bresenham on the proper two atoms
         if len(row['atom']) == 1 and row['atom'][0] == 'O':
-            #print("problem?")
+            # print("problem?")
             point1 = prev_atom_pos[columns].values
             point2 = row[columns].values
             # Use Bresenham's line algorithm to find the intermediate points
@@ -244,14 +257,14 @@ def sidechain(df):
             sidechain_bool = False
             prev_atom_branch = False
         elif len(row['atom']) == 2:
-            if(prev_atom_branch == True):
-                #print("A")
+            if (prev_atom_branch == True):
+                # print("A")
                 point1 = prev_atom_pos[columns].values
                 point2 = row[columns].values
                 # Use Bresenham's line algorithm to find the intermediate points
                 coordinates = bresenham_line(*point1, *point2)
 
-                prev_atom_pos = df.iloc[i-2]
+                prev_atom_pos = df.iloc[i - 2]
                 point1 = prev_atom_pos[columns].values
                 point2 = row[columns].values
 
@@ -260,11 +273,11 @@ def sidechain(df):
                 prev_atom_branch = False
                 sidechain_bool = False
             else:
-                #print("C")
+                # print("C")
                 k = 1
-                #print(row)
+                # print(row)
                 while len(prev_atom_pos['atom']) < 2:
-                    prev_atom_pos = df.iloc[i-k]
+                    prev_atom_pos = df.iloc[i - k]
                     k += 1
                 point1 = prev_atom_pos[columns].values
                 point2 = row[columns].values
@@ -274,23 +287,23 @@ def sidechain(df):
                 sidechain_bool = False
                 prev_atom_branch = False
         elif len(row['atom']) == 3:
-            #print("branch time!")
-            #print(row)
+            # print("branch time!")
+            # print(row)
             if len(prev_atom_pos['atom']) == 2:
-                #print("oy")
+                # print("oy")
                 point1 = prev_atom_pos[columns].values
                 point2 = row[columns].values
                 # Use Bresenham's line algorithm to find the intermediate points
                 coordinates = bresenham_line(*point1, *point2)
             elif row['atom'][2] == prev_atom_pos['atom'][2]:
-                #print("D")
+                # print("D")
                 point1 = prev_atom_pos[columns].values
                 point2 = row[columns].values
                 # Use Bresenham's line algorithm to find the intermediate points
                 coordinates = bresenham_line(*point1, *point2)
             else:
-                prev_atom_pos = df.iloc[i-2]
-                #print("E")
+                prev_atom_pos = df.iloc[i - 2]
+                # print("E")
                 point1 = prev_atom_pos[columns].values
                 point2 = row[columns].values
                 # Use Bresenham's line algorithm to find the intermediate points
@@ -304,9 +317,9 @@ def sidechain(df):
         for p in coordinates:
             new_data.append(p)
 
-
     coord_df = pd.DataFrame(new_data, columns=['X', 'Y', 'Z'])
     return coord_df
+
 
 def branch_lines(df):
     # Create an empty list to store the coordinates
@@ -357,6 +370,7 @@ def branch_lines(df):
     coord_df = pd.DataFrame(coordinates, columns=['X', 'Y', 'Z'])
     return coord_df
 
+
 def sphere_coordinates(center, radius, num_points):
     phi = np.linspace(0, np.pi, num_points)
     theta = np.linspace(0, 2 * np.pi, num_points)
@@ -368,15 +382,17 @@ def sphere_coordinates(center, radius, num_points):
 
     return x, y, z
 
+
 def sphere_center(radius):
-    diameter = math.ceil(radius)*2 | 1
+    diameter = math.ceil(radius) * 2 | 1
     mid_point = diameter // 2
     center = (mid_point, mid_point, mid_point)
-    return(center)
+    return (center)
 
-#def rasterized_sphere(center, radius, shape):
+
+# def rasterized_sphere(center, radius, shape):
 def rasterized_sphere(radius):
-    diameter = math.ceil(radius)*2 | 1
+    diameter = math.ceil(radius) * 2 | 1
     mid_point = diameter // 2
 
     center = (mid_point, mid_point, mid_point)
@@ -402,6 +418,7 @@ def rasterized_sphere(radius):
 
     return sphere
 
+
 # def add_sphere_coordinates(sphere_array, center, df):
 #     sphere_coords = np.transpose(np.nonzero(sphere_array))
 #     new_rows = []
@@ -425,6 +442,7 @@ def add_sphere_coordinates(sphere_array, center, df, mesh=False):
                 new_rows.append([row['X'] + i_norm, row['Y'] + j_norm, row['Z'] + k_norm, row['atom']])
     sphere_df = pd.DataFrame(new_rows, columns=['X', 'Y', 'Z', 'atom'])
     return sphere_df
+
 
 def process_coordinates(df):
     # Create an empty "hidden" column
@@ -463,4 +481,43 @@ def shorten_atom_names(df):
     df['atom'] = df['atom'].str[0]
     return df
 
-#print(rasterized_sphere(3))
+
+def change_mode(config):
+    if config["mode"] == "Backbone":
+        print("Backbone")
+        config["show_atoms"] = False
+        config["sidechain"] = False
+        config["backbone"] = True
+    elif config["mode"] == "Skeleton":
+        print("Skeleton")
+        config["show_atoms"] = False
+        config["sidechain"] = True
+        config["backbone"] = True
+    elif config["mode"] == "Space Filling":
+        print("TODO")
+    elif config["mode"] == "X-ray":
+        print("X-ray")
+        config["show_atoms"] = True
+        config["sidechain"] = True
+        config["backbone"] = True
+        config["atoms"]["C"] = "black_stained_glass"
+        config["atoms"]["N"] = "blue_stained_glass"
+        config["atoms"]["O"] = "red_stained_glass"
+        config["atoms"]["S"] = "yellow_stained_glass"
+        config["atoms"]["other_atom"] = "pink_stained_glass"
+    elif config["mode"] == "X-ray Backbone":
+        print("X-ray Backbone")
+        config["show_atoms"] = True
+        config["sidechain"] = False
+        config["backbone"] = True
+        config["atoms"]["C"] = "black_stained_glass"
+        config["atoms"]["N"] = "blue_stained_glass"
+        config["atoms"]["O"] = "red_stained_glass"
+        config["atoms"]["S"] = "yellow_stained_glass"
+        config["atoms"]["other_atom"] = "pink_stained_glass"
+        #print(config)
+    elif config["mode"] == "Max":
+        print("TODO")
+    elif config["mode"] == "Min":
+        print("TODO")
+    return config
