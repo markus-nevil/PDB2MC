@@ -25,13 +25,13 @@ def create_minecraft_functions(df, name, air, dir, blocks):
         function = f'setblock ~{x} ~{y} ~{z} minecraft:{block}\n'
         functions.append(function)
 
-    num_files = (len(functions) // 10000) + 1
+    num_files = (len(functions) // 65530) + 1
     for i in range(num_files):
         file_num = i + 1
         filename = f"{name}_{file_num}_{block_type}.mcfunction"
         filepath = os.path.join(dir, filename)
-        start = i * 10000
-        end = start + 10000
+        start = i * 65530
+        end = start + 65530
         with open(filepath, 'w') as f:
             f.writelines(functions[start:end])
 
