@@ -1,5 +1,5 @@
 {
-    "scale": 6.0,
+    "scale": 5.0,
     "atoms": {
         "C": "black_concrete",
         "N": "blue_concrete",
@@ -14,7 +14,8 @@
     "backbone": true,
     "sidechain": true,
     "show_atoms": true,
-    "pdb_file": "C:/Users/marku/Desktop/GFP_short.pdb",
+    "mesh": false,
+    "pdb_file": "C:/Users/marku/Downloads/5y14.pdb",
     "save_path": "C:/Users/marku/AppData/Roaming/.minecraft/saves/creativey/datapacks\\mcPDB/data/protein/functions",
-    "atom_scale": 4.0
+    "atom_scale": 2.0
 }

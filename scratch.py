@@ -17,6 +17,101 @@ from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import ast
 
+#####
+#####
+# Look at this example for conditional windows:
+
+import PySimpleGUI as sg
+
+# Define layout for the main window
+layout = [
+    [sg.Text("Check the box to show the menu:")],
+    [sg.Checkbox("Show Menu", key="-SHOW_MENU-")],
+    [sg.Button("Exit")]
+]
+
+# Create the main window
+window = sg.Window("Conditional Menu Example", layout)
+
+# Loop to handle events
+while True:
+    event, values = window.read()
+    if event == sg.WIN_CLOSED or event == "Exit":
+        break
+
+    # Check the state of the checkbox
+    show_menu = values["-SHOW_MENU-"]
+
+    # Define layout for the conditional menu
+    menu_layout = [
+        [sg.Text("This is the menu!")],
+        [sg.Button("Menu Option 1")],
+        [sg.Button("Menu Option 2")],
+        [sg.Button("Menu Option 3")]
+    ]
+
+    # Create the conditional menu window
+    menu_window = sg.Window("Conditional Menu", menu_layout, visible=show_menu)
+
+    # Loop to handle events for the conditional menu
+    while True:
+        menu_event, menu_values = menu_window.read()
+        if menu_event == sg.WIN_CLOSED:
+            break
+
+    menu_window.close()
+
+window.close()
+
+
+########
+### question mark info
+
+# Define layout for the main window
+layout = [
+    [sg.Text("Click or hover over the question mark for more info:")],
+    [sg.Button("", image_filename="question_mark.png", key="-INFO-")],
+    [sg.Button("Exit")]
+]
+
+# Create the main window
+window = sg.Window("Conditional Menu Example", layout)
+
+# Loop to handle events
+while True:
+    event, values = window.read()
+    if event == sg.WIN_CLOSED or event == "Exit":
+        break
+
+    # Check if the info button was clicked
+    if event == "-INFO-":
+        # Define layout for the info window
+        info_layout = [
+            [sg.Text("Additional information:")],
+            [sg.Text("This is some extra information that is shown when you click or hover over the question mark.")],
+            [sg.Button("OK")]
+        ]
+
+        # Create the info window
+        info_window = sg.Window("Info", info_layout)
+
+        # Loop to handle events for the info window
+        while True:
+            info_event, info_values = info_window.read()
+            if info_event == sg.WIN_CLOSED or info_event == "OK":
+                break
+
+        info_window.close()
+
+window.close()
+
+
+
+
+
+
+
+
 def choose_file():
     root = tk.Tk()
     root.withdraw()

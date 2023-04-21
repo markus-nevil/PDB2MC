@@ -25,6 +25,7 @@ if __name__ == '__main__':
             "backbone": True,
             "sidechain": True,
             "show_atoms": True,
+            "mesh": False,
             "pdb_file": "",
             "save_path": ""
         }
@@ -46,7 +47,8 @@ if __name__ == '__main__':
          sg.DropDown(["Default", "Backbone", "Skeleton", "Space Filling", "X-ray", "X-ray Backbone", "Max", "Min"],
                      key="mode", default_value="Default")],
         [sg.Checkbox("Backbone", default=True, key="backbone"),
-         sg.Checkbox("Sidechain", default=True, key="sidechain")],
+         sg.Checkbox("Sidechain", default=True, key="sidechain"),
+         sg.Checkbox("Mesh-style atoms", default =  False, key="mesh")],
         [sg.Text("Protein scale"), sg.Input(default_text='1.0', key="scale")],
         [sg.Text("Atom scale"), sg.Input(default_text='1.5', key="atom_scale")],
         [sg.Button("Select PDB file"), sg.Button("Select Minecraft Save")],
@@ -113,6 +115,7 @@ if __name__ == '__main__':
                 config["mode"] = values["mode"]
                 config["backbone"] = values["backbone"]
                 config["sidechain"] = values["sidechain"]
+                config["mesh"] = values["mesh"]
                 f.seek(0)
                 json.dump(config, f, indent=4)
                 f.truncate()
@@ -127,14 +130,25 @@ if __name__ == '__main__':
 
             pdb_file = config_data['pdb_file']
 
+
             pdb_df = read_pdb(pdb_file)
+            #print(pdb_df.head(n=20))
+            #print(pdb_df.tail(n=20))
+
             pdb_name = get_pdb_code(pdb_file)
 
             scalar = config_data['scale']
-            clipped = clip_coords(pdb_df)
-            scaled = scale_coordinates(clipped, scalar)
+            #clipped = clip_coords(pdb_df)
+            #print(pdb_df.head(n=40))
+            #print(clipped.head(n=40))
+            #scaled = scale_coordinates(clipped, scalar)
+            print(pdb_df.head(n=5))
+            scaled = scale_coordinates(pdb_df, scalar)
+            print(scaled.head(n=5))
             moved = move_coordinates(scaled)
+            print(moved.head(n=5))
             rounded = round_df(moved)
+            print(rounded.head(n=5))
 
             branches = sidechain(rounded)
 
@@ -147,9 +161,13 @@ if __name__ == '__main__':
             center = sphere_center(config_data['atom_scale'])
 
             shortened = shorten_atom_names(rounded)
-            spheres = add_sphere_coordinates(coord, center, shortened)
+            spheres = add_sphere_coordinates(coord, center, shortened, mesh=config_data['mesh'])
 
             mc_dir = config_data['save_path']
+
+            #hetatm = process_hetatom(rounded)
+
+
 
             if config_data["backbone"] == True:
                 pdb_backbone = pdb_name + "_backbone"
@@ -162,6 +180,9 @@ if __name__ == '__main__':
             if config_data["show_atoms"] == True:
                 pdb_atoms = pdb_name + "_atoms"
                 create_minecraft_functions(spheres, pdb_atoms, False, mc_dir, config_data['atoms'])
+
+            #pdb_hetatm = pdb_name + "_hetatm"
+            #create_minecraft_functions(hetatm, pdb_hetatm, False, mc_dir, config_data['atoms'])
 
             mcfiles = find_mcfunctions(mc_dir, pdb_name.lower())
             print(mcfiles)

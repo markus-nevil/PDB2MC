@@ -34,8 +34,10 @@ def read_pdb(filename):
     atom_data = []
     with open(filename, 'r') as f:
         for line in f:
-            if line.startswith('ATOM'):
-                record = {'atom': line[12:16].strip(),
+            if line.startswith('ATOM') or line.startswith("HETATM"):
+                record = {'row': line[0:7].strip(),
+                          'atom_num': line[8:11].strip(),
+                          'atom': line[12:16].strip(),
                           'residue': line[17:20].strip(),
                           'chain': line[21],
                           'resid': int(line[22:26]),
@@ -81,26 +83,33 @@ def calculate_vectors(pdb_df):
 
 def scale_coordinates(vector_df, scalar):
     # extract the 'atom' column and remove it temporarily
-    atom_col = vector_df['atom']
-    vector_df = vector_df.drop('atom', axis=1)
+    coords_df = vector_df.loc[:, ['X', 'Y', 'Z']]
+    other_df = vector_df.loc[:, ~vector_df.columns.isin(['X', 'Y', 'Z'])]
+
+    # atom_col = vector_df['atom']
+    # vector_df = vector_df.drop('atom', axis=1)
 
     # perform the scalar multiplication on the remaining columns
-    scaled_df = vector_df.multiply(scalar, axis='rows')
+    scaled_df = coords_df.multiply(scalar, axis='rows')
 
     # add the 'atom' column back in to the scaled dataframe
-    scaled_df['atom'] = atom_col
+    #scaled_df['atom'] = atom_col
+
+    scaled_df = pd.concat([other_df, scaled_df], axis=1, sort=False)
     return scaled_df
 
 
-def round_df(df):
+def round_df(vector_df):
     # extract the 'atom' column and remove it temporarily
-    atom_col = df['atom']
-    coords_df = df.drop('atom', axis=1)
+    # atom_col = df['atom']
+    # coords_df = df.drop('atom', axis=1)
+    coords_df = vector_df.loc[:, ['X', 'Y', 'Z']]
+    other_df = vector_df.loc[:, ~vector_df.columns.isin(['X', 'Y', 'Z'])]
 
-    df = coords_df.round()
-    df = df.astype(int)
+    round_df = coords_df.round()
+    round_df = round_df.astype(int)
 
-    df['atom'] = atom_col
+    df = pd.concat([other_df, round_df], axis=1, sort=False)
     return df
 
 
@@ -205,6 +214,9 @@ def find_intermediate_points(replot_df):
 
 
 def sidechain(df):
+    df = df[df['row'].str.contains('ATOM')]
+    df = df[['atom', 'X', 'Y', 'Z']].copy()
+
     coordinates = []
     new_data = []
     columns = ['X', 'Y', 'Z']
@@ -275,7 +287,6 @@ def sidechain(df):
             else:
                 # print("C")
                 k = 1
-                # print(row)
                 while len(prev_atom_pos['atom']) < 2:
                     prev_atom_pos = df.iloc[i - k]
                     k += 1
@@ -521,3 +532,36 @@ def change_mode(config):
     elif config["mode"] == "Min":
         print("TODO")
     return config
+
+
+def process_hetatom(df):
+
+    # Filter HETATM lines with "HOH" in the fourth column
+    df = df[~((df['row'] == 'HETATM') & (df['atom'] == 'HOH'))]
+
+    # Step 2: Create a dictionary for CONECT records
+    conect_dict = {}
+    for _, row in df.iterrows():
+        if row['col1'].startswith('CONECT'):
+            key = int(row['col2'])
+            values = [int(x) for x in row['col3':] if str(x).isdigit()]
+            conect_dict[key] = values
+
+    # Step 3: Filter dictionary based on keys present in DataFrame
+    valid_keys = set(df['row'].astype(int).values)
+    conect_dict = {k: v for k, v in conect_dict.items() if k in valid_keys}
+
+    # Step 4: Call bresenham_line for each key-value pair in the dictionary
+    results_df = pd.DataFrame(columns=['X', 'Y', 'Z'])
+    for key, values in conect_dict.items():
+        key_coords = df[df['row'] == key][['X', 'Y', 'Z']].values[0]
+        for value in values:
+            value_coords = df[df['row'] == value][['X', 'Y', 'Z']].values[0]
+            line_coords = list(bresenham_line(int(key_coords[0]), int(key_coords[1]), int(key_coords[2]),
+                                         int(value_coords[0]), int(value_coords[1]), int(value_coords[2])))
+            results_df = results_df.append(pd.DataFrame(line_coords, columns=['X', 'Y', 'Z']), ignore_index=True)
+
+    # Step 5: Remove duplicate rows from results_df
+    results_df = results_df.drop_duplicates()
+
+    return results_df
