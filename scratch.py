@@ -107,9 +107,68 @@ window.close()
 
 
 
+#######
+# makes cylinders
+
+
+def increase_cylinder_diameter(df, diameter):
+    # Convert DataFrame to numpy array
+    coords = df[['X', 'Y', 'Z']].values
+
+    # Calculate the vector between each point and the next point
+    vecs = np.diff(coords, axis=0)
+
+    # Calculate the length of each vector
+    lens = np.sqrt(np.sum(vecs**2, axis=1))
+
+    # Normalize the vectors
+    vecs = vecs / lens[:, np.newaxis]
+
+    # Create a matrix of rotation angles for each vector
+    angles = np.arccos(vecs[:, 2])
+
+    # Calculate the sin and cos of each angle
+    c = np.cos(angles)
+    s = np.sin(angles)
+
+    # Create a matrix of rotation vectors for each vector
+    rot_vecs = np.zeros_like(vecs)
+    rot_vecs[:, 0] = -vecs[:, 1]
+    rot_vecs[:, 1] = vecs[:, 0]
+
+    # Rotate the rotation vectors by the rotation angles
+    rot_vecs = rot_vecs * s[:, np.newaxis] + np.cross(rot_vecs, vecs) * c[:, np.newaxis] + vecs * np.sum(rot_vecs * vecs, axis=1)[:, np.newaxis] * (1 - c[:, np.newaxis])
+
+    # Create a matrix of rotation matrices
+    rot_mats = np.zeros((len(vecs), 3, 3))
+    rot_mats[:, 0] = vecs
+    rot_mats[:, 1:] = rot_vecs[:, np.newaxis]
+
+    # Create a meshgrid of points in a circle
+    n_pts = int(np.ceil(diameter))
+    r = np.linspace(-n_pts/2, n_pts/2, n_pts)
+    xx, yy = np.meshgrid(r, r)
+    mask = np.sqrt(xx**2 + yy**2) <= diameter/2
+    xx = xx[mask]
+    yy = yy[mask]
+    zz = np.zeros_like(xx)
+
+    # Transform the meshgrid by each rotation matrix
+    transformed_points = []
+    for i, mat in enumerate(rot_mats):
+        xyz = np.vstack((xx, yy, zz))
+        transformed_xyz = np.dot(mat, xyz) + coords[i]
+        transformed_points.append(transformed_xyz.T)
+
+    # Convert transformed points to a new DataFrame
+    new_coords = np.vstack(transformed_points)
+    new_df = pd.DataFrame(new_coords, columns=['X', 'Y', 'Z'])
+
+    return new_df
 
 
 
+########
 
 
 def choose_file():
