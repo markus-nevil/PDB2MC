@@ -150,18 +150,7 @@ if __name__ == '__main__':
             rounded = round_df(moved)
             print(rounded.head(n=5))
 
-            branches = sidechain(rounded)
 
-            backbone = atom_subset(rounded, ['C', 'N', 'CA'], include=True)
-
-            # sidechain = atom_subset(rounded_two, ['C', 'N', 'CA'], include=False)
-            intermediate = find_intermediate_points(backbone)
-
-            coord = rasterized_sphere(config_data['atom_scale'])
-            center = sphere_center(config_data['atom_scale'])
-
-            shortened = shorten_atom_names(rounded)
-            spheres = add_sphere_coordinates(coord, center, shortened, mesh=config_data['mesh'])
 
             mc_dir = config_data['save_path']
 
@@ -171,14 +160,21 @@ if __name__ == '__main__':
 
             if config_data["backbone"] == True:
                 pdb_backbone = pdb_name + "_backbone"
+                backbone = atom_subset(rounded, ['C', 'N', 'CA'], include=True)
+                intermediate = find_intermediate_points(backbone)
                 create_minecraft_functions(intermediate, pdb_backbone, False, mc_dir, config_data['atoms'])
 
             if config_data["sidechain"] == True:
+                branches = sidechain(rounded)
                 pdb_sidechain = pdb_name + "_sidechain"
                 create_minecraft_functions(branches, pdb_sidechain, False, mc_dir, config_data['atoms'])
 
             if config_data["show_atoms"] == True:
                 pdb_atoms = pdb_name + "_atoms"
+                coord = rasterized_sphere(config_data['atom_scale'])
+                center = sphere_center(config_data['atom_scale'])
+                shortened = shorten_atom_names(rounded)
+                spheres = add_sphere_coordinates(coord, center, shortened, mesh=config_data['mesh'])
                 create_minecraft_functions(spheres, pdb_atoms, False, mc_dir, config_data['atoms'])
 
             #pdb_hetatm = pdb_name + "_hetatm"
