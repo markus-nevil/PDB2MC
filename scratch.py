@@ -660,3 +660,25 @@ while True:
 # Close the window
 window.close()
 
+# Define the layout of the window
+layout = [
+    [sg.Text("Select C atom"), sg.DropDown(decorative_blocks, key="C", default_value="black_concrete")],
+    [sg.Text("Select O atom"), sg.DropDown(decorative_blocks, key="O", default_value="red_concrete")],
+    [sg.Text("Select N atom"), sg.DropDown(decorative_blocks, key="N", default_value="blue_concrete")],
+    [sg.Text("Select S atom"), sg.DropDown(decorative_blocks, key="S", default_value="yellow_concrete")],
+    [sg.Text("Select backbone atom"),
+     sg.DropDown(decorative_blocks, key="backbone_atom", default_value="gray_concrete")],
+    [sg.Text("Select side chain atom"),
+     sg.DropDown(decorative_blocks, key="sidechain_atom", default_value="gray_concrete")],
+    [sg.Text("Select other atom"), sg.DropDown(decorative_blocks, key="other_atom", default_value="pink_concrete")],
+    [sg.Text("Select mode"),
+     sg.DropDown(["Default", "Backbone", "Skeleton", "Space Filling", "X-ray", "X-ray Backbone", "Max", "Min"],
+                 key="mode", default_value="Default")],
+    [sg.Checkbox("Backbone", default=True, key="backbone"),
+     sg.Checkbox("Sidechain", default=True, key="sidechain"),
+     sg.Checkbox("Mesh-style atoms", default=False, key="mesh")],
+    [sg.Text("Protein scale"), sg.Input(default_text='1.0', key="scale")],
+    [sg.Text("Atom scale"), sg.Input(default_text='1.5', key="atom_scale")],
+    [sg.Button("Select PDB file"), sg.Button("Select Minecraft Save")],
+    [sg.Button("Calculate", bind_return_key=True)]
+]

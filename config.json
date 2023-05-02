@@ -1,5 +1,5 @@
 {
-    "scale": 5.0,
+    "scale": 6.0,
     "atoms": {
         "C": "black_concrete",
         "N": "blue_concrete",
@@ -10,12 +10,34 @@
         "sidechain_atom": "gray_concrete",
         "other_atom": "pink_concrete"
     },
-    "mode": "X-ray",
+    "amino_acids": {
+        "ALA": "red_concrete",
+        "ARG": "",
+        "ASN": "",
+        "ASP": "",
+        "CYS": "",
+        "GLN": "",
+        "GLU": "",
+        "GLY": "",
+        "HIS": "",
+        "ILE": "",
+        "LEU": "",
+        "LYS": "",
+        "MET": "",
+        "PHE": "",
+        "PRO": "",
+        "SER": "",
+        "THR": "",
+        "TRP": "",
+        "TYR": "",
+        "VAL": ""
+    },
+    "mode": "Default",
     "backbone": true,
     "sidechain": true,
     "show_atoms": true,
     "mesh": false,
-    "pdb_file": "C:/Users/marku/Downloads/2pl6.pdb",
+    "pdb_file": "C:/Users/marku/Downloads/6id6_hetatm.pdb",
     "save_path": "C:/Users/marku/AppData/Roaming/.minecraft/saves/creativey/datapacks\\mcPDB/data/protein/functions",
-    "atom_scale": 2.0
+    "atom_scale": 2.5
 }
