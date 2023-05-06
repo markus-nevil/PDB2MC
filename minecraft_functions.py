@@ -2,7 +2,7 @@ import pandas as pd
 import os
 import glob
 
-def create_minecraft_functions(df, name, air, dir, blocks):
+def create_minecraft_functions(df, name, air, dir, blocks, replace = False):
     block_dict = blocks
     #print(block_dict)
     # block_dict = {'C': 'black_concrete', 'N': 'blue_concrete', 'O': 'red_concrete',
@@ -19,10 +19,13 @@ def create_minecraft_functions(df, name, air, dir, blocks):
             #block = 'gray_concrete'
         if air:
             block = 'air'
-        x += 100
-        y += 100
-        z += 100
-        function = f'setblock ~{x} ~{y} ~{z} minecraft:{block}\n'
+        x += 50
+        y += 50
+        z += 50
+        if replace:
+            function = f'setblock ~{x} ~{y} ~{z} minecraft:{block} replace\n'
+        else:
+            function = f'setblock ~{x} ~{y} ~{z} minecraft:{block} keep\n'
         functions.append(function)
 
     num_files = (len(functions) // 65530) + 1
@@ -34,6 +37,12 @@ def create_minecraft_functions(df, name, air, dir, blocks):
         end = start + 65530
         with open(filepath, 'w') as f:
             f.writelines(functions[start:end])
+
+def delete_mcfunctions(directory, name):
+    for filename in os.listdir(directory):
+        if filename.startswith(name) and filename.endswith(".mcfunction"):
+            os.remove(os.path.join(directory, filename))
+
 
 def find_mcfunctions(directory, name):
     file_list = []

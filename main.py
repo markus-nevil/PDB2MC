@@ -17,6 +17,7 @@ if __name__ == '__main__':
                 "O": "red_concrete",
                 "N": "blue_concrete",
                 "S": "yellow_concrete",
+                "P": "lime_concrete",
                 "backbone_atom": "gray_concrete",
                 "sidechain_atom": "gray_concrete",
                 "other_atom": "pink_concrete"
@@ -127,6 +128,7 @@ if __name__ == '__main__':
                 config["atoms"]["N"] = values["N"]
                 config["atoms"]["O"] = values["O"]
                 config["atoms"]["S"] = values["S"]
+                config["atoms"]["P"] = values["P"]
                 # config["atoms"]["H"] = values["H"]
                 config["atoms"]["backbone_atom"] = values["backbone_atom"]
                 config["atoms"]["sidechain_atom"] = values["sidechain_atom"]
@@ -182,20 +184,20 @@ if __name__ == '__main__':
             #print(pdb_df.head(n=40))
             #print(clipped.head(n=40))
             #scaled = scale_coordinates(clipped, scalar)
-            print(pdb_df.head(n=5))
+            #print(pdb_df.head(n=5))
             scaled = scale_coordinates(pdb_df, scalar)
-            print(scaled.head(n=5))
+            #print(scaled.head(n=5))
             moved = move_coordinates(scaled)
-            print(moved.head(n=5))
+            #print(moved.head(n=5))
             rounded = round_df(moved)
-            print(rounded.head(n=5))
+            #print(rounded.head(n=5))
 
 
 
             mc_dir = config_data['save_path']
 
             hetatm = process_hetatom(rounded, pdb_file)
-            print(hetatm)
+            #print(hetatm)
 
             #Check if printing a special case
             if config_data["mode"] == "Amino Acids":
@@ -203,16 +205,26 @@ if __name__ == '__main__':
 
             #Otherwise print a normal model
             else:
+                delete_mcfunctions(mc_dir, pdb_name.lower())
+
                 if config_data["backbone"] == True:
                     pdb_backbone = pdb_name + "_backbone"
-                    backbone = atom_subset(rounded, ['C', 'N', 'CA'], include=True)
+                    backbone = atom_subset(rounded, ['C', 'N', 'CA', 'P', "O5'", "C5'", "C4'", "C3'", "O3'"], include=True)
                     intermediate = find_intermediate_points(backbone)
-                    create_minecraft_functions(intermediate, pdb_backbone, False, mc_dir, config_data['atoms'])
+                    if config_data["mode"] == "X-ray":
+                        create_minecraft_functions(intermediate, pdb_backbone, False, mc_dir, config_data['atoms'],
+                                                   replace=True)
+                    else:
+                        create_minecraft_functions(intermediate, pdb_backbone, False, mc_dir, config_data['atoms'], replace=False)
 
                 if config_data["sidechain"] == True:
                     branches = sidechain(rounded)
                     pdb_sidechain = pdb_name + "_sidechain"
-                    create_minecraft_functions(branches, pdb_sidechain, False, mc_dir, config_data['atoms'])
+                    if config_data["mode"] == "X-ray":
+                        create_minecraft_functions(branches, pdb_sidechain, False, mc_dir, config_data['atoms'],
+                                                   replace=True)
+                    else:
+                        create_minecraft_functions(branches, pdb_sidechain, False, mc_dir, config_data['atoms'], replace=False)
 
                 if config_data["show_atoms"] == True:
                     pdb_atoms = pdb_name + "_atoms"
@@ -220,7 +232,10 @@ if __name__ == '__main__':
                     center = sphere_center(config_data['atom_scale'])
                     shortened = shorten_atom_names(rounded)
                     spheres = add_sphere_coordinates(coord, center, shortened, mesh=config_data['mesh'])
-                    create_minecraft_functions(spheres, pdb_atoms, False, mc_dir, config_data['atoms'])
+                    if config_data["mode"] == "X-ray":
+                        create_minecraft_functions(spheres, pdb_atoms, False, mc_dir, config_data['atoms'], replace = False)
+                    else:
+                        create_minecraft_functions(spheres, pdb_atoms, False, mc_dir, config_data['atoms'], replace = True)
 
 
 
