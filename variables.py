@@ -67,11 +67,13 @@ default_layout = [
     [sg.Text("Select other atom"), sg.DropDown(decorative_blocks, key="other_atom", default_value="pink_concrete")],
     [sg.Checkbox("Backbone", default=True, key="backbone"),
      sg.Checkbox("Sidechain", default=True, key="sidechain"),
-     sg.Checkbox("Mesh-style atoms", default=False, key="mesh")],
+     sg.Checkbox("Mesh-style atoms", default=False, key="mesh"),
+     sg.Checkbox("Show Atoms", default=True, key="show_atoms"),
+     sg.Checkbox("Show Hetatoms", default=True, key="show_hetatm")],
     [sg.Text("Protein scale"), sg.Input(default_text='1.0', key="scale")],
     [sg.Text("Atom scale"), sg.Input(default_text='1.5', key="atom_scale")],
     [sg.Button("Select PDB file"), sg.Button("Select Minecraft Save")],
-    [sg.Button("Calculate", bind_return_key=True)]
+    [sg.Button("Create Minecraft Functions", bind_return_key=True)]
 ]
 
 ## Backbone and Skeleton
@@ -88,11 +90,13 @@ backbone_layout = [
     [sg.Text("Select other atom"), sg.DropDown(decorative_blocks, key="other_atom", default_value="pink_concrete")],
     [sg.Checkbox("Backbone", default=True, key="backbone"),
      sg.Checkbox("Sidechain", default=True, key="sidechain"),
-     sg.Checkbox("Mesh-style atoms", default=False, key="mesh")],
+     sg.Checkbox("Mesh-style atoms", default=False, key="mesh"),
+     sg.Checkbox("Show Atoms", default=True, key="show_atoms"),
+     sg.Checkbox("Show Hetatoms", default=True, key="show_hetatm")],
     [sg.Text("Protein scale"), sg.Input(default_text='1.0', key="scale")],
     [sg.Text("Atom scale"), sg.Input(default_text='1.5', key="atom_scale")],
     [sg.Button("Select PDB file"), sg.Button("Select Minecraft Save")],
-    [sg.Button("Calculate", bind_return_key=True)]
+    [sg.Button("Create Minecraft Functions", bind_return_key=True)]
 ]
 
 #Space Filling
@@ -114,10 +118,12 @@ sf_layout = [
     [sg.Text("Select other atom"), sg.DropDown(decorative_blocks, key="other_atom", default_value="pink_concrete")],
     [sg.Checkbox("Backbone", default=True, key="backbone"),
      sg.Checkbox("Sidechain", default=True, key="sidechain"),
-     sg.Checkbox("Mesh-style atoms", default=False, key="mesh")],
+     sg.Checkbox("Mesh-style atoms", default=False, key="mesh"),
+     sg.Checkbox("Show Atoms", default=True, key="show_atoms"),
+     sg.Checkbox("Show Hetatoms", default= True, key="show_hetatm")],
     [sg.Text("Protein scale"), sg.Input(default_text='1.0', key="scale")],
     [sg.Button("Select PDB file"), sg.Button("Select Minecraft Save")],
-    [sg.Button("Calculate", bind_return_key=True)]
+    [sg.Button("Create Minecraft Functions", bind_return_key=True)]
 ]
 
 #X-ray and X-ray backbone
@@ -139,11 +145,13 @@ xray_layout = [
     [sg.Text("Select other atom"), sg.DropDown(decorative_blocks, key="other_atom", default_value="pink_concrete")],
     [sg.Checkbox("Backbone", default=True, key="backbone"),
      sg.Checkbox("Sidechain", default=True, key="sidechain"),
-     sg.Checkbox("Mesh-style atoms", default=False, key="mesh")],
+     sg.Checkbox("Mesh-style atoms", default=False, key="mesh"),
+     sg.Checkbox("Show Atoms", default=True, key="show_atoms"),
+     sg.Checkbox("Show Hetatoms", default=True, key="show_hetatm")],
     [sg.Text("Protein scale"), sg.Input(default_text='1.0', key="scale")],
     [sg.Text("Atom scale"), sg.Input(default_text='1.5', key="atom_scale")],
     [sg.Button("Select PDB file"), sg.Button("Select Minecraft Save")],
-    [sg.Button("Calculate", bind_return_key=True)]
+    [sg.Button("Create Minecraft Functions", bind_return_key=True)]
 ]
 
 #Amino acid
@@ -178,7 +186,7 @@ aa_layout = [
     [sg.Checkbox("Backbone", default=True, key="backbone")],
     [sg.Text("Protein scale"), sg.Input(default_text='1.0', key="scale")],
     [sg.Button("Select PDB file"), sg.Button("Select Minecraft Save")],
-    [sg.Button("Calculate", bind_return_key=True)]
+    [sg.Button("Create Minecraft Functions", bind_return_key=True)]
 ]
 
 #min max
@@ -200,8 +208,10 @@ minmax_layout = [
     [sg.Text("Select other atom"), sg.DropDown(decorative_blocks, key="other_atom", default_value="pink_concrete")],
     [sg.Checkbox("Backbone", default=True, key="backbone"),
      sg.Checkbox("Sidechain", default=True, key="sidechain"),
-     sg.Checkbox("Mesh-style atoms", default=False, key="mesh")],
+     sg.Checkbox("Mesh-style atoms", default=False, key="mesh"),
+     sg.Checkbox("Show Atoms", default=True, key="show_atoms"),
+     sg.Checkbox("Show Hetatoms", default= True, key="show_hetatm")],
     [sg.Text("Protein scale"), sg.Input(default_text='1.0', key="scale")],
     [sg.Button("Select PDB file"), sg.Button("Select Minecraft Save")],
-    [sg.Button("Calculate", bind_return_key=True)]
+    [sg.Button("Create Minecraft Functions", bind_return_key=True)]
 ]

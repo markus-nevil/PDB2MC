@@ -1,5 +1,5 @@
 {
-    "scale": 4.0,
+    "scale": 6.0,
     "atoms": {
         "C": "black_concrete",
         "N": "blue_concrete",
@@ -7,6 +7,7 @@
         "S": "yellow_concrete",
         "H": "white_concrete",
         "P": "lime_concrete",
+        "FE": "iron_block",
         "backbone_atom": "gray_concrete",
         "sidechain_atom": "gray_concrete",
         "other_atom": "pink_concrete"
@@ -37,8 +38,9 @@
     "backbone": true,
     "sidechain": true,
     "show_atoms": true,
+    "show_hetatm": true,
     "mesh": false,
-    "pdb_file": "C:/Users/marku/Downloads/1fix.pdb",
+    "pdb_file": "C:/Users/marku/Downloads/1hpi.pdb",
     "save_path": "C:/Users/marku/AppData/Roaming/.minecraft/saves/creativey/datapacks\\mcPDB/data/protein/functions",
-    "atom_scale": 2.0
+    "atom_scale": 1.5
 }

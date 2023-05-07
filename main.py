@@ -18,6 +18,7 @@ if __name__ == '__main__':
                 "N": "blue_concrete",
                 "S": "yellow_concrete",
                 "P": "lime_concrete",
+                "FE": "iron_block",
                 "backbone_atom": "gray_concrete",
                 "sidechain_atom": "gray_concrete",
                 "other_atom": "pink_concrete"
@@ -48,6 +49,7 @@ if __name__ == '__main__':
             "backbone": True,
             "sidechain": True,
             "show_atoms": True,
+            "show_hetatm": True,
             "mesh": False,
             "pdb_file": "",
             "save_path": ""
@@ -112,11 +114,9 @@ if __name__ == '__main__':
                 json.dump(config, f, indent=4)
                 f.truncate()
 
-        if event == "Calculate":
-            # Execute further code here
-            print("It's working!")
+        if event == "Create Minecraft Functions":
 
-            ## actual code goes here
+            # Execute further code here
 
             # Save the window variables to config.json
             with open("config.json", "r+") as f:
@@ -157,6 +157,8 @@ if __name__ == '__main__':
                 config["mode"] = values["mode"]
                 config["backbone"] = values["backbone"]
                 config["sidechain"] = values["sidechain"]
+                config["show_atoms"] = values["show_atoms"]
+                config["show_hetatm"] = values["show_hetatm"]
                 config["mesh"] = values["mesh"]
                 f.seek(0)
                 json.dump(config, f, indent=4, default=None)
@@ -169,53 +171,53 @@ if __name__ == '__main__':
             if config_data["mode"] != "Default":
                 config_data = change_mode(config_data)
 
-
             pdb_file = config_data['pdb_file']
 
-
             pdb_df = read_pdb(pdb_file)
-            #print(pdb_df.head(n=20))
-            #print(pdb_df.tail(n=20))
+            # print(pdb_df.head(n=20))
+            # print(pdb_df.tail(n=20))
 
             pdb_name = get_pdb_code(pdb_file)
 
             scalar = config_data['scale']
-            #clipped = clip_coords(pdb_df)
-            #print(pdb_df.head(n=40))
-            #print(clipped.head(n=40))
-            #scaled = scale_coordinates(clipped, scalar)
-            #print(pdb_df.head(n=5))
+            # clipped = clip_coords(pdb_df)
+            # print(pdb_df.head(n=40))
+            # print(clipped.head(n=40))
+            # scaled = scale_coordinates(clipped, scalar)
+            # print(pdb_df.head(n=5))
             scaled = scale_coordinates(pdb_df, scalar)
-            #print(scaled.head(n=5))
+            # print(scaled.head(n=5))
             moved = move_coordinates(scaled)
-            #print(moved.head(n=5))
+            # print(moved.head(n=5))
             rounded = round_df(moved)
-            #print(rounded.head(n=5))
-
-
+            #print(rounded.tail(n=100))
 
             mc_dir = config_data['save_path']
 
-            hetatm = process_hetatom(rounded, pdb_file)
-            #print(hetatm)
+            hetatm_bonds = process_hetatom(rounded, pdb_file)
 
-            #Check if printing a special case
+            hetatom_df = filter_type_atom(rounded, remove_type="ATOM", remove_atom="H")
+            atom_df = filter_type_atom(rounded, remove_type="HETATM", remove_atom="H")
+
+            # Check if printing a special case
             if config_data["mode"] == "Amino Acids":
                 print("Amino acid mode")
 
-            #Otherwise print a normal model
+            # Otherwise print a normal model
             else:
                 delete_mcfunctions(mc_dir, pdb_name.lower())
 
                 if config_data["backbone"] == True:
                     pdb_backbone = pdb_name + "_backbone"
-                    backbone = atom_subset(rounded, ['C', 'N', 'CA', 'P', "O5'", "C5'", "C4'", "C3'", "O3'"], include=True)
+                    backbone = atom_subset(rounded, ['C', 'N', 'CA', 'P', "O5'", "C5'", "C4'", "C3'", "O3'"],
+                                           include=True)
                     intermediate = find_intermediate_points(backbone)
                     if config_data["mode"] == "X-ray":
                         create_minecraft_functions(intermediate, pdb_backbone, False, mc_dir, config_data['atoms'],
                                                    replace=True)
                     else:
-                        create_minecraft_functions(intermediate, pdb_backbone, False, mc_dir, config_data['atoms'], replace=False)
+                        create_minecraft_functions(intermediate, pdb_backbone, False, mc_dir, config_data['atoms'],
+                                                   replace=False)
 
                 if config_data["sidechain"] == True:
                     branches = sidechain(rounded)
@@ -224,23 +226,35 @@ if __name__ == '__main__':
                         create_minecraft_functions(branches, pdb_sidechain, False, mc_dir, config_data['atoms'],
                                                    replace=True)
                     else:
-                        create_minecraft_functions(branches, pdb_sidechain, False, mc_dir, config_data['atoms'], replace=False)
+                        create_minecraft_functions(branches, pdb_sidechain, False, mc_dir, config_data['atoms'],
+                                                   replace=False)
 
                 if config_data["show_atoms"] == True:
                     pdb_atoms = pdb_name + "_atoms"
                     coord = rasterized_sphere(config_data['atom_scale'])
                     center = sphere_center(config_data['atom_scale'])
-                    shortened = shorten_atom_names(rounded)
+                    shortened = shorten_atom_names(atom_df)
                     spheres = add_sphere_coordinates(coord, center, shortened, mesh=config_data['mesh'])
                     if config_data["mode"] == "X-ray":
-                        create_minecraft_functions(spheres, pdb_atoms, False, mc_dir, config_data['atoms'], replace = False)
+                        create_minecraft_functions(spheres, pdb_atoms, False, mc_dir, config_data['atoms'],
+                                                   replace=False)
                     else:
-                        create_minecraft_functions(spheres, pdb_atoms, False, mc_dir, config_data['atoms'], replace = True)
-
-
-
-            pdb_hetatm = pdb_name + "_hetatm"
-            create_minecraft_functions(hetatm, pdb_hetatm, False, mc_dir, config_data['atoms'])
+                        create_minecraft_functions(spheres, pdb_atoms, False, mc_dir, config_data['atoms'],
+                                                   replace=True)
+                if config_data["show_hetatm"] == True:
+                    pdb_hetatm = pdb_name + "_hetatm"
+                    coord = rasterized_sphere(config_data['atom_scale'])
+                    center = sphere_center(config_data['atom_scale'])
+                    shortened = shorten_atom_names(hetatom_df)
+                    spheres = add_sphere_coordinates(coord, center, shortened, mesh=config_data['mesh'])
+                    if config_data["mode"] == "X-ray":
+                        create_minecraft_functions(spheres, pdb_hetatm, False, mc_dir, config_data['atoms'],
+                                                   replace=False)
+                    else:
+                        create_minecraft_functions(spheres, pdb_hetatm, False, mc_dir, config_data['atoms'],
+                                                   replace=True)
+                    pdb_hetatm_bonds = pdb_name + "_hetatm_bonds"
+                    create_minecraft_functions(hetatm_bonds, pdb_hetatm_bonds, False, mc_dir, config_data['atoms'])
 
             mcfiles = find_mcfunctions(mc_dir, pdb_name.lower())
             print(mcfiles)
@@ -250,28 +264,5 @@ if __name__ == '__main__':
 
             sg.popup("Finished! Remember to /reload in your world and /function protein:drop_###")
 
-
-
     # Close the window
     window.close()
-
-
-
-
-
-
-    #mc_backbone = create_minecraft_functions(intermediate)
-    #mc_atoms = create_minecraft_functions(spheres)
-
-    #print(mc_backbone.head(20))
-    #print(mc_atoms.head(20))
-
-    #combined = pd.concat([spheres.head(1500), intermediate.head(300), branches.head(500)])
-    #combined = combined.reset_index(drop=True)
-    #print(combined.head(20))
-    #print(combined.tail(20))
-
-    #plot_3d_coordinates(clip_coords(combined), 2300)
-    #plot_3d_coordinates(clip_coords(spheres), 1900)
-    #plot_cube(spheres, 300)
-

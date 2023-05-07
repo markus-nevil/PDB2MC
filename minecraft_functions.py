@@ -4,19 +4,23 @@ import glob
 
 def create_minecraft_functions(df, name, air, dir, blocks, replace = False):
     block_dict = blocks
-    #print(block_dict)
-    # block_dict = {'C': 'black_concrete', 'N': 'blue_concrete', 'O': 'red_concrete',
-    #               'H': 'white_concrete', 'S': 'yellow_concrete'}
+    print(df.tail(n=50))
     block_type = 'air' if air else 'block'
     functions = []
     name = name.lower()
     for index, row in df.iterrows():
         x, y, z = row['X'], row['Y'], row['Z']
+        # if 'atom' in df.columns:
+        #     block = block_dict.get(row['atom'], 'pink_concrete')
+        # else:
+        #     block = block_dict['backbone_atom']
+
         if 'atom' in df.columns:
             block = block_dict.get(row['atom'], 'pink_concrete')
+            #print(row['atom'])
         else:
-            block = block_dict['backbone_atom']
-            #block = 'gray_concrete'
+            block = block_dict.get('backbone_atom', 'pink_concrete')
+
         if air:
             block = 'air'
         x += 50

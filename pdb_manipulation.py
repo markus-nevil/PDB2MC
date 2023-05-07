@@ -4,6 +4,7 @@ import tkinter as tk
 from tkinter import filedialog
 import numpy as np
 import math
+import re
 
 
 def choose_file():
@@ -115,6 +116,51 @@ def round_df(vector_df):
 
     df = pd.concat([other_df, round_df], axis=1, sort=False)
     return df
+
+
+def filter_type_atom(df, remove_type=None, remove_atom=None):
+    filtered_df = df.copy()
+
+    # Filter by remove_type
+    if remove_type:
+        if isinstance(remove_type, str):
+            remove_type = [remove_type]
+        filtered_df = filtered_df[~filtered_df['row'].isin(remove_type)]
+
+    # Filter by remove_atom
+    if remove_atom:
+        if isinstance(remove_atom, str):
+            remove_atom = [remove_atom]
+        filtered_df = filtered_df[~filtered_df['atom'].str.startswith(tuple(remove_atom))]
+
+    # Reset index
+    filtered_df = filtered_df.reset_index(drop=True)
+
+    return filtered_df
+# def filter_type_atom(df, remove_type=None, remove_atom=None):
+#     # Check if remove_type is provided and create a boolean mask to filter out rows that match the criteria
+#     if remove_type is not None:
+#         if isinstance(remove_type, str):
+#             mask = df['row'] != remove_type
+#         elif isinstance(remove_type, list):
+#             mask = ~df['row'].isin(remove_type)
+#         else:
+#             raise ValueError("remove_type parameter must be a string or a list")
+#     else:
+#         mask = [True] * len(df)  # Keep all rows by default
+#
+#     # Check if remove_atom is provided and add it to the mask as another criterion
+#     if remove_atom is not None:
+#         if isinstance(remove_atom, str):
+#             mask &= ~df['atom'].str.startswith(remove_atom)
+#         elif isinstance(remove_atom, list):
+#             remove_atoms = '|'.join(remove_atom)
+#             mask &= ~df['atom'].str.contains(f"^{remove_atoms}")
+#         else:
+#             raise ValueError("remove_atom parameter must be a string or a list")
+#
+#     # Return the filtered dataframe
+#     return df[mask]
 
 
 def unvectorize_df(df):
@@ -530,7 +576,18 @@ def process_coordinates(df):
 
 
 def shorten_atom_names(df):
-    df['atom'] = df['atom'].str[0]
+    def shorten_atom(atom):
+        if atom.startswith('O') or atom.startswith('N') or atom.startswith('C') or atom.startswith('S'):
+            return atom[0]
+        else:
+            return atom[0:2] if not atom[0:2].isdigit() else atom[0]
+
+    for index, row in df.iterrows():
+        if row['row'] == 'ATOM':
+            df.at[index, 'atom'] = shorten_atom(row['atom'])
+        elif row['row'] == 'HETATM':
+            df.at[index, 'atom'] = shorten_atom(row['atom'])
+
     return df
 
 
