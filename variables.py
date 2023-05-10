@@ -48,6 +48,17 @@ open_layout = [
     [sg.Button('Switch Layout')]
 ]
 
+presets = {"Buckyball": "buckyball.pdb",
+           "Alanine": "ala.pdb",
+           "Glucose": "glucose.pdb"}
+
+preset_layout = [
+    [sg.Text("Select pre-made models")],
+    [sg.Listbox(presets, size=(20,5), key="preset")],
+    [sg.Button('OK')]
+]
+
+
 # Default
 default_layout = [
     [sg.Text("Select mode"),
@@ -65,14 +76,14 @@ default_layout = [
     [sg.Text("Select side chain atom"),
      sg.DropDown(decorative_blocks, key="sidechain_atom", default_value="gray_concrete")],
     [sg.Text("Select other atom"), sg.DropDown(decorative_blocks, key="other_atom", default_value="pink_concrete")],
-    [sg.Checkbox("Backbone", default=True, key="backbone"),
-     sg.Checkbox("Sidechain", default=True, key="sidechain"),
-     sg.Checkbox("Mesh-style atoms", default=False, key="mesh"),
-     sg.Checkbox("Show Atoms", default=True, key="show_atoms"),
+    [sg.Checkbox("Show Atoms", default=True, key="show_atoms"),
      sg.Checkbox("Show Hetatoms", default=True, key="show_hetatm")],
-    [sg.Text("Protein scale"), sg.Input(default_text='1.0', key="scale")],
-    [sg.Text("Atom scale"), sg.Input(default_text='1.5', key="atom_scale")],
-    [sg.Button("Select PDB file"), sg.Button("Select Minecraft Save")],
+    [sg.Checkbox("Show Backbone", default=True, key="backbone"),
+     sg.Checkbox("Show Sidechain", default=True, key="sidechain")],
+     [sg.Checkbox("Mesh-style atoms", default=False, key="mesh")],
+    [sg.Text("Protein scale"), sg.Input(default_text='1.0', key="scale", size=(20,5)), sg.Text("Atom scale"), sg.Input(default_text='1.5', key="atom_scale", size=(20,5))],
+    [sg.Button("Select PDB file"), sg.Text("or"), sg.Button("Select Included PDB file"), sg.Text("and"), sg.Button("Select Minecraft Save")],
+    [sg.HorizontalSeparator()],
     [sg.Button("Create Minecraft Functions", bind_return_key=True)]
 ]
 

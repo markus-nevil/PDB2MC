@@ -1,5 +1,5 @@
 {
-    "scale": 6.0,
+    "scale": 1.0,
     "atoms": {
         "C": "black_concrete",
         "N": "blue_concrete",
@@ -40,7 +40,7 @@
     "show_atoms": true,
     "show_hetatm": true,
     "mesh": false,
-    "pdb_file": "C:/Users/marku/Downloads/1hpi.pdb",
-    "save_path": "C:/Users/marku/AppData/Roaming/.minecraft/saves/creativey/datapacks\\mcPDB/data/protein/functions",
+    "pdb_file": null,
+    "save_path": null,
     "atom_scale": 1.5
 }

@@ -443,19 +443,10 @@ def sidechain(atom_df):
     for i, row in atom_df.iterrows():
         # Find the matching row(s) in the chains dataframe
         matching_chains = chains_df[(chains_df['residue'] == row['residue']) & (chains_df['atom'] == row['atom'])]
-        #print(matching_chains)
         # Iterate over the matching chain rows
         for _, chain_row in matching_chains.iterrows():
 
             # Find the next row in the atom dataframe that matches the residue and atom2 values
-            #print(row)
-            #print(chain_row['atom2'])
-            #print(atom_df['residue'].head(n=20) == row['residue'])
-            #print(atom_df['resid'].head(n=20) == row['resid'])
-            #print(atom_df['chain'].head(n=20) == row['chain'])
-            #print(atom_df['atom'].head(n=20) == chain_row['atom2'])
-            #print(atom_df[(atom_df['residue'] == row['residue']) & (atom_df['resid'] == row['resid']) & (atom_df['chain'] == row['chain']) & (atom_df['atom'] == chain_row['atom2'])].iloc[0])
-
             next_row = atom_df[(atom_df['residue'] == row['residue']) & (atom_df['resid'] == row['resid']) & (atom_df['chain'] == row['chain']) & (atom_df['atom'] == chain_row['atom2'])].iloc[0]
 
             # Call the bresenham_line function and append the coordinates to the list
@@ -558,7 +549,6 @@ def process_coordinates(df):
                       ((df["X"] == x) & (df["Y"] == y - 1) & (df["Z"] == z)) | \
                       ((df["X"] == x) & (df["Y"] == y) & (df["Z"] == z + 1)) | \
                       ((df["X"] == x) & (df["Y"] == y) & (df["Z"] == z - 1))
-        print(surrounding)
 
         # Count the number of surrounding coordinates that exist in the dataframe
         num_surrounding = np.sum(surrounding)
@@ -671,6 +661,7 @@ def process_hetatom(atom_df, pdb_file):
     # #Filter HETATM lines with "HOH" in the fourth column
     # atom_df = atom_df[~((atom_df['row'] == 'HETATM') & (atom_df['atom'] == 'HOH'))]
 
+
     # Step 1: Read CONECT lines from file
     conect_ids = []
     with open(pdb_file, 'r') as f:
@@ -706,6 +697,7 @@ def process_hetatom(atom_df, pdb_file):
 
         line_coords = bresenham_line(atom1['X'].values[0], atom1['Y'].values[0], atom1['Z'].values[0], atom2['X'].values[0], atom2['Y'].values[0], atom2['Z'].values[0])
         #results_df = results_df.append(pd.DataFrame(line_coords, columns=['X', 'Y', 'Z']), ignore_index=True)
+        print(line_coords)
         results_df = pd.concat([results_df, pd.DataFrame(line_coords, columns=['X', 'Y', 'Z'])], ignore_index=True)
 
     # Step 5: Remove duplicate rows from results_df
