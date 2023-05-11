@@ -4,7 +4,7 @@ import glob
 
 def create_minecraft_functions(df, name, air, dir, blocks, replace = False):
     block_dict = blocks
-    print(df.tail(n=50))
+    #print(df.tail(n=50))
     block_type = 'air' if air else 'block'
     functions = []
     name = name.lower()

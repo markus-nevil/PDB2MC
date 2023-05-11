@@ -50,6 +50,7 @@ if __name__ == '__main__':
             "backbone": True,
             "sidechain": True,
             "show_atoms": True,
+            "by_chain": False,
             "show_hetatm": True,
             "mesh": False,
             "pdb_file": None,
@@ -183,6 +184,7 @@ if __name__ == '__main__':
                     config["mode"] = values["mode"]
                     config["backbone"] = values["backbone"]
                     config["sidechain"] = values["sidechain"]
+                    config["by_chain"] = values["by_chain"]
                     config["show_atoms"] = values["show_atoms"]
                     config["show_hetatm"] = values["show_hetatm"]
                     config["mesh"] = values["mesh"]
@@ -237,7 +239,32 @@ if __name__ == '__main__':
                         pdb_backbone = pdb_name + "_backbone"
                         backbone = atom_subset(rounded, ['C', 'N', 'CA', 'P', "O5'", "C5'", "C4'", "C3'", "O3'"],
                                                include=True)
-                        intermediate = find_intermediate_points(backbone)
+                        if config_data["by_chain"]:
+                            by_chain_df = pd.DataFrame(columns=['X', 'Y', 'Z', 'atom'])
+                            chain_values = backbone["chain"].unique()
+
+                            for i, chain_value in enumerate(chain_values):
+                                # extract all rows that match the same value in "chain"
+                                chain_df = backbone[backbone["chain"] == chain_value]
+
+                                # perform intermediate calculations
+                                intermediate = find_intermediate_points(chain_df)
+
+                                # add a new column "atom" with values ranging from 1 to 10, repeating that pattern for unique "chain" values >10
+                                if i < 10:
+                                    intermediate["atom"] = i+1
+                                else:
+                                    intermediate["atom"] = (i+1) % 10
+
+                                # append the resulting intermediate DataFrame to by_chain_df
+                                print(intermediate)
+                                print(by_chain_df)
+                                by_chain_df = by_chain_df.append(intermediate, ignore_index=True)
+
+                            print(by_chain_df)
+
+                        else:
+                            intermediate = find_intermediate_points(backbone)
                         if config_data["mode"] == "X-ray":
                             create_minecraft_functions(intermediate, pdb_backbone, False, mc_dir, config_data['atoms'],
                                                        replace=True)
@@ -261,6 +288,7 @@ if __name__ == '__main__':
                         center = sphere_center(config_data['atom_scale'])
                         shortened = shorten_atom_names(atom_df)
                         spheres = add_sphere_coordinates(coord, center, shortened, mesh=config_data['mesh'])
+                        #print(spheres)
                         if config_data["mode"] == "X-ray":
                             create_minecraft_functions(spheres, pdb_atoms, False, mc_dir, config_data['atoms'],
                                                        replace=False)
@@ -288,8 +316,10 @@ if __name__ == '__main__':
 
                 create_master_function(mcfiles, pdb_name, mc_dir)
 
-                sg.popup("Finished! Remember to /reload in your world and /function protein:drop_###")
+                message = f"Finished! Remember to /reload in your world and /function protein:drop_{pdb_name}"
+                sg.popup(message)
             else:
+
                 sg.Popup("You are missing a PDB file and/or a save directory!", title="Warning!")
 
     # Close the window
