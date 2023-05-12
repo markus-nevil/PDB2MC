@@ -264,201 +264,82 @@ def find_intermediate_points(replot_df):
     return pd.DataFrame(new_data, columns=columns)
 
 
-# def sidechain(df):
-#     df = df[df['row'].str.contains('ATOM')]
-#     df = df[['atom', 'X', 'Y', 'Z']].copy()
-#
-#     coordinates = []
-#     new_data = []
-#     columns = ['X', 'Y', 'Z']
-#     prev_atom_pos = None
-#     prev_atom_branch = False
-#     sidechain_bool = False
-#     # try:
-#     for i, row in df.iterrows():
-#
-#         # Detect what level of a chain it is on.
-#         if row['atom'] == 'CA':
-#             prev_atom_pos = df.iloc[i]
-#             sidechain_bool = True
-#         elif len(row['atom']) == 1 and row['atom'][0] == 'C':
-#             prev_atom_pos = df.iloc[i]
-#             sidechain_bool = True
-#         elif len(row['atom']) == 1 and row['atom'][0] == 'O':
-#             prev_atom_pos = df.iloc[i - 1]
-#             sidechain_bool = True
-#         elif len(row['atom']) == 2 and (row['atom'][1] in ['B', 'G', 'D', 'E', 'Z']):
-#             k = 1
-#             prev_atom_pos = df.iloc[i - 1]
-#             while len(prev_atom_pos['atom']) < 2:
-#                 prev_atom_pos = df.iloc[i - k]
-#                 k += 1
-#             sidechain_bool = True
-#         elif len(row['atom']) == 3:
-#             prev_atom_pos = df.iloc[i - 1]
-#             sidechain_bool = True
-#             prev_atom_branch = True
-#         elif row['atom'] == 'OH':
-#             k = 1
-#             prev_atom_pos = df.iloc[i - 1]
-#             while prev_atom_pos['atom'] != 'CZ':
-#                 prev_atom_pos = df.iloc[i - k]
-#                 k += 1
-#         else:
-#             prev_atom_pos = None
-#             sidechain_bool = False
-#             prev_atom_branch = False
-#
-#         # Perform bresenham on the proper two atoms
-#         if len(row['atom']) == 1 and row['atom'][0] == 'O':
-#             # print("problem?")
-#             point1 = prev_atom_pos[columns].values
-#             point2 = row[columns].values
-#             # Use Bresenham's line algorithm to find the intermediate points
-#             coordinates = bresenham_line(*point1, *point2)
-#
-#             sidechain_bool = False
-#             prev_atom_branch = False
-#         elif len(row['atom']) == 2:
-#             if (prev_atom_branch == True):
-#                 # print("A")
-#                 point1 = prev_atom_pos[columns].values
-#                 point2 = row[columns].values
-#                 # Use Bresenham's line algorithm to find the intermediate points
-#                 coordinates = bresenham_line(*point1, *point2)
-#
-#                 prev_atom_pos = df.iloc[i - 2]
-#                 point1 = prev_atom_pos[columns].values
-#                 point2 = row[columns].values
-#
-#                 # Use Bresenham's line algorithm to find the intermediate points
-#                 coordinates = np.concatenate([coordinates, bresenham_line(*point1, *point2)])
-#                 prev_atom_branch = False
-#                 sidechain_bool = False
-#             else:
-#                 # print("C")
-#                 k = 1
-#                 while len(prev_atom_pos['atom']) < 2:
-#                     prev_atom_pos = df.iloc[i - k]
-#                     k += 1
-#                 point1 = prev_atom_pos[columns].values
-#                 point2 = row[columns].values
-#                 # Use Bresenham's line algorithm to find the intermediate points
-#                 coordinates = bresenham_line(*point1, *point2)
-#
-#                 sidechain_bool = False
-#                 prev_atom_branch = False
-#         elif len(row['atom']) == 3:
-#             # print("branch time!")
-#             # print(row)
-#             if len(prev_atom_pos['atom']) == 2:
-#                 # print("oy")
-#                 point1 = prev_atom_pos[columns].values
-#                 point2 = row[columns].values
-#                 # Use Bresenham's line algorithm to find the intermediate points
-#                 coordinates = bresenham_line(*point1, *point2)
-#             elif row['atom'][2] == prev_atom_pos['atom'][2]:
-#                 # print("D")
-#                 point1 = prev_atom_pos[columns].values
-#                 point2 = row[columns].values
-#                 # Use Bresenham's line algorithm to find the intermediate points
-#                 coordinates = bresenham_line(*point1, *point2)
-#             else:
-#                 prev_atom_pos = df.iloc[i - 2]
-#                 # print("E")
-#                 point1 = prev_atom_pos[columns].values
-#                 point2 = row[columns].values
-#                 # Use Bresenham's line algorithm to find the intermediate points
-#                 coordinates = bresenham_line(*point1, *point2)
-#                 prev_atom_branch = True
-#                 sidechain_bool = False
-#         else:
-#             continue
-#
-#         # Add the intermediate points to the new dataframe
-#         for p in coordinates:
-#             new_data.append(p)
-#
-#     coord_df = pd.DataFrame(new_data, columns=['X', 'Y', 'Z'])
-#     return coord_df
 
-
-# def branch_lines(df):
+# def sidechain(atom_df):
+#
+#     chains_df = pd.read_csv("chains.txt", sep='\s+', header=None, names=['residue', 'atom', 'atom2'], engine='python')
+#
 #     # Create an empty list to store the coordinates
 #     coordinates = []
 #
-#     # Iterate over the rows of the dataframe
-#     for i, row in df.iterrows():
-#         # Skip rows with atom values of 2 or less characters
-#         if len(row['atom']) <= 2:
-#             continue
+#     # Iterate over the rows of the atom dataframe
+#     for i, row in atom_df.iterrows():
+#         # Find the matching row(s) in the chains dataframe
+#         matching_chains = chains_df[(chains_df['residue'] == row['residue']) & (chains_df['atom'] == row['atom'])]
+#         # Iterate over the matching chain rows
+#         for _, chain_row in matching_chains.iterrows():
 #
-#         # Extract the atom identity, position, and branch (if any) from the atom column
-#         atom = row['atom']
-#         atom_id = atom[0]
-#         atom_pos = atom[1]
-#         atom_branch = atom[2] if len(atom) == 3 else None
+#             # Find the next row in the atom dataframe that matches the residue and atom2 values
+#             next_row = atom_df[(atom_df['residue'] == row['residue']) & (atom_df['resid'] == row['resid']) & (atom_df['chain'] == row['chain']) & (atom_df['atom'] == chain_row['atom2'])].iloc[0]
 #
-#         # Initialize variables to store the previous atom position and branch (if any)
-#         prev_atom_pos = None
-#         prev_atom_branch = None
+#             # Call the bresenham_line function and append the coordinates to the list
+#             if not next_row.empty:
+#                 coordinates += bresenham_line(row['X'], row['Y'], row['Z'], next_row['X'], next_row['Y'], next_row['Z']).tolist()
 #
-#         # Search back through the previous rows to find the most recent row that satisfies the assumptions above
-#         for j in range(i - 1, -1, -1):
-#             prev_row = df.iloc[j]
-#             prev_atom = prev_row['atom']
-#             prev_atom_id = prev_atom[0]
-#             prev_atom_pos = prev_atom[1]
-#             prev_atom_branch = prev_atom[2] if len(prev_atom) == 3 else None
-#
-#             # Check if the previous atom is the correct atom to connect to
-#             if prev_atom_id == 'N' and atom_id == 'C' and prev_atom_pos == atom_pos:
-#                 coordinates += bresenham_line(prev_row['x_coord'], prev_row['y_coord'], prev_row['z_coord'],
-#                                               row['x_coord'], row['y_coord'], row['z_coord']).tolist()
-#                 break
-#             elif prev_atom_id == 'C' and atom_id == 'O' and prev_atom_pos == atom_pos:
-#                 coordinates += bresenham_line(prev_row['x_coord'], prev_row['y_coord'], prev_row['z_coord'],
-#                                               row['x_coord'], row['y_coord'], row['z_coord']).tolist()
-#                 break
-#             elif prev_atom_id == 'C' and atom_id == 'N' and prev_atom_pos == atom_pos:
-#                 coordinates += bresenham_line(prev_row['x_coord'], prev_row['y_coord'], prev_row['z_coord'],
-#                                               row['x_coord'], row['y_coord'], row['z_coord']).tolist()
-#                 break
-#             elif prev_atom_id == 'C' and atom_id == 'C' and prev_atom_pos == atom_pos:
-#                 if atom_branch is not None and prev_atom_branch is not None and atom_branch != prev_atom_branch:
-#                     coordinates += bresenham_line(prev_row['x_coord'], prev_row['y_coord'], prev_row['z_coord'],
-#                                                   row['x_coord'], row['y_coord'], row['z_coord']).tolist()
-#                     break
+#     # Create a dataframe from the coordinates list and return it
 #     coord_df = pd.DataFrame(coordinates, columns=['X', 'Y', 'Z'])
+#     coord_df = coord_df.drop_duplicates()
+#
 #     return coord_df
 
 def sidechain(atom_df):
-
     chains_df = pd.read_csv("chains.txt", sep='\s+', header=None, names=['residue', 'atom', 'atom2'], engine='python')
 
     # Create an empty list to store the coordinates
     coordinates = []
 
+    # Keep track of the current chain number and its index in the chain_values list
+    current_chain_num = 1
+    chain_values = atom_df["chain"].unique()
+    chain_idx_dict = {chain_value: idx for idx, chain_value in enumerate(chain_values)}
+
+    print(chain_values)
+    print(chain_idx_dict)
+
     # Iterate over the rows of the atom dataframe
     for i, row in atom_df.iterrows():
         # Find the matching row(s) in the chains dataframe
         matching_chains = chains_df[(chains_df['residue'] == row['residue']) & (chains_df['atom'] == row['atom'])]
+
         # Iterate over the matching chain rows
         for _, chain_row in matching_chains.iterrows():
-
             # Find the next row in the atom dataframe that matches the residue and atom2 values
-            next_row = atom_df[(atom_df['residue'] == row['residue']) & (atom_df['resid'] == row['resid']) & (atom_df['chain'] == row['chain']) & (atom_df['atom'] == chain_row['atom2'])].iloc[0]
+            next_row = atom_df[(atom_df['residue'] == row['residue']) & (atom_df['resid'] == row['resid']) & (
+                        atom_df['chain'] == row['chain']) & (atom_df['atom'] == chain_row['atom2'])].iloc[0]
 
             # Call the bresenham_line function and append the coordinates to the list
             if not next_row.empty:
-                coordinates += bresenham_line(row['X'], row['Y'], row['Z'], next_row['X'], next_row['Y'], next_row['Z']).tolist()
+                temp_coord = bresenham_line(row['X'], row['Y'], row['Z'], next_row['X'], next_row['Y'],
+                                              next_row['Z']).tolist()
+                for sublist in temp_coord:
+                    sublist.append(current_chain_num)
+                coordinates += temp_coord
 
+
+        # Update the current chain number
+        chain_idx = chain_idx_dict[row['chain']]
+        current_chain_num = (chain_idx % 10) + 1
+
+
+    #print(coordinates)
     # Create a dataframe from the coordinates list and return it
-    coord_df = pd.DataFrame(coordinates, columns=['X', 'Y', 'Z'])
+    coord_df = pd.DataFrame(coordinates, columns=['X', 'Y', 'Z', 'atom'])
     coord_df = coord_df.drop_duplicates()
 
+    print(coord_df)
 
     return coord_df
+
 
 def sphere_coordinates(center, radius, num_points):
     phi = np.linspace(0, np.pi, num_points)

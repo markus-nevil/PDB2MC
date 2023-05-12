@@ -1,9 +1,12 @@
 import pandas as pd
 import os
+from variables import chain_blocks
 import glob
 
 def create_minecraft_functions(df, name, air, dir, blocks, replace = False):
     block_dict = blocks
+
+    #print(block_dict)
     #print(df.tail(n=50))
     block_type = 'air' if air else 'block'
     functions = []
@@ -16,8 +19,12 @@ def create_minecraft_functions(df, name, air, dir, blocks, replace = False):
         #     block = block_dict['backbone_atom']
 
         if 'atom' in df.columns:
-            block = block_dict.get(row['atom'], 'pink_concrete')
-            #print(row['atom'])
+            #block = block_dict.get(row['atom'], 'pink_concrete')
+            if str(row['atom']).isdigit():
+                block = chain_blocks.get(str(row['atom']), 'gray_concrete')
+                #print(row['atom'])
+            else:
+                block = block_dict.get(row['atom'], 'pink_concrete')
         else:
             block = block_dict.get('backbone_atom', 'pink_concrete')
 

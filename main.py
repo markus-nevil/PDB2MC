@@ -3,6 +3,7 @@ from plotting_functions import *
 from minecraft_functions import *
 import PySimpleGUI as sg
 from variables import *
+import pandas as pd
 import ast
 import json
 
@@ -239,6 +240,7 @@ if __name__ == '__main__':
                         pdb_backbone = pdb_name + "_backbone"
                         backbone = atom_subset(rounded, ['C', 'N', 'CA', 'P', "O5'", "C5'", "C4'", "C3'", "O3'"],
                                                include=True)
+                        #print(backbone)
                         if config_data["by_chain"]:
                             by_chain_df = pd.DataFrame(columns=['X', 'Y', 'Z', 'atom'])
                             chain_values = backbone["chain"].unique()
@@ -257,12 +259,9 @@ if __name__ == '__main__':
                                     intermediate["atom"] = (i+1) % 10
 
                                 # append the resulting intermediate DataFrame to by_chain_df
-                                print(intermediate)
-                                print(by_chain_df)
-                                by_chain_df = by_chain_df.append(intermediate, ignore_index=True)
+                                by_chain_df = pd.concat([by_chain_df, intermediate], ignore_index=True)
 
-                            print(by_chain_df)
-
+                            intermediate = by_chain_df
                         else:
                             intermediate = find_intermediate_points(backbone)
                         if config_data["mode"] == "X-ray":
@@ -274,7 +273,12 @@ if __name__ == '__main__':
 
                     if config_data["sidechain"] == True:
                         branches = sidechain(rounded)
+
+                        if config_data["by_chain"]:
+                            branches = branches.drop("atom", axis=1)
+
                         pdb_sidechain = pdb_name + "_sidechain"
+
                         if config_data["mode"] == "X-ray":
                             create_minecraft_functions(branches, pdb_sidechain, False, mc_dir, config_data['atoms'],
                                                        replace=True)
