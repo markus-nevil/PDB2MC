@@ -1,0 +1,10 @@
+HEADER    LIGASE                                  01-DEC-97   1A0I              
+TITLE     ATP-DEPENDENT DNA LIGASE FROM BACTERIOPHAGE T7 COMPLEX WITH           
+TITLE    2 ATP
+
+ATOM   1235  N   CYS A 163       3.138  -9.395  70.829  1.00  9.05           N  
+ATOM   1236  CA  CYS A 163       3.496 -10.106  72.035  1.00 13.14           C  
+ATOM   1237  C   CYS A 163       5.000  -9.986  72.136  1.00 16.36           C  
+ATOM   1238  O   CYS A 163       5.766 -10.369  71.235  1.00 21.30           O  
+ATOM   1239  CB  CYS A 163       3.089 -11.552  71.936  1.00 10.57           C  
+ATOM   1240  SG  CYS A 163       3.568 -12.346  73.475  1.00 13.46           S 

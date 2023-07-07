@@ -26,26 +26,34 @@ if __name__ == '__main__':
                 "other_atom": "pink_concrete"
             },
             "amino_acids": {
-                "ALA": "red_concrete",
-                "ARG": "",
-                "ASN": "",
-                "ASP": "",
-                "CYS": "",
-                "GLN": "",
-                "GLU": "",
-                "GLY": "",
-                "HIS": "",
-                "ILE": "",
-                "LEU": "",
-                "LYS": "",
-                "MET": "",
-                "PHE": "",
-                "PRO": "",
-                "SER": "",
-                "THR": "",
-                "TRP": "",
-                "TYR": "",
-                "VAL": ""
+                "ALA": "stone",
+                "ARG": "cobblestone",
+                "ASN": "dirt",
+                "ASP": "oak_planks",
+                "CYS": "spruce_planks",
+                "GLN": "birch_planks",
+                "GLU": "jungle_planks",
+                "GLY": "acacia_planks",
+                "HIS": "dark_oak_planks",
+                "ILE": "sandstone",
+                "LEU": "terracotta",
+                "LYS": "nether_brick",
+                "MET": "prismarine_bricks",
+                "PHE": "polished_granite",
+                "PRO": "end_stone_bricks",
+                "SER": "red_nether_bricks",
+                "THR": "redstone_block",
+                "TRP": "obsidian",
+                "TYR": "polished_andesite",
+                "VAL": "polished_diorite",
+                "A": "pink_wool",
+                "U": "lime_wool",
+                "G": "gray_wool",
+                "C": "light_blue_wool",
+                "dA": "red_wool",
+                "dT": "green_wool",
+                "dG": "black_wool",
+                "dC": "blue_wool"
             },
             "mode": "Default",
             "backbone": True,
@@ -85,21 +93,27 @@ if __name__ == '__main__':
             break
         elif event == 'Switch Layout':
             if window['mode'].get() == 'Default':
+                master_mode = "Default"
                 window.close()
                 window = sg.Window("Default Plotting options", default_layout)
             elif window['mode'].get() == 'Backbone' or window['mode'].get() == 'Skeleton':
+                master_mode = "Skeleton"
                 window.close()
                 window = sg.Window("Backbone/Skeleton Plotting Options", backbone_layout)
             elif window['mode'].get() == 'Space Filling':
+                master_mode = "Space Filling"
                 window.close()
                 window = sg.Window("Space Filling Plotting Options", sf_layout)
             elif window['mode'].get() == 'X-ray' or window['mode'].get() == 'X-ray Backbone':
+                master_mode = "X-ray Backbone"
                 window.close()
                 window = sg.Window("X-ray Plotting Options", xray_layout)
             elif window['mode'].get() == 'Amino Acids':
+                master_mode = "Amino Acids"
                 window.close()
                 window = sg.Window("Amino Acid Plotting Options", aa_layout)
             elif window['mode'].get() == 'Min' or window['mode'].get() == 'Max':
+                master_mode = "Max"
                 window.close()
                 window = sg.Window("Min/Max Plotting Options", minmax_layout)
 
@@ -152,15 +166,16 @@ if __name__ == '__main__':
                     config = json.load(f)
                     config["scale"] = float(values["scale"])
                     config["atom_scale"] = float(values["atom_scale"])
-                    config["atoms"]["C"] = values["C"]
-                    config["atoms"]["N"] = values["N"]
-                    config["atoms"]["O"] = values["O"]
-                    config["atoms"]["S"] = values["S"]
-                    config["atoms"]["P"] = values["P"]
-                    # config["atoms"]["H"] = values["H"]
-                    config["atoms"]["backbone_atom"] = values["backbone_atom"]
-                    config["atoms"]["sidechain_atom"] = values["sidechain_atom"]
-                    config["atoms"]["other_atom"] = values["other_atom"]
+                    if values.get('C') is not None:
+                        config["atoms"]["C"] = values["C"]
+                        config["atoms"]["N"] = values["N"]
+                        config["atoms"]["O"] = values["O"]
+                        config["atoms"]["S"] = values["S"]
+                        config["atoms"]["P"] = values["P"]
+                        # config["atoms"]["H"] = values["H"]
+                    config["atoms"]["backbone_atom"] = values.get("backbone_atom")
+                    config["atoms"]["sidechain_atom"] = values.get("sidechain_atom")
+                    config["atoms"]["other_atom"] = values.get("other_atom")
                     if values.get('ALA') is not None:
                         config["amino_acids"]["ALA"] = values["ALA"]
                         config["amino_acids"]["ARG"] = values["ARG"]
@@ -182,13 +197,13 @@ if __name__ == '__main__':
                         config["amino_acids"]["TRP"] = values["TRP"]
                         config["amino_acids"]["TYR"] = values["TYR"]
                         config["amino_acids"]["VAL"] = values["VAL"]
-                    config["mode"] = values["mode"]
-                    config["backbone"] = values["backbone"]
-                    config["sidechain"] = values["sidechain"]
-                    config["by_chain"] = values["by_chain"]
-                    config["show_atoms"] = values["show_atoms"]
-                    config["show_hetatm"] = values["show_hetatm"]
-                    config["mesh"] = values["mesh"]
+                    config["mode"] = values.get("mode")
+                    config["backbone"] = values.get("backbone")
+                    config["sidechain"] = values.get("sidechain")
+                    config["by_chain"] = values.get("by_chain")
+                    config["show_atoms"] = values.get("show_atoms")
+                    config["show_hetatm"] = values.get("show_hetatm")
+                    config["mesh"] = values.get("mesh")
                     f.seek(0)
                     json.dump(config, f, indent=4, default=None)
                     f.truncate()
@@ -199,6 +214,7 @@ if __name__ == '__main__':
 
                 if config_data["mode"] != "Default":
                     config_data = change_mode(config_data)
+
 
                 pdb_file = config_data['pdb_file']
 
@@ -228,9 +244,57 @@ if __name__ == '__main__':
                 hetatom_df = filter_type_atom(rounded, remove_type="ATOM", remove_atom="H")
                 atom_df = filter_type_atom(rounded, remove_type="HETATM", remove_atom="H")
 
+
+                print(config_data["mode"])
                 # Check if printing a special case
-                if config_data["mode"] == "Amino Acids":
+                if master_mode == "Amino Acids":
                     print("Amino acid mode")
+                    residue = atom_subset(rounded, ['CA', "C4'"], include=True)
+
+                    pdb_atoms = pdb_name + "_atoms"
+                    coord = rasterized_sphere(config_data['atom_scale'])
+                    center = sphere_center(config_data['atom_scale'])
+                    shortened = residue_to_atoms(residue)
+
+                    # Hard coded the "mesh" due to lack in the config file
+                    spheres = add_sphere_coordinates(coord, center, shortened, mesh=False)
+
+                    create_minecraft_functions(spheres, pdb_atoms, False, mc_dir, config_data['amino_acids'],
+                                                   replace=True)
+
+                    if config_data["backbone"] == True:
+                        pdb_backbone = pdb_name + "_backbone"
+                        backbone = atom_subset(rounded, ['C', 'N', 'CA', 'P', "O5'", "C5'", "C4'", "C3'", "O3'"],
+                                               include=True)
+
+                        if config_data["by_chain"]:
+                            by_chain_df = pd.DataFrame(columns=['X', 'Y', 'Z', 'atom'])
+                            chain_values = backbone["chain"].unique()
+
+                            for i, chain_value in enumerate(chain_values):
+                                # extract all rows that match the same value in "chain"
+                                chain_df = backbone[backbone["chain"] == chain_value]
+
+                                # perform intermediate calculations
+                                intermediate = find_intermediate_points(chain_df)
+
+                                # add a new column "atom" with values ranging from 1 to 10, repeating that pattern for unique "chain" values >10
+                                if i < 10:
+                                    intermediate["atom"] = i+1
+                                else:
+                                    intermediate["atom"] = (i+1) % 10
+
+                                # append the resulting intermediate DataFrame to by_chain_df
+                                by_chain_df = pd.concat([by_chain_df, intermediate], ignore_index=True)
+
+                            intermediate = by_chain_df
+                        else:
+                            intermediate = find_intermediate_points(backbone)
+
+                        create_minecraft_functions(intermediate, pdb_backbone, False, mc_dir, config_data['atoms'],
+                                                       replace=False)
+
+
 
                 # Otherwise print a normal model
                 else:

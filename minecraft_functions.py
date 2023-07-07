@@ -4,12 +4,12 @@ from variables import chain_blocks
 import glob
 
 def create_minecraft_functions(df, name, air, dir, blocks, replace = False):
-    block_dict = blocks
 
-    #print(block_dict)
-    #print(df.tail(n=50))
+
+    block_dict = blocks
     block_type = 'air' if air else 'block'
     functions = []
+
     name = name.lower()
     for index, row in df.iterrows():
         x, y, z = row['X'], row['Y'], row['Z']

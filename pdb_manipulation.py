@@ -402,7 +402,9 @@ def rasterized_sphere(radius):
 def add_sphere_coordinates(sphere_array, center, df, mesh=False):
     sphere_coords = np.transpose(np.nonzero(sphere_array))
     new_rows = []
+
     for row_index, row in df.iterrows():
+
         for i, j, k in sphere_coords:
             i_norm, j_norm, k_norm = i - center[0], j - center[1], k - center[2]
             distance = math.sqrt(i_norm ** 2 + j_norm ** 2 + k_norm ** 2)
@@ -443,6 +445,10 @@ def process_coordinates(df):
     # Remove the "hidden" column
     df = df.drop("hidden", axis=1)
 
+    return df
+
+def residue_to_atoms(df):
+    df['atom'] = df['residue']
     return df
 
 
