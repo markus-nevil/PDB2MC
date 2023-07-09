@@ -1,16 +1,16 @@
 {
-    "scale": 3.0,
+    "scale": 2.0,
     "atoms": {
-        "C": "black_concrete",
-        "N": "blue_concrete",
-        "O": "red_concrete",
-        "S": "yellow_concrete",
+        "C": "acacia_log",
+        "N": "dark_oak_log",
+        "O": "gray_wool",
+        "S": "green_wool",
         "H": "white_concrete",
-        "P": "lime_concrete",
+        "P": "white_wool",
         "FE": "iron_block",
         "backbone_atom": "gray_concrete",
-        "sidechain_atom": null,
-        "other_atom": null
+        "sidechain_atom": "gray_concrete",
+        "other_atom": "pink_concrete"
     },
     "amino_acids": {
         "ALA": "white_stained_glass",
@@ -42,14 +42,14 @@
         "dG": "black_wool",
         "dC": "blue_wool"
     },
-    "mode": "",
+    "mode": "Default",
     "backbone": true,
-    "sidechain": null,
-    "show_atoms": null,
-    "show_hetatm": null,
-    "by_chain": null,
-    "mesh": null,
-    "pdb_file": "C:/Users/marku/PycharmProjects/mcpdb/presets/GFP.pdb",
-    "save_path": "C:/Users/marku/AppData/Roaming/.minecraft/saves/creativey/datapacks\\mcPDB/data/protein/functions",
+    "sidechain": true,
+    "show_atoms": true,
+    "show_hetatm": true,
+    "by_chain": false,
+    "mesh": false,
+    "pdb_file": null,
+    "save_path": null,
     "atom_scale": 3.0
 }

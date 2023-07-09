@@ -254,7 +254,7 @@ if __name__ == '__main__':
                     shortened = residue_to_atoms(residue)
 
                     # Hard coded the "mesh" due to lack in the config file
-                    spheres = add_sphere_coordinates(coord, center, shortened, mesh=False)
+                    spheres = fill_sphere_coordinates(coord, center, shortened)
 
                     create_minecraft_functions(spheres, pdb_atoms, False, mc_dir, config_data['amino_acids'],
                                                    replace=True)

@@ -446,7 +446,6 @@ def add_sphere_coordinates(sphere_array, center, df, mesh=False):
     new_rows = []
 
     for row_index, row in df.iterrows():
-
         for i, j, k in sphere_coords:
             i_norm, j_norm, k_norm = i - center[0], j - center[1], k - center[2]
             distance = math.sqrt(i_norm ** 2 + j_norm ** 2 + k_norm ** 2)
@@ -457,6 +456,17 @@ def add_sphere_coordinates(sphere_array, center, df, mesh=False):
     sphere_df = pd.DataFrame(new_rows, columns=['X', 'Y', 'Z', 'atom'])
     return sphere_df
 
+def fill_sphere_coordinates(sphere_array, center, df):
+    sphere_coords = np.transpose(np.nonzero(sphere_array))
+    new_rows = []
+
+    for row_index, row in df.iterrows():
+        for i, j, k in sphere_coords:
+            i_norm, j_norm, k_norm = i - center[0], j - center[1], k - center[2]
+            distance = math.sqrt(i_norm ** 2 + j_norm ** 2 + k_norm ** 2)
+            new_rows.append([row['X'] + i_norm, row['Y'] + j_norm, row['Z'] + k_norm, row['atom']])
+    sphere_df = pd.DataFrame(new_rows, columns=['X', 'Y', 'Z', 'atom'])
+    return sphere_df
 
 def process_coordinates(df):
     # Create an empty "hidden" column
