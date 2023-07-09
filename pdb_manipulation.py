@@ -64,6 +64,62 @@ def clip_coords(dataframe):
     tmp_df[['X', 'Y', 'Z']] = tmp_df[['X', 'Y', 'Z']].astype(float)
     return tmp_df
 
+#Function that takes a dataframe of coordinates, finds the minimum Y value, sets that to -60, and then subtracts that value from all Y values
+def set_min_y(df):
+    min_y = df['Y'].min()
+    df['Y'] = df['Y'] - min_y
+    return df
+
+
+#Function that takes a dataframe of coordinates and finds the max and min values for X, Y, and Z, then assumes that is a box, then rotates the coordinates such that the smallest dimension of the box is now the Y axis. Returns a dataframe of the transformed coordinates.
+def rotate_to_y(df):
+    min_x = df['X'].min()
+    max_x = df['X'].max()
+    min_y = df['Y'].min()
+    max_y = df['Y'].max()
+    min_z = df['Z'].min()
+    max_z = df['Z'].max()
+    x_range = max_x - min_x
+    y_range = max_y - min_y
+    z_range = max_z - min_z
+
+    if x_range < y_range and x_range < z_range:
+        df = rotate_x(df)
+        #print("Rotated to X")
+    if y_range < x_range and y_range < z_range:
+        df = rotate_y(df)
+        #print("Rotated to Y")
+    if z_range < x_range and z_range < y_range:
+        df = rotate_z(df)
+        #print("Rotated to Z")
+    return df
+
+def rotate_x(df):
+    x = df['X']
+    y = df['Y']
+    z = df['Z']
+    df['X'] = -z
+    df['Y'] = x
+    df['Z'] = y
+    return df
+
+def rotate_y(df):
+    x = df['X']
+    y = df['Y']
+    z = df['Z']
+    df['X'] = z
+    df['Y'] = y
+    df['Z'] = -x
+    return df
+
+def rotate_z(df):
+    x = df['X']
+    y = df['Y']
+    z = df['Z']
+    df['X'] = -y
+    df['Y'] = z
+    df['Z'] = x
+    return df
 
 def move_coordinates(df):
     first_row = df.iloc[0]
@@ -137,31 +193,6 @@ def filter_type_atom(df, remove_type=None, remove_atom=None):
     filtered_df = filtered_df.reset_index(drop=True)
 
     return filtered_df
-# def filter_type_atom(df, remove_type=None, remove_atom=None):
-#     # Check if remove_type is provided and create a boolean mask to filter out rows that match the criteria
-#     if remove_type is not None:
-#         if isinstance(remove_type, str):
-#             mask = df['row'] != remove_type
-#         elif isinstance(remove_type, list):
-#             mask = ~df['row'].isin(remove_type)
-#         else:
-#             raise ValueError("remove_type parameter must be a string or a list")
-#     else:
-#         mask = [True] * len(df)  # Keep all rows by default
-#
-#     # Check if remove_atom is provided and add it to the mask as another criterion
-#     if remove_atom is not None:
-#         if isinstance(remove_atom, str):
-#             mask &= ~df['atom'].str.startswith(remove_atom)
-#         elif isinstance(remove_atom, list):
-#             remove_atoms = '|'.join(remove_atom)
-#             mask &= ~df['atom'].str.contains(f"^{remove_atoms}")
-#         else:
-#             raise ValueError("remove_atom parameter must be a string or a list")
-#
-#     # Return the filtered dataframe
-#     return df[mask]
-
 
 def unvectorize_df(df):
     # Initialize the X, Y, Z coordinates with the first row of the input dataframe
@@ -264,34 +295,6 @@ def find_intermediate_points(replot_df):
     return pd.DataFrame(new_data, columns=columns)
 
 
-
-# def sidechain(atom_df):
-#
-#     chains_df = pd.read_csv("chains.txt", sep='\s+', header=None, names=['residue', 'atom', 'atom2'], engine='python')
-#
-#     # Create an empty list to store the coordinates
-#     coordinates = []
-#
-#     # Iterate over the rows of the atom dataframe
-#     for i, row in atom_df.iterrows():
-#         # Find the matching row(s) in the chains dataframe
-#         matching_chains = chains_df[(chains_df['residue'] == row['residue']) & (chains_df['atom'] == row['atom'])]
-#         # Iterate over the matching chain rows
-#         for _, chain_row in matching_chains.iterrows():
-#
-#             # Find the next row in the atom dataframe that matches the residue and atom2 values
-#             next_row = atom_df[(atom_df['residue'] == row['residue']) & (atom_df['resid'] == row['resid']) & (atom_df['chain'] == row['chain']) & (atom_df['atom'] == chain_row['atom2'])].iloc[0]
-#
-#             # Call the bresenham_line function and append the coordinates to the list
-#             if not next_row.empty:
-#                 coordinates += bresenham_line(row['X'], row['Y'], row['Z'], next_row['X'], next_row['Y'], next_row['Z']).tolist()
-#
-#     # Create a dataframe from the coordinates list and return it
-#     coord_df = pd.DataFrame(coordinates, columns=['X', 'Y', 'Z'])
-#     coord_df = coord_df.drop_duplicates()
-#
-#     return coord_df
-
 def sidechain(atom_df):
     chains_df = pd.read_csv("chains.txt", sep='\s+', header=None, names=['residue', 'atom', 'atom2'], engine='python')
 
@@ -302,9 +305,6 @@ def sidechain(atom_df):
     current_chain_num = 1
     chain_values = atom_df["chain"].unique()
     chain_idx_dict = {chain_value: idx for idx, chain_value in enumerate(chain_values)}
-
-    print(chain_values)
-    print(chain_idx_dict)
 
     # Iterate over the rows of the atom dataframe
     for i, row in atom_df.iterrows():
@@ -330,16 +330,67 @@ def sidechain(atom_df):
         chain_idx = chain_idx_dict[row['chain']]
         current_chain_num = (chain_idx % 10) + 1
 
-
-    #print(coordinates)
     # Create a dataframe from the coordinates list and return it
     coord_df = pd.DataFrame(coordinates, columns=['X', 'Y', 'Z', 'atom'])
     coord_df = coord_df.drop_duplicates()
 
-    print(coord_df)
-
     return coord_df
 
+#Function that takes a dataframe of the coordinates of hollow spheres, and another dataframe of coordinates, and removes any points from the second dataframe that are inside the spheres
+def remove_inside_spheres(sphere_df, coord_df, diameter):
+    # Create a list to store the coordinates
+    coordinates = []
+    radius = diameter / 2
+
+
+    #Find the coordinates of the sphere with the given diameter, round to the nearest integer
+    coord = rasterized_sphere(radius)
+    center = sphere_center(radius)
+    sphere_coords = add_sphere_coordinates(coord, center, sphere_df, mesh=False)
+
+    print(sphere_coords.head(n=25))
+
+    # Iterate over the rows of the coordinate dataframe
+    for j, row2 in coord_df.iterrows():
+        # Check if the point is inside the sphere
+        if not is_inside_sphere(row2['X'], row2['Y'], row2['Z'], sphere_coords):
+            # If not, add it to the list of coordinates
+            coordinates.append(row2)
+
+    # Create a dataframe from the coordinates list and return it
+    return pd.DataFrame(coordinates, columns=['X', 'Y', 'Z'])
+
+def is_inside_sphere(x, y, z, sphere_coords):
+    # Iterate over the coordinates of the sphere
+    for coord in sphere_coords:
+        # Check if the point is inside the sphere
+        if x == coord[0] and y == coord[1] and z == coord[2]:
+            return True
+    return False
+
+#Function that takes a dataframe of coordinates of points that represent straight lines and a diameter and returns a dataframe of coordinates of new lines that represent a cylinder with the given diameter
+def cylinderize(df, diameter):
+
+    radius = diameter/2
+    # Create an empty list to store the coordinates
+    coordinates = []
+
+    print(df.head(n=20))
+    #add an extra column to the dataframe named 'atom' and set all values to 'C'
+    df['atom'] = 'C'
+
+    # Use the add_sphere_coordinates function to add the coordinates of a sphere to each point in the dataframe
+    coord = rasterized_sphere(radius)
+    center = sphere_center(radius)
+    sphere_coords = add_sphere_coordinates(coord, center, df, mesh=False)
+
+    #remove duplicates from the dataframe
+    sphere_coords = sphere_coords.drop_duplicates()
+
+    #remove the extra column named 'atom'
+    sphere_coords = sphere_coords.drop(columns=['atom'])
+
+    return sphere_coords
 
 def sphere_coordinates(center, radius, num_points):
     phi = np.linspace(0, np.pi, num_points)
@@ -359,8 +410,6 @@ def sphere_center(radius):
     center = (mid_point, mid_point, mid_point)
     return (center)
 
-
-# def rasterized_sphere(center, radius, shape):
 def rasterized_sphere(radius):
     diameter = math.ceil(radius) * 2 | 1
     mid_point = diameter // 2
@@ -386,19 +435,12 @@ def rasterized_sphere(radius):
     sphere = np.zeros(shape, dtype=np.int32)
     sphere[mask] = 1
 
+    print(sphere)
+
     return sphere
 
 
-# def add_sphere_coordinates(sphere_array, center, df):
-#     sphere_coords = np.transpose(np.nonzero(sphere_array))
-#     new_rows = []
-#     for row_index, row in df.iterrows():
-#         for i, j, k in sphere_coords:
-#             i_norm, j_norm, k_norm = i - center[0], j - center[1], k - center[2]
-#             new_rows.append([row['X'] + i_norm, row['Y'] + j_norm, row['Z'] + k_norm, row['atom']])
-#     sphere_df = pd.DataFrame(new_rows, columns=['X', 'Y', 'Z', 'atom'])
-#     return sphere_df
-
+## Need to change to mesh_mode, so it can be mesh, shell, or filled.
 def add_sphere_coordinates(sphere_array, center, df, mesh=False):
     sphere_coords = np.transpose(np.nonzero(sphere_array))
     new_rows = []

@@ -12,9 +12,13 @@ def create_minecraft_functions(df, name, air, dir, blocks, replace = False):
     
     # Add a line to set a minecraft obsidian block at the origin and a line to set a minecraft sign at the origin
     origin = f'setblock ~ ~-1 ~ minecraft:obsidian replace\n'
-    sign = f"setblock ~ ~ ~ minecraft:oak_sign{{Text1:'{{\"text\":\"{name}\"}}'}}\n"
+
+    #sign = f"setblock ~ ~ ~ minecraft:oak_sign{{Text1:'{{\"text\":\"{name}\"}}'}}\n"
+    #sign = "setblock ~ ~ ~ bamboo_sign[rotation = 8]{front_text: {messages: ['[""]', '["",{"text":"{name}","bold":true}]', '[""]', '[""]'], has_glowing_text: 1}, back_text: {messages: ['[""]', '["",{"text":"{name}","bold":true}]', '[""]', '[""]']}} replace\n"
+    #sign = f"setblock ~ ~1 ~ bamboo_sign[rotation=8]{front_text:{messages:['["HERE"]','[""]','[""]','[""]']},back_text:{messages:['[""]','[" "]','[""]','[""]']}} replace\n"
+
     functions.append(origin)
-    functions.append(sign)
+    #functions.append(sign)
     
     name = name.lower()
     for index, row in df.iterrows():

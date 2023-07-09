@@ -226,16 +226,13 @@ if __name__ == '__main__':
 
                 scalar = config_data['scale']
                 # clipped = clip_coords(pdb_df)
-                # print(pdb_df.head(n=40))
-                # print(clipped.head(n=40))
                 # scaled = scale_coordinates(clipped, scalar)
-                # print(pdb_df.head(n=5))
                 scaled = scale_coordinates(pdb_df, scalar)
                 # print(scaled.head(n=5))
+                #moved = set_y_zero(scaled)
                 moved = move_coordinates(scaled)
-                # print(moved.head(n=5))
+                moved = rotate_to_y(moved)
                 rounded = round_df(moved)
-                #print(rounded.tail(n=100))
 
                 mc_dir = config_data['save_path']
 
@@ -291,6 +288,8 @@ if __name__ == '__main__':
                         else:
                             intermediate = find_intermediate_points(backbone)
 
+                        intermediate = cylinderize(intermediate, 2)
+                        intermediate = remove_inside_spheres(spheres, intermediate, 2)
                         create_minecraft_functions(intermediate, pdb_backbone, False, mc_dir, config_data['atoms'],
                                                        replace=False)
 
@@ -304,7 +303,7 @@ if __name__ == '__main__':
                         pdb_backbone = pdb_name + "_backbone"
                         backbone = atom_subset(rounded, ['C', 'N', 'CA', 'P', "O5'", "C5'", "C4'", "C3'", "O3'"],
                                                include=True)
-                        #print(backbone)
+
                         if config_data["by_chain"]:
                             by_chain_df = pd.DataFrame(columns=['X', 'Y', 'Z', 'atom'])
                             chain_values = backbone["chain"].unique()
@@ -335,7 +334,8 @@ if __name__ == '__main__':
                             create_minecraft_functions(intermediate, pdb_backbone, False, mc_dir, config_data['atoms'],
                                                        replace=False)
 
-                    if config_data["sidechain"] == True:
+                    if config_data["sidechain"] == True and master_mode != "Amino Acids":
+
                         branches = sidechain(rounded)
 
                         if config_data["by_chain"]:
