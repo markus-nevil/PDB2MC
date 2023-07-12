@@ -52,7 +52,7 @@ chain_blocks = {"1" : "red_wool",
 # Define the layout of the window
 open_layout = [
     [sg.Text("Select mode"),
-     sg.DropDown(["Default", "Backbone", "Skeleton", "Space Filling", "X-ray", "X-ray Backbone", "Amino Acids", "Max", "Min"],
+     sg.DropDown(["Default", "Backbone", "Skeleton", "Space Filling", "X-ray", "X-ray Backbone", "Amino Acids", "Ribbon", "Max", "Min"],
                  key="mode", default_value="")],
     [sg.Button('Switch Layout')]
 ]
@@ -174,7 +174,20 @@ xray_layout = [
     [sg.Button("Select PDB file"), sg.Button("Select Minecraft Save")],
     [sg.Button("Create Minecraft Functions", bind_return_key=True)]
 ]
-
+#Ribbon mode
+ribbon_layout = [
+    [sg.Text("Select mode"),
+        sg.DropDown(["Default", "Backbone", "Skeleton", "Space Filling", "X-ray", "X-ray Backbone", "Amino Acids", "Max", "Min"],
+                    key="mode", default_value="")],
+    [sg.Button('Switch Layout')],
+    [sg.HorizontalSeparator()],
+    [sg.Checkbox("Sidechain", default=True, key="sidechain"),
+     sg.Checkbox("Show Hetatoms", default=True, key="show_hetatm")],
+    [sg.Text("Protein scale"), sg.Input(default_text='1.0', key="scale")],
+    [sg.Text("Atom scale"), sg.Input(default_text='1.5', key="atom_scale")],
+    [sg.Button("Select PDB file"), sg.Button("Select Minecraft Save")],
+    [sg.Button("Create Minecraft Functions", bind_return_key=True)]
+]
 #Amino acid
 aa_layout = [
     [sg.Text("Select mode"),

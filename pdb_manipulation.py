@@ -294,6 +294,178 @@ def find_intermediate_points(replot_df):
     # Create the new dataframe and return it
     return pd.DataFrame(new_data, columns=columns)
 
+#Function that will take a pdb dataframe and a new dataframe and, starting at the first "atom" value of "O", will iteratively do the following:
+#1. Find the next "atom" value of "N" in the same "chain" value
+#2. Add that original "O" row to the new dataframe
+#3. Add a new row with identical column values except for an "atom" value of "Nz", and new X, Y, Z coordinates such that the distance between the "Nz" and the "N" are the same as the distance between the original "O" and the last "C" row. Also the new coordinates should be as close to the coordinates of "O"
+#4. Repeat steps 1-3 until the last "C" value in the "chain" is reached
+#5. Return the new dataframe
+
+def add_nz(df):
+    #Initialize the new dataframe
+    columns = ["atom_num", "atom", "residue", "chain", "resid", "X", "Y", "Z"]
+    #Initialize a list to hold the new dataframe
+    new_df = []
+
+    #Variable to hold the direction between two points
+    xyz = []
+    #Variable to hold the distance between two points
+    distance = 0
+    print(df.head(n=25))
+    #Iterate over each row until a row with an "atom" value of "C" is reached
+    for i in range(len(df)):
+
+        if df.iloc[i]['atom'] == 'C':
+            #Check if the next row has an "atom" value of "O", but only if the next row is not the last row
+            if df.iloc[i+1]['atom'] == 'O' and i+1 != len(df)-1:
+
+                #Calculate the direction between the "C" and "O" points
+                xyz = df.iloc[i+1][['X', 'Y', 'Z']].values - df.iloc[i][['X', 'Y', 'Z']].values
+                #Calculate the distance between the "C" and "O" points
+                distance = np.linalg.norm(xyz)
+                #Add the "O" row to the new dataframe
+                new_df.append(df.iloc[i+1])
+
+                #Iterate to find the next row with an "atom" value of "N", but only if the next row is not the last row:
+                while df.iloc[i+2]['atom'] != 'N' and i+2 != len(df)-1:
+                    i += 1
+
+                #Add a new "Nz" row to the new dataframe by copying the "N" row and changing the "atom" value to "Nz"
+                new_df.append(df.iloc[i+2])
+                new_df[-1]['atom'] = 'Nz'
+                #Calculate the new coordinates for the "Nz" row by using the same distance and direction but relative to the old "N" row and round to the nearest whole number
+                new_df[-1][['X', 'Y', 'Z']] = df.iloc[i+2][['X', 'Y', 'Z']].values + (distance * xyz / np.linalg.norm(xyz))
+
+                #Update the iterator to skip the already examined "N" and "O" rows, but only if the next row is not the last row
+                if i+6 <= len(df):
+                    i += 2
+
+    #Convert the float values in columns X, Y, and Z to integers
+    for i in range(len(new_df)):
+        new_df[i][['X', 'Y', 'Z']] = new_df[i][['X', 'Y', 'Z']].astype(int)
+
+    test_df = pd.DataFrame(new_df, columns=columns)
+    print(test_df.head(n=50))
+
+    #Using the completed new_df, use the bresenham_line function to find the intermediate points between the "O" and "Nz" rows
+    new_df = find_intermediate_points(pd.DataFrame(new_df, columns=columns))
+    #Return the new dataframe
+    return new_df
+
+#Function that takes in a dataframe of coordinates and a raw PDB file
+#Add a new column to the dataframe called "structure" and initialize all values to "None"
+#Make a new dataframe called "structure_df" with columns "chain", "residue1", "resid1", "residue2", "resid2", and "structure"
+#Search through the PDB file for rows starting with "HELIX", which will contain two "residue" and "resid" values per row and appear in columns 4-9. Add these values to the "structure_df" dataframe in addition to "helix" in structure column.
+#Search through the PDB file for rows starting with "SHEET", which will contain four "residue" and "resid" values per row. The first two appear in columns 4-9. Add these values to the "structure_df" dataframe in addition to "sheet" in structure column.
+#Next, from the same row "SHEET" row in the PDB file, the last two "residue" and "resid" values appear in columns 12-18. Add these values to the "structure_df" dataframe in addition to "sheet" in structure column.
+#Now assume that in the structure_df, each row represents a range of residues that are part of a structure.
+#Now for each row of the coordinate dataframe (df), check if the "chain", "residue", and "resid" values match any of the rows in the structure_df or if the "chain" matches and the "resid" is between "resid1" and "resid2".
+#If there is a match, then change the "structure" value of the coordinate dataframe (df) to the value in the "structure" column of the structure_df.
+#Return the coordinate dataframe (df)
+
+def add_structure(df, pdb_file):
+    # Add a structure column to the dataframe and initialize all values to "None"
+    df['structure'] = "None"
+
+    # Initialize the structure dataframe
+    structure_df = pd.DataFrame(columns=['chain', 'residue1', 'resid1', 'residue2', 'resid2', 'structure'])
+
+    # Open the PDB file
+    with open(pdb_file, 'r') as f:
+        # Iterate over each line in the PDB file searching for rows starting with "HELIX" or "SHEET"
+        for line in f:
+            if line.startswith("HELIX"):
+                # Add the chain, residue, and resid values to the structure dataframe
+                data = {'chain': line[19], 'residue1': line[15:19].strip(), 'resid1': line[22:26].strip(),
+                        'residue2': line[27:31].strip(), 'resid2': line[34:38].strip(), 'structure': "helix"}
+                structure_df = pd.concat([structure_df, pd.DataFrame(data, index=[0])], ignore_index=True)
+            elif line.startswith("SHEET"):
+                # Add the chain, residue, and resid values to the structure dataframe
+                data1 = {'chain': line[21], 'residue1': line[17:21].strip(), 'resid1': line[22:27].strip(),
+                         'residue2': line[28:32].strip(), 'resid2': line[34:38].strip(), 'structure': "sheet"}
+                data2 = {'chain': line[49], 'residue1': line[44:48].strip(), 'resid1': line[52:55].strip(),
+                         'residue2': line[59:63].strip(), 'resid2': line[67:70].strip(), 'structure': "sheet"}
+                structure_df = pd.concat([structure_df, pd.DataFrame(data1, index=[0]), pd.DataFrame(data2, index=[0])],
+                                         ignore_index=True)
+
+    # Remove any rows with only space characters for columns 'chain', 'residue1', 'resid1', 'residue2', or 'resid2'
+    structure_df = structure_df[structure_df['chain'].str.strip().astype(bool)]
+
+    #print(structure_df.head(n=50))
+    # Convert the 'str' values in the resid1 and resid2 columns to 'int'
+    structure_df[['resid1', 'resid2']] = structure_df[['resid1', 'resid2']].astype(int)
+
+    # Iterate over each row in the coordinate dataframe (df) and check if the "chain" and the "resid" value is between "resid1" and "resid2" in the structure dataframe. If so, add the structure value to the coordinate dataframe (df)
+    for i, row in df.iterrows():
+        # Find the matching row(s) in the structure dataframe
+        matching_rows = structure_df[(structure_df['chain'] == row['chain']) & (structure_df['resid1'] <= row['resid']) & (structure_df['resid2'] >= row['resid'])]
+        # If there is a match, then change the "structure" value of the coordinate dataframe (df) to the value in the "structure" column of the structure_df.
+        if len(matching_rows) > 0:
+            df.at[i, 'structure'] = matching_rows['structure'].values[0]
+
+    # Return the coordinate dataframe (df)
+    return df
+
+#Function that takes a dataframe of coordinates, filters for rows with an 'atom' column value of "N", "CA", and "C", assumes these coordinates make a contiguous line, and smoothens that line by adding more coordinates in between the existing coordinates and adjusting the existing coordinates.
+def smooth_line(df):
+    # Filter the dataframe for rows with an 'atom' column value of "N", "CA", and "C"
+    df = df[df['atom'].isin(['N', 'CA', 'C'])]
+
+    # Sort the dataframe by the 'resid' column
+    df = df.sort_values(by=['resid'])
+
+    # Create an empty list to store the coordinates
+    coordinates = []
+
+    # Iterate over the rows of the dataframe
+    for i, row in df.iterrows():
+        # Add the x, y, and z coordinates to the list
+        coordinates.append([row['X'], row['Y'], row['Z']])
+
+    # Create an empty list to store the new coordinates
+    new_coordinates = []
+
+    # Iterate over the coordinates list
+    for i in range(len(coordinates) - 1):
+        # Add the current coordinate to the new coordinates list
+        new_coordinates.append(coordinates[i])
+
+        # Calculate the difference between the current coordinate and the next coordinate
+        diff = [coordinates[i + 1][j] - coordinates[i][j] for j in range(3)]
+
+        # Add the difference to the current coordinate and divide by 3 to get the step size
+        step = [diff[j] / 3 for j in range(3)]
+
+        # Iterate over the range 1 to 3
+        for j in range(1, 3):
+            # Add the new coordinate to the new coordinates list
+            new_coordinates.append([coordinates[i][k] + step[k] * j for k in range(3)])
+            # Add 'resid' value of the current row to the new coordinates list
+            new_coordinates[-3].append(df['resid'].values[i])
+            #new_coordinates[-2].append(df['resid'].values[i])
+
+            # Add 'residue' value of the current row to the new coordinates list
+            new_coordinates[-3].append(df['residue'].values[i])
+            #new_coordinates[-2].append(df['residue'].values[i])
+
+            # Add 'chain' value of the current row to the new coordinates list
+            new_coordinates[-3].append(df['chain'].values[i])
+            #new_coordinates[-2].append(df['chain'].values[i])
+
+            # Add 'atom' value of the current row to the new coordinates list
+            new_coordinates[-3].append(df['atom'].values[i])
+           #new_coordinates[-2].append(df['atom'].values[i])
+
+    print(new_coordinates)
+
+    # Add the last coordinate to the new coordinates list
+    new_coordinates.append(coordinates[-1])
+
+    # Create a new dataframe with the new coordinates
+    new_df = pd.DataFrame(new_coordinates, columns=['atom', 'residue', 'chain', 'resid', 'X', 'Y', 'Z'])
+
+    # Return the new dataframe
+    return new_df
 
 def sidechain(atom_df):
     chains_df = pd.read_csv("chains.txt", sep='\s+', header=None, names=['residue', 'atom', 'atom2'], engine='python')
@@ -348,7 +520,7 @@ def remove_inside_spheres(sphere_df, coord_df, diameter):
     center = sphere_center(radius)
     sphere_coords = add_sphere_coordinates(coord, center, sphere_df, mesh=False)
 
-    print(sphere_coords.head(n=25))
+    #print(sphere_coords.head(n=25))
 
     # Iterate over the rows of the coordinate dataframe
     for j, row2 in coord_df.iterrows():
@@ -375,7 +547,7 @@ def cylinderize(df, diameter):
     # Create an empty list to store the coordinates
     coordinates = []
 
-    print(df.head(n=20))
+    #print(df.head(n=20))
     #add an extra column to the dataframe named 'atom' and set all values to 'C'
     df['atom'] = 'C'
 
@@ -435,7 +607,7 @@ def rasterized_sphere(radius):
     sphere = np.zeros(shape, dtype=np.int32)
     sphere[mask] = 1
 
-    print(sphere)
+    #print(sphere)
 
     return sphere
 

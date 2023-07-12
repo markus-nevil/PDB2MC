@@ -112,6 +112,10 @@ if __name__ == '__main__':
                 master_mode = "Amino Acids"
                 window.close()
                 window = sg.Window("Amino Acid Plotting Options", aa_layout)
+            elif window['mode'].get() == 'Ribbon':
+                master_mode = "Ribbon"
+                window.close()
+                window = sg.Window("Ribbon Plotting Options", ribbon_layout)
             elif window['mode'].get() == 'Min' or window['mode'].get() == 'Max':
                 master_mode = "Max"
                 window.close()
@@ -299,7 +303,17 @@ if __name__ == '__main__':
                 else:
                     delete_mcfunctions(mc_dir, pdb_name.lower())
 
-                    if config_data["backbone"] == True:
+                    if master_mode == "Ribbon":
+                        ribbon_df = add_structure(rounded, pdb_file)
+                        print(ribbon_df.head(n=50))
+                        ribbon_df = smooth_line(ribbon_df)
+                        print(ribbon_df.head(n=50))
+                        #ribbon_df = add_nz(rounded)
+                        #print(ribbon_df.head(n=20))
+                        #pdb_ribbon = pdb_name + "_ribbon"
+                        #create_minecraft_functions(ribbon_df, pdb_ribbon, False, mc_dir, config_data['atoms'], replace=False)
+
+                    if config_data["backbone"] == True or master_mode == "Ribbon":
                         pdb_backbone = pdb_name + "_backbone"
                         backbone = atom_subset(rounded, ['C', 'N', 'CA', 'P', "O5'", "C5'", "C4'", "C3'", "O3'"],
                                                include=True)
