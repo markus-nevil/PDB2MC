@@ -305,9 +305,13 @@ if __name__ == '__main__':
 
                     if master_mode == "Ribbon":
                         ribbon_df = add_structure(rounded, pdb_file)
-                        print(ribbon_df.head(n=50))
+                        vectors_df = CO_vectors(ribbon_df)
+
+                        #print(vectors_df.head(n=50))
+
                         ribbon_df = smooth_line(ribbon_df)
-                        print(ribbon_df.head(n=50))
+                        flanked_df = flank_coordinates(ribbon_df, vectors_df)
+                        print(flanked_df.head(n=50))
                         #ribbon_df = add_nz(rounded)
                         #print(ribbon_df.head(n=20))
                         #pdb_ribbon = pdb_name + "_ribbon"

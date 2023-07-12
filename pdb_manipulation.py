@@ -70,6 +70,94 @@ def set_min_y(df):
     df['Y'] = df['Y'] - min_y
     return df
 
+#Function that takes a dataframe of coordinates and a integer, "width", and returns a dataframe of vectors calculated as the vector between each dataframe row with "atom" value of "C" to the next row with matching "resid" and "atom" value of "O".
+def CO_vectors(df, width=1):
+    # Filter the dataframe for rows with an 'atom' column value of "C" or "O"
+    df = df[df['atom'].isin(['C', 'O'])]
+
+    # Create an empty list to store the coordinates
+    coordinates = []
+
+    # Ensure that width is an integer:
+    width = int(width)
+
+    #print(df['atom'][2])
+    #Iterate over the rows of the dataframe and calculate the vector between the coordinates of each 'C' and 'O' with matching 'resid' values
+    for i, row in df.iterrows():
+       #Calculate the 3D vector of row i and row i+1
+         if i < len(df) - 1:
+            #print(row['atom'] == 'C')
+            #print(df['atom'][i+1] == 'O')
+            #print(row['resid'] == df['resid'].values[i+1])
+            if row['atom'] == 'C' and df['atom'][i + 1] == 'O' and row['resid'] == df['resid'][i + 1]:
+                coordinates.append([df['X'].values[i + 1] - row['X'], df['Y'].values[i + 1] - row['Y'], df['Z'].values[i + 1] - row['Z'], row['resid'], row['residue'], row['chain']])
+
+    #multiply the vector by the width
+    coordinates = [[coordinates[i][j] * width for j in range(3)] + coordinates[i][3:] for i in range(len(coordinates))]
+
+    # Create a new dataframe with the new coordinates
+    new_df = pd.DataFrame(coordinates, columns=['X', 'Y', 'Z', 'resid', 'residue', 'chain'])
+
+
+    return new_df
+
+#Function that will take the coordinates from a dataframe, match them with the vectors of another dataframe by "resid" column, and make two dataframes of each coordinate transformed by either the positive or negative of the matched vector. Then call bresenham_line function to fill the gaps. combine all 3 dataframes and return them.
+def flank_coordinates(df, vector_df):
+
+    print(df.head(n=10))
+
+    # Create an empty list to store the positive coordinates
+    positive_coordinates = []
+
+    #Create an empty list to store the negative coordinates
+    negative_coordinates = []
+
+    #Iterate over the rows of the dataframe
+    for i, row in df.iterrows():
+        #Find the matching row in the vector dataframe
+        matching_vector = vector_df[vector_df['resid'] == row['resid']]
+
+        columns = ["atom_num", "atom", "residue", "chain", "resid", "X", "Y", "Z"]
+        #Iterate over the matching vector rows
+        for j, vector_row in matching_vector.iterrows():
+            #Add the positive coordinates to the positive coordinates list
+            positive_coordinates.append([row['atom_num'], row['atom'], row['residue'], row['resid'], row['chain'], row['X'] + vector_row['X'], row['Y'] + vector_row['Y'], row['Z'] + vector_row['Z']])
+
+            #Add the negative coordinates to the negative coordinates list
+            negative_coordinates.append([row['atom_num'], row['atom'], row['residue'], row['resid'], row['chain'], row['X'] - vector_row['X'], row['Y'] - vector_row['Y'], row['Z'] - vector_row['Z']])
+
+    #Create a new dataframe with the positive coordinates
+    positive_df = pd.DataFrame(positive_coordinates, columns=['atom_num', 'atom', 'residue', 'resid', 'chain', 'X', 'Y', 'Z'])
+
+    #Create a new dataframe with the negative coordinates
+    negative_df = pd.DataFrame(negative_coordinates, columns=['atom_num', 'atom', 'residue', 'resid', 'chain', 'X', 'Y', 'Z'])
+
+    #Round the coordinates to the nearest whole number
+    positive_df = positive_df.round()
+    negative_df = negative_df.round()
+
+    #iterate through each dataframe and call the bresenham_line function to fill in the gaps between each coordinate, add the new coordinates to a new dataframe, and return the new dataframe
+    for i, row in positive_df.iterrows():
+        #assume that positive_df and negative_df have the same number of rows and order of rows
+        new_coordinates = bresenham_line(negative_df['X'][i], negative_df['Y'][i], negative_df['Z'][i], row['X'], row['Y'], row['Z'])
+        new_df = pd.DataFrame(new_coordinates, columns=['X', 'Y', 'Z'])
+        new_df['resid'] = row['resid']
+        new_df['residue'] = row['residue']
+        new_df['chain'] = row['chain']
+        new_df['atom_num'] = row['atom_num']
+        new_df['atom'] = row['atom']
+        if i == 0:
+            final_df = new_df
+        else:
+            final_df = pd.concat([final_df, new_df], ignore_index=True)
+
+    #reorder the columns
+    columns = ["atom_num", "atom", "residue", "resid", "chain", "X", "Y", "Z"]
+    final_df = final_df[columns]
+
+    return final_df
+
+
 
 #Function that takes a dataframe of coordinates and finds the max and min values for X, Y, and Z, then assumes that is a box, then rotates the coordinates such that the smallest dimension of the box is now the Y axis. Returns a dataframe of the transformed coordinates.
 def rotate_to_y(df):
@@ -155,7 +243,64 @@ def scale_coordinates(vector_df, scalar):
     scaled_df = pd.concat([other_df, scaled_df], axis=1, sort=False)
     return scaled_df
 
+def increase_cylinder_diameter(df, diameter):
+    # Convert DataFrame to numpy array
+    coords = df[['X', 'Y', 'Z']].values
 
+    print(coords)
+    # Calculate the vector between each point and the next point
+    vecs = np.diff(coords, axis=0)
+
+    # Calculate the length of each vector
+    lens = np.sqrt(np.sum(vecs**2, axis=1))
+
+    # Normalize the vectors
+    vecs = vecs / lens[:, np.newaxis]
+
+    # Create a matrix of rotation angles for each vector
+    angles = np.arccos(vecs[:, 2])
+
+    # Calculate the sin and cos of each angle
+    c = np.cos(angles)
+    s = np.sin(angles)
+
+    # Create a matrix of rotation vectors for each vector
+    rot_vecs = np.zeros_like(vecs)
+    rot_vecs[:, 0] = -vecs[:, 1]
+    rot_vecs[:, 1] = vecs[:, 0]
+
+    # Rotate the rotation vectors by the rotation angles
+    rot_vecs = rot_vecs * s[:, np.newaxis] + np.cross(rot_vecs, vecs) * c[:, np.newaxis] + vecs * np.sum(rot_vecs * vecs, axis=1)[:, np.newaxis] * (1 - c[:, np.newaxis])
+
+    # Create a matrix of rotation matrices
+    rot_mats = np.zeros((len(vecs), 3, 3))
+    rot_mats[:, 0] = vecs
+    rot_mats[:, 1:] = rot_vecs[:, np.newaxis]
+
+    # Create a meshgrid of points in a circle
+    n_pts = int(np.ceil(diameter))
+    r = np.linspace(-n_pts/2, n_pts/2, n_pts)
+    xx, yy = np.meshgrid(r, r)
+    mask = np.sqrt(xx**2 + yy**2) <= diameter/2
+    xx = xx[mask]
+    yy = yy[mask]
+    zz = np.zeros_like(xx)
+
+    # Transform the meshgrid by each rotation matrix
+    transformed_points = []
+    #print(rot_mats.head(n=10))
+    for i, mat in enumerate(rot_mats):
+        print(mat)
+        xyz = np.vstack((xx, yy, zz))
+        print(xyz)
+        transformed_xyz = np.dot(mat, xyz) + coords[i]
+        transformed_points.append(transformed_xyz.T)
+
+    # Convert transformed points to a new DataFrame
+    new_coords = np.vstack(transformed_points)
+    new_df = pd.DataFrame(new_coords, columns=['X', 'Y', 'Z'])
+
+    return new_df
 
 def round_df(vector_df):
     # extract the 'atom' column and remove it temporarily
@@ -408,8 +553,19 @@ def add_structure(df, pdb_file):
 
 #Function that takes a dataframe of coordinates, filters for rows with an 'atom' column value of "N", "CA", and "C", assumes these coordinates make a contiguous line, and smoothens that line by adding more coordinates in between the existing coordinates and adjusting the existing coordinates.
 def smooth_line(df):
+
+    #calculate a resolution value by looking at the average 3D distance between the first coordinate with 'atom' value of "N" and the first coordinate with 'atom' value of "CA"
+    # Filter the dataframe for rows with an 'atom' column value of "N" and "CA"
+    temp_df = df[df['atom'].isin(['N', 'CA'])]
+    # Calculate the 3D distance between the first coordinate with 'atom' value of "N" and the first coordinate with 'atom' value of "CA"
+    distance = np.linalg.norm(temp_df.iloc[0][['X', 'Y', 'Z']] - temp_df.iloc[1][['X', 'Y', 'Z']])
+    # Calculate the resolution value by rounding the distance up to the next integer
+    resolution = int(np.ceil(distance))
+
     # Filter the dataframe for rows with an 'atom' column value of "N", "CA", and "C"
     df = df[df['atom'].isin(['N', 'CA', 'C'])]
+
+    print(df.head(n=10))
 
     # Sort the dataframe by the 'resid' column
     df = df.sort_values(by=['resid'])
@@ -417,52 +573,66 @@ def smooth_line(df):
     # Create an empty list to store the coordinates
     coordinates = []
 
+    # Ensure that resolution is an integer:
+    resolution = int(resolution)
+
     # Iterate over the rows of the dataframe
     for i, row in df.iterrows():
         # Add the x, y, and z coordinates to the list
-        coordinates.append([row['X'], row['Y'], row['Z']])
+        coordinates.append([row['X'], row['Y'], row['Z'], row['resid'],row['residue'], row['chain'], row['atom'], row['atom_num']])
 
     # Create an empty list to store the new coordinates
     new_coordinates = []
+    #print(range(resolution))
 
     # Iterate over the coordinates list
     for i in range(len(coordinates) - 1):
         # Add the current coordinate to the new coordinates list
         new_coordinates.append(coordinates[i])
 
+        #print(type(i))
+        #print(type(resolution))
+
         # Calculate the difference between the current coordinate and the next coordinate
         diff = [coordinates[i + 1][j] - coordinates[i][j] for j in range(3)]
-
+        #print(diff)
         # Add the difference to the current coordinate and divide by 3 to get the step size
-        step = [diff[j] / 3 for j in range(3)]
+        step = [diff[j] / resolution for j in range(3)]
 
-        # Iterate over the range 1 to 3
-        for j in range(1, 3):
+
+        # Iterate over the range 1 to resolution value
+        for j in range(1, resolution):
             # Add the new coordinate to the new coordinates list
             new_coordinates.append([coordinates[i][k] + step[k] * j for k in range(3)])
-            # Add 'resid' value of the current row to the new coordinates list
-            new_coordinates[-3].append(df['resid'].values[i])
-            #new_coordinates[-2].append(df['resid'].values[i])
+
+            #Round the new coordinates to the nearest whole number
+            new_coordinates[-1] = [round(new_coordinates[-1][k]) for k in range(3)]
+
+            # Add 'resid' value of the current row to the new entries in the new coordinates list
+            new_coordinates[-1].append(df['resid'].values[i])
 
             # Add 'residue' value of the current row to the new coordinates list
-            new_coordinates[-3].append(df['residue'].values[i])
-            #new_coordinates[-2].append(df['residue'].values[i])
+            new_coordinates[-1].append(df['residue'].values[i])
 
             # Add 'chain' value of the current row to the new coordinates list
-            new_coordinates[-3].append(df['chain'].values[i])
-            #new_coordinates[-2].append(df['chain'].values[i])
+            new_coordinates[-1].append(df['chain'].values[i])
 
             # Add 'atom' value of the current row to the new coordinates list
-            new_coordinates[-3].append(df['atom'].values[i])
-           #new_coordinates[-2].append(df['atom'].values[i])
+            new_coordinates[-1].append(df['atom'].values[i])
 
-    print(new_coordinates)
+            # Add 'atom_number' value of the current row to the new coordinates list
+            new_coordinates[-1].append(df['atom_num'].values[i])
+            #print(new_coordinates[-1])
+
+    #print(new_coordinates)
 
     # Add the last coordinate to the new coordinates list
     new_coordinates.append(coordinates[-1])
 
+
     # Create a new dataframe with the new coordinates
-    new_df = pd.DataFrame(new_coordinates, columns=['atom', 'residue', 'chain', 'resid', 'X', 'Y', 'Z'])
+
+    new_df = pd.DataFrame(new_coordinates, columns=['atom_num', 'atom', 'residue', 'resid', 'chain', 'X', 'Y', 'Z'])
 
     # Return the new dataframe
     return new_df

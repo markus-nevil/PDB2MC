@@ -49,7 +49,7 @@
     "show_hetatm": true,
     "by_chain": null,
     "mesh": null,
-    "pdb_file": "C:/Users/marku/PycharmProjects/mcpdb/presets/GFP.pdb",
-    "save_path": "C:/Users/marku/AppData/Roaming/.minecraft/saves/creativey/datapacks\\mcPDB/data/protein/functions",
+    "pdb_file": "C:/Users/Duronio Lab/PycharmProjects/mcpdb/presets/GFP.pdb",
+    "save_path": "C:/Users/Duronio Lab/AppData/Roaming/.minecraft/saves/Creative/datapacks\\mcPDB/data/protein/functions",
     "atom_scale": 1.5
 }
