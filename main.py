@@ -304,6 +304,7 @@ if __name__ == '__main__':
                     delete_mcfunctions(mc_dir, pdb_name.lower())
 
                     if master_mode == "Ribbon":
+                        pdb_ribbon = pdb_name + "_ribbon"
                         ribbon_df = add_structure(rounded, pdb_file)
                         vectors_df = CO_vectors(ribbon_df)
 
@@ -315,7 +316,7 @@ if __name__ == '__main__':
                         #ribbon_df = add_nz(rounded)
                         #print(ribbon_df.head(n=20))
                         #pdb_ribbon = pdb_name + "_ribbon"
-                        #create_minecraft_functions(ribbon_df, pdb_ribbon, False, mc_dir, config_data['atoms'], replace=False)
+                        create_minecraft_functions(flanked_df, pdb_ribbon, False, mc_dir, config_data['atoms'], replace=False)
 
                     if config_data["backbone"] == True or master_mode == "Ribbon":
                         pdb_backbone = pdb_name + "_backbone"

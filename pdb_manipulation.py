@@ -105,6 +105,18 @@ def CO_vectors(df, width=1):
 def flank_coordinates(df, vector_df):
 
     print(df.head(n=10))
+    print(vector_df.head(n=10))
+
+    #Ensure that the values in vector_df are integers
+    vector_df['X'] = vector_df['X'].astype(int)
+    vector_df['Y'] = vector_df['Y'].astype(int)
+    vector_df['Z'] = vector_df['Z'].astype(int)
+
+    #Ensure that the X, Y, Z coordinate values in df are integers
+    df['X'] = df['X'].astype(int)
+    df['Y'] = df['Y'].astype(int)
+    df['Z'] = df['Z'].astype(int)
+
 
     # Create an empty list to store the positive coordinates
     positive_coordinates = []
@@ -565,7 +577,7 @@ def smooth_line(df):
     # Filter the dataframe for rows with an 'atom' column value of "N", "CA", and "C"
     df = df[df['atom'].isin(['N', 'CA', 'C'])]
 
-    print(df.head(n=10))
+    #print(df.head(n=10))
 
     # Sort the dataframe by the 'resid' column
     df = df.sort_values(by=['resid'])
@@ -629,10 +641,11 @@ def smooth_line(df):
     # Add the last coordinate to the new coordinates list
     new_coordinates.append(coordinates[-1])
 
+    # Convert new_coordinates to a dataframe
+    new_df = pd.DataFrame(new_coordinates, columns=['X', 'Y', 'Z', 'resid', 'residue', 'chain', 'atom', 'atom_num'])
 
-    # Create a new dataframe with the new coordinates
-
-    new_df = pd.DataFrame(new_coordinates, columns=['atom_num', 'atom', 'residue', 'resid', 'chain', 'X', 'Y', 'Z'])
+    # Reorder the columns of new_df as atom_num, atom, residue, resid, chain, X, Y, Z
+    new_df = new_df[['atom_num', 'atom', 'residue', 'resid', 'chain', 'X', 'Y', 'Z']]
 
     # Return the new dataframe
     return new_df
