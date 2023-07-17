@@ -5,7 +5,6 @@ import glob
 
 def create_minecraft_functions(df, name, air, dir, blocks, replace = False):
 
-
     block_dict = blocks
     block_type = 'air' if air else 'block'
     functions = []
@@ -49,6 +48,11 @@ def create_minecraft_functions(df, name, air, dir, blocks, replace = False):
             function = f'setblock ~{x} ~{y} ~{z} minecraft:{block} keep\n'
         functions.append(function)
 
+    #print(len(functions))
+    #print the first lines of functions
+    #print(functions[0:10])
+
+
     num_files = (len(functions) // 65530) + 1
     for i in range(num_files):
         file_num = i + 1
@@ -56,6 +60,7 @@ def create_minecraft_functions(df, name, air, dir, blocks, replace = False):
         filepath = os.path.join(dir, filename)
         start = i * 65530
         end = start + 65530
+        #print(filepath)
         with open(filepath, 'w') as f:
             f.writelines(functions[start:end])
 

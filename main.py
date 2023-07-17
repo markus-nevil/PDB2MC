@@ -306,17 +306,21 @@ if __name__ == '__main__':
                     if master_mode == "Ribbon":
                         pdb_ribbon = pdb_name + "_ribbon"
                         ribbon_df = add_structure(rounded, pdb_file)
-                        vectors_df = CO_vectors(ribbon_df)
-
-                        #print(vectors_df.head(n=50))
+                        vectors_df = CO_vectors(ribbon_df, width=0.75)
+                        print("Ribbon with structure: ", ribbon_df.tail(n=1))
 
                         ribbon_df = smooth_line(ribbon_df)
+                        print("Smoothed: ", ribbon_df.tail(n=1))
+
                         flanked_df = flank_coordinates(ribbon_df, vectors_df)
-                        print(flanked_df.head(n=50))
-                        #ribbon_df = add_nz(rounded)
-                        #print(ribbon_df.head(n=20))
-                        #pdb_ribbon = pdb_name + "_ribbon"
-                        create_minecraft_functions(flanked_df, pdb_ribbon, False, mc_dir, config_data['atoms'], replace=False)
+                        print("Flanked: ", flanked_df.tail(n=1))
+
+                        #replace the 'atom' column values to 'O' for the ribbon
+                        flanked_df['atom'] = 'O'
+
+                        #flanked_df = add_missing_coordinates(flanked_df)
+
+                        create_minecraft_functions(flanked_df, pdb_ribbon, False, mc_dir, config_data['atoms'], replace=True)
 
                     if config_data["backbone"] == True or master_mode == "Ribbon":
                         pdb_backbone = pdb_name + "_backbone"
@@ -346,6 +350,7 @@ if __name__ == '__main__':
                             intermediate = by_chain_df
                         else:
                             intermediate = find_intermediate_points(backbone)
+                            print(intermediate.head(n=20))
                         if config_data["mode"] == "X-ray":
                             create_minecraft_functions(intermediate, pdb_backbone, False, mc_dir, config_data['atoms'],
                                                        replace=True)

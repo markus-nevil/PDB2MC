@@ -181,11 +181,16 @@ ribbon_layout = [
                     key="mode", default_value="")],
     [sg.Button('Switch Layout')],
     [sg.HorizontalSeparator()],
-    [sg.Checkbox("Sidechain", default=True, key="sidechain"),
+    [sg.Text("Select backbone atom"),
+     sg.DropDown(decorative_blocks, key="backbone_atom", default_value="gray_concrete")],
+    [sg.Text("Select side chain atom"),
+     sg.DropDown(decorative_blocks, key="sidechain_atom", default_value="gray_concrete")],
+    [sg.Checkbox("Show Backbone", default=True, key="backbone"),
+     sg.Checkbox("Sidechain", default=True, key="sidechain"),
      sg.Checkbox("Show Hetatoms", default=True, key="show_hetatm")],
     [sg.Text("Protein scale"), sg.Input(default_text='1.0', key="scale")],
     [sg.Text("Atom scale"), sg.Input(default_text='1.5', key="atom_scale")],
-    [sg.Button("Select PDB file"), sg.Button("Select Minecraft Save")],
+    [sg.Button("Select PDB file"), sg.Text("or"), sg.Button("Select Included PDB file"), sg.Text("and"), sg.Button("Select Minecraft Save")],
     [sg.Button("Create Minecraft Functions", bind_return_key=True)]
 ]
 #Amino acid

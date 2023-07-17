@@ -74,23 +74,28 @@ def set_min_y(df):
 def CO_vectors(df, width=1):
     # Filter the dataframe for rows with an 'atom' column value of "C" or "O"
     df = df[df['atom'].isin(['C', 'O'])]
+    df = df.reset_index(drop=True)
+
+    #print(df.tail(n=10))
 
     # Create an empty list to store the coordinates
     coordinates = []
 
     # Ensure that width is an integer:
-    width = int(width)
+    #width = int(width)
 
     #print(df['atom'][2])
     #Iterate over the rows of the dataframe and calculate the vector between the coordinates of each 'C' and 'O' with matching 'resid' values
     for i, row in df.iterrows():
-       #Calculate the 3D vector of row i and row i+1
-         if i < len(df) - 1:
+        #print(i)
+        #Calculate the 3D vector of row i and row i+1
+        if i < len(df) - 1:
             #print(row['atom'] == 'C')
             #print(df['atom'][i+1] == 'O')
             #print(row['resid'] == df['resid'].values[i+1])
             if row['atom'] == 'C' and df['atom'][i + 1] == 'O' and row['resid'] == df['resid'][i + 1]:
                 coordinates.append([df['X'].values[i + 1] - row['X'], df['Y'].values[i + 1] - row['Y'], df['Z'].values[i + 1] - row['Z'], row['resid'], row['residue'], row['chain']])
+                #print(row['resid'], i, len(df), sep=" ")
 
     #multiply the vector by the width
     coordinates = [[coordinates[i][j] * width for j in range(3)] + coordinates[i][3:] for i in range(len(coordinates))]
@@ -98,24 +103,25 @@ def CO_vectors(df, width=1):
     # Create a new dataframe with the new coordinates
     new_df = pd.DataFrame(coordinates, columns=['X', 'Y', 'Z', 'resid', 'residue', 'chain'])
 
-
+    #print("Here's the dataframe of vectors:")
+    #print(new_df.tail(n=10))
     return new_df
 
 #Function that will take the coordinates from a dataframe, match them with the vectors of another dataframe by "resid" column, and make two dataframes of each coordinate transformed by either the positive or negative of the matched vector. Then call bresenham_line function to fill the gaps. combine all 3 dataframes and return them.
 def flank_coordinates(df, vector_df):
 
-    print(df.head(n=10))
-    print(vector_df.head(n=10))
+    #print(df.head(n=10))
+    #print(vector_df.head(n=10))
 
     #Ensure that the values in vector_df are integers
-    vector_df['X'] = vector_df['X'].astype(int)
-    vector_df['Y'] = vector_df['Y'].astype(int)
-    vector_df['Z'] = vector_df['Z'].astype(int)
+    #vector_df['X'] = vector_df['X'].astype(int)
+    #vector_df['Y'] = vector_df['Y'].astype(int)
+    #vector_df['Z'] = vector_df['Z'].astype(int)
 
     #Ensure that the X, Y, Z coordinate values in df are integers
-    df['X'] = df['X'].astype(int)
-    df['Y'] = df['Y'].astype(int)
-    df['Z'] = df['Z'].astype(int)
+    #df['X'] = df['X'].astype(int)
+    #df['Y'] = df['Y'].astype(int)
+    #df['Z'] = df['Z'].astype(int)
 
 
     # Create an empty list to store the positive coordinates
@@ -124,19 +130,70 @@ def flank_coordinates(df, vector_df):
     #Create an empty list to store the negative coordinates
     negative_coordinates = []
 
+    #Create an empty list to store the non-flanked coordinates
+    non_flanked_coordinates = []
+
+    #print(vector_df.tail(n=10))
+    #print(df.tail(n=10))
+    #print(df.head(n=5))
+    vector_iter_count = 1
+    columns = ["atom_num", "atom", "residue", "chain", "resid", "X", "Y", "Z", "structure"]
+
     #Iterate over the rows of the dataframe
     for i, row in df.iterrows():
-        #Find the matching row in the vector dataframe
-        matching_vector = vector_df[vector_df['resid'] == row['resid']]
+        #print(df['resid'].max())
+        if df.loc[i, 'resid'] < df['resid'].max() - 1:
+            #Find the matching row in the vector dataframe
+            matching_vector = vector_df[vector_df['resid'] == row['resid']]
 
-        columns = ["atom_num", "atom", "residue", "chain", "resid", "X", "Y", "Z"]
-        #Iterate over the matching vector rows
-        for j, vector_row in matching_vector.iterrows():
-            #Add the positive coordinates to the positive coordinates list
-            positive_coordinates.append([row['atom_num'], row['atom'], row['residue'], row['resid'], row['chain'], row['X'] + vector_row['X'], row['Y'] + vector_row['Y'], row['Z'] + vector_row['Z']])
+            #subset df by rows that match the current row's resid
+            match_len = len(df[df['resid'] == row['resid']])
+            #print(match_len)
 
-            #Add the negative coordinates to the negative coordinates list
-            negative_coordinates.append([row['atom_num'], row['atom'], row['residue'], row['resid'], row['chain'], row['X'] - vector_row['X'], row['Y'] - vector_row['Y'], row['Z'] - vector_row['Z']])
+            #Find the next row in the vector dataframe
+            next_vector = vector_df[vector_df['resid'] == row['resid'] + 1]
+            #print(matching_vector)
+            print(next_vector)
+
+            #Subtract the X, Y, and Z coordinates of the next vector from the matching vector
+            step_size_X = (next_vector.iloc[0]['X'] - matching_vector.iloc[0]['X']) / match_len
+            step_size_Y = (next_vector.iloc[0]['Y'] - matching_vector.iloc[0]['Y']) / match_len
+            step_size_Z = (next_vector.iloc[0]['Z'] - matching_vector.iloc[0]['Z']) / match_len
+
+            #print("Here's the step size vector:", step_size_X, step_size_Y, step_size_Z, sep=" ")
+            step_df = pd.DataFrame({'X': [step_size_X],
+                                    'Y': [step_size_Y],
+                                    'Z': [step_size_Z]})
+
+            #print(step_df)
+            #print(vector_iter_count, step_df.iloc[0]['X']*vector_iter_count, sep=" ")
+            #print(vector_iter_count, step_df.iloc[0]['Y'] * vector_iter_count, sep=" ")
+            #print(vector_iter_count, step_df.iloc[0]['Z'] * vector_iter_count, sep=" ")
+
+            #Create a new dataframe and for X, Y, and Z coordinates add the step size vector to the matching vector
+            vector_row = pd.DataFrame(columns=['X', 'Y', 'Z'])
+            vector_row.loc[0,'X'] = matching_vector.iloc[0]['X'] + step_df.iloc[0]['X']*vector_iter_count
+            vector_row.loc[0, 'Y'] = matching_vector.iloc[0]['Y'] + step_df.iloc[0]['Y']*vector_iter_count
+            vector_row.loc[0, 'Z'] = matching_vector.iloc[0]['Z'] + step_df.iloc[0]['Z']*vector_iter_count
+
+            #print(vector_row)
+
+            #Iterate over the matching vector rows
+            for j, vector_row in matching_vector.iterrows():
+                #print(j >= 2)
+                if row['structure'] == 'helix' or row['structure'] == 'sheet':
+                    #Add the positive coordinates to the positive coordinates list
+                    positive_coordinates.append([row['atom_num'], row['atom'], row['residue'], row['resid'], row['chain'], row['X'] + vector_row['X'], row['Y'] + vector_row['Y'], row['Z'] + vector_row['Z']])
+
+                    #Add the negative coordinates to the negative coordinates list
+                    negative_coordinates.append([row['atom_num'], row['atom'], row['residue'], row['resid'], row['chain'], row['X'] - vector_row['X'], row['Y'] - vector_row['Y'], row['Z'] - vector_row['Z']])
+                else:
+                    non_flanked_coordinates.append([row['atom_num'], row['atom'], row['residue'], row['resid'], row['chain'], row['X'], row['Y'], row['Z']])
+
+            if vector_iter_count > match_len:
+                vector_iter_count = 1
+            else:
+                vector_iter_count += 1
 
     #Create a new dataframe with the positive coordinates
     positive_df = pd.DataFrame(positive_coordinates, columns=['atom_num', 'atom', 'residue', 'resid', 'chain', 'X', 'Y', 'Z'])
@@ -144,13 +201,37 @@ def flank_coordinates(df, vector_df):
     #Create a new dataframe with the negative coordinates
     negative_df = pd.DataFrame(negative_coordinates, columns=['atom_num', 'atom', 'residue', 'resid', 'chain', 'X', 'Y', 'Z'])
 
+    #Create a new dataframe with the non-flanked coordinates
+    non_flanked_df = pd.DataFrame(non_flanked_coordinates, columns=['atom_num', 'atom', 'residue', 'resid', 'chain', 'X', 'Y', 'Z'])
+
+    #Ensure all the values in the X, Y, Z columns are integers
+    positive_df['X'] = positive_df['X'].astype(int)
+    positive_df['Y'] = positive_df['Y'].astype(int)
+    positive_df['Z'] = positive_df['Z'].astype(int)
+
+    negative_df['X'] = negative_df['X'].astype(int)
+    negative_df['Y'] = negative_df['Y'].astype(int)
+    negative_df['Z'] = negative_df['Z'].astype(int)
+
+    non_flanked_df['X'] = non_flanked_df['X'].astype(int)
+    non_flanked_df['Y'] = non_flanked_df['Y'].astype(int)
+    non_flanked_df['Z'] = non_flanked_df['Z'].astype(int)
+
     #Round the coordinates to the nearest whole number
     positive_df = positive_df.round()
     negative_df = negative_df.round()
+    non_flanked_df = non_flanked_df.round()
+
+
+    #print(positive_df.head(n=10))
+    #print(negative_df.head(n=10))
 
     #iterate through each dataframe and call the bresenham_line function to fill in the gaps between each coordinate, add the new coordinates to a new dataframe, and return the new dataframe
     for i, row in positive_df.iterrows():
+
         #assume that positive_df and negative_df have the same number of rows and order of rows
+        #print(negative_df.loc[i], row, sep=" ")
+
         new_coordinates = bresenham_line(negative_df['X'][i], negative_df['Y'][i], negative_df['Z'][i], row['X'], row['Y'], row['Z'])
         new_df = pd.DataFrame(new_coordinates, columns=['X', 'Y', 'Z'])
         new_df['resid'] = row['resid']
@@ -162,6 +243,11 @@ def flank_coordinates(df, vector_df):
             final_df = new_df
         else:
             final_df = pd.concat([final_df, new_df], ignore_index=True)
+
+    #add the non-flanked coordinates to the final dataframe
+    #final_df = pd.concat([final_df, non_flanked_df], ignore_index=True)
+
+
 
     #reorder the columns
     columns = ["atom_num", "atom", "residue", "resid", "chain", "X", "Y", "Z"]
@@ -563,19 +649,107 @@ def add_structure(df, pdb_file):
     # Return the coordinate dataframe (df)
     return df
 
+#Function that takes a dataframe of 3D coordinates and if four or more coordinates touch a location without any coordinates, then add a new coordinate at that location.
+def add_missing_coordinates(df):
+
+    #Get the column names of the dataframe
+    columns = df.columns
+
+    # Create a list for missing coordinates
+    missing_coordinates = []
+
+
+    # Iterate over each row in the coordinate dataframe (df)
+    for i, row in df.iterrows():
+        print(i)
+        #check if the 8 neighboring locations have coordinates, and if not, save them to a list
+        # Create a list of the 26 neighboring locations
+        neighbors = [(row['X'] - 1, row['Y'] - 1, row['Z'] - 1),
+                     (row['X'] - 1, row['Y'] - 1, row['Z']),
+                     (row['X'] - 1, row['Y'] - 1, row['Z'] + 1),
+                     (row['X'] - 1, row['Y'], row['Z'] - 1),
+                     (row['X'] - 1, row['Y'], row['Z']),
+                     (row['X'] - 1, row['Y'], row['Z'] + 1),
+                     (row['X'] - 1, row['Y'] + 1, row['Z'] - 1),
+                     (row['X'] - 1, row['Y'] + 1, row['Z']),
+                     (row['X'] - 1, row['Y'] + 1, row['Z'] + 1),
+                     (row['X'], row['Y'] - 1, row['Z'] - 1),
+                     (row['X'], row['Y'] - 1, row['Z']),
+                     (row['X'], row['Y'] - 1, row['Z'] + 1),
+                     (row['X'], row['Y'], row['Z'] - 1),
+                     (row['X'], row['Y'], row['Z'] + 1),
+                        (row['X'], row['Y'] + 1, row['Z'] - 1), (row['X'], row['Y'] + 1, row['Z']),
+                        (row['X'], row['Y'] + 1, row['Z'] + 1), (row['X'] + 1, row['Y'] - 1, row['Z'] - 1),
+                        (row['X'] + 1, row['Y'] - 1, row['Z']), (row['X'] + 1, row['Y'] - 1, row['Z'] + 1),
+                        (row['X'] + 1, row['Y'], row['Z'] - 1), (row['X'] + 1, row['Y'], row['Z']),
+                        (row['X'] + 1, row['Y'], row['Z'] + 1), (row['X'] + 1, row['Y'] + 1, row['Z'] - 1),
+                        (row['X'] + 1, row['Y'] + 1, row['Z']), (row['X'] + 1, row['Y'] + 1, row['Z'] + 1)]
+        # Check if the 8 neighboring locations have coordinates, and if not, save them to a list
+        for neighbor in neighbors:
+            if not df[(df['X'] == neighbor[0]) & (df['Y'] == neighbor[1]) & (df['Z'] == neighbor[2])].empty:
+                continue
+            else:
+                missing_coordinates.append(neighbor)
+    print("Done making missing coordinates!: ", len(missing_coordinates))
+    #Create a new list for the missing coordinates with > 4 neighbors
+    missing_coordinates_4 = []
+
+    # For each missing coordinate, check if there are at least four other coordinates that touch that location, and if so, add a new coordinate at that location to a dataframe
+    for missing_coordinate in missing_coordinates:
+        # Create a list of the 26 neighboring locations
+        neighbors = [(missing_coordinate[0] - 1, missing_coordinate[1] - 1, missing_coordinate[2] - 1), (missing_coordinate[0] - 1, missing_coordinate[1] - 1, missing_coordinate[2]),
+                    (missing_coordinate[0] - 1, missing_coordinate[1] - 1, missing_coordinate[2] + 1), (missing_coordinate[0] - 1, missing_coordinate[1], missing_coordinate[2] - 1),
+                    (missing_coordinate[0] - 1, missing_coordinate[1], missing_coordinate[2]), (missing_coordinate[0] - 1, missing_coordinate[1], missing_coordinate[2] + 1),
+                    (missing_coordinate[0] - 1, missing_coordinate[1] + 1, missing_coordinate[2] - 1), (missing_coordinate[0] - 1, missing_coordinate[1] + 1, missing_coordinate[2]),
+                    (missing_coordinate[0] - 1, missing_coordinate[1] + 1, missing_coordinate[2] + 1), (missing_coordinate[0], missing_coordinate[1] - 1, missing_coordinate[2] - 1),
+                    (missing_coordinate[0], missing_coordinate[1] - 1, missing_coordinate[2]), (missing_coordinate[0], missing_coordinate[1] - 1, missing_coordinate[2] + 1),
+                    (missing_coordinate[0], missing_coordinate[1], missing_coordinate[2] - 1), (missing_coordinate[0], missing_coordinate[1], missing_coordinate[2] + 1),
+                    (missing_coordinate[0], missing_coordinate[1] + 1, missing_coordinate[2] - 1), (missing_coordinate[0], missing_coordinate[1] + 1, missing_coordinate[2]),
+                    (missing_coordinate[0], missing_coordinate[1] + 1, missing_coordinate[2] + 1), (missing_coordinate[0] + 1, missing_coordinate[1] - 1, missing_coordinate[2] - 1),
+                    (missing_coordinate[0] + 1, missing_coordinate[1] - 1, missing_coordinate[2]), (missing_coordinate[0] + 1, missing_coordinate[1] - 1, missing_coordinate[2] + 1),
+                    (missing_coordinate[0] + 1, missing_coordinate[1], missing_coordinate[2] - 1), (missing_coordinate[0] + 1, missing_coordinate[1], missing_coordinate[2]),
+                    (missing_coordinate[0] + 1, missing_coordinate[1], missing_coordinate[2] + 1), (missing_coordinate[0] + 1, missing_coordinate[1] + 1, missing_coordinate[2] - 1),
+                    (missing_coordinate[0] + 1, missing_coordinate[1] + 1, missing_coordinate[2]), (missing_coordinate[0] + 1, missing_coordinate[1] + 1, missing_coordinate[2] + 1)]
+        #Check if at least four of the neighbors exist in the dataframe
+        count = 0
+        for neighbor in neighbors:
+            if not df[(df['X'] == neighbor[0]) & (df['Y'] == neighbor[1]) & (df['Z'] == neighbor[2])].empty:
+               count += 1
+        if count >= 4:
+            missing_coordinates_4.append(missing_coordinate)
+
+    print("Done making missing coordinates with 4 neighbors!: ", len(missing_coordinates_4))
+    #Add the missing_coordinates_4 to the dataframe, copying the values from the closest existing coordinate except for the 'X', 'Y', and 'Z' columns
+    for missing_coordinate in missing_coordinates_4:
+        #Find the dataframe row with the closest coordinates
+        closest_coordinate = df.iloc[df.apply(lambda row: np.linalg.norm(np.array([row['X'], row['Y'], row['Z']]) - np.array([missing_coordinate[0], missing_coordinate[1], missing_coordinate[2]])), axis=1).idxmin()]
+
+        #Create a new row with the missing coordinate and the values from the closest coordinate
+        new_row = pd.DataFrame([[closest_coordinate['atom_num'], closest_coordinate['atom'], closest_coordinate['residue'], closest_coordinate['resid'], closest_coordinate['chain'], missing_coordinate['X'], missing_coordinate['Y'], missing_coordinate['Z']]], columns=df.columns)
+
+        #Add the new row to the dataframe
+        df = df.append(new_row, ignore_index=True)
+    return df
+
 #Function that takes a dataframe of coordinates, filters for rows with an 'atom' column value of "N", "CA", and "C", assumes these coordinates make a contiguous line, and smoothens that line by adding more coordinates in between the existing coordinates and adjusting the existing coordinates.
 def smooth_line(df):
 
     #calculate a resolution value by looking at the average 3D distance between the first coordinate with 'atom' value of "N" and the first coordinate with 'atom' value of "CA"
     # Filter the dataframe for rows with an 'atom' column value of "N" and "CA"
     temp_df = df[df['atom'].isin(['N', 'CA'])]
+
+    #print(temp_df.head(n=10))
+
     # Calculate the 3D distance between the first coordinate with 'atom' value of "N" and the first coordinate with 'atom' value of "CA"
     distance = np.linalg.norm(temp_df.iloc[0][['X', 'Y', 'Z']] - temp_df.iloc[1][['X', 'Y', 'Z']])
     # Calculate the resolution value by rounding the distance up to the next integer
-    resolution = int(np.ceil(distance))
+
+    resolution = int(np.ceil(distance))*5
+    print(resolution)
 
     # Filter the dataframe for rows with an 'atom' column value of "N", "CA", and "C"
     df = df[df['atom'].isin(['N', 'CA', 'C'])]
+    #df = df[df['atom'].isin(['N', 'C'])]
 
     #print(df.head(n=10))
 
@@ -591,7 +765,7 @@ def smooth_line(df):
     # Iterate over the rows of the dataframe
     for i, row in df.iterrows():
         # Add the x, y, and z coordinates to the list
-        coordinates.append([row['X'], row['Y'], row['Z'], row['resid'],row['residue'], row['chain'], row['atom'], row['atom_num']])
+        coordinates.append([row['X'], row['Y'], row['Z'], row['resid'],row['residue'], row['chain'], row['atom'], row['atom_num'], row['structure']])
 
     # Create an empty list to store the new coordinates
     new_coordinates = []
@@ -618,7 +792,7 @@ def smooth_line(df):
             new_coordinates.append([coordinates[i][k] + step[k] * j for k in range(3)])
 
             #Round the new coordinates to the nearest whole number
-            new_coordinates[-1] = [round(new_coordinates[-1][k]) for k in range(3)]
+            #new_coordinates[-1] = [round(new_coordinates[-1][k]) for k in range(3)]
 
             # Add 'resid' value of the current row to the new entries in the new coordinates list
             new_coordinates[-1].append(df['resid'].values[i])
@@ -634,6 +808,10 @@ def smooth_line(df):
 
             # Add 'atom_number' value of the current row to the new coordinates list
             new_coordinates[-1].append(df['atom_num'].values[i])
+
+            # Add 'structure' value of the current row to the new coordinates list
+            new_coordinates[-1].append(df['structure'].values[i])
+
             #print(new_coordinates[-1])
 
     #print(new_coordinates)
@@ -642,10 +820,10 @@ def smooth_line(df):
     new_coordinates.append(coordinates[-1])
 
     # Convert new_coordinates to a dataframe
-    new_df = pd.DataFrame(new_coordinates, columns=['X', 'Y', 'Z', 'resid', 'residue', 'chain', 'atom', 'atom_num'])
+    new_df = pd.DataFrame(new_coordinates, columns=['X', 'Y', 'Z', 'resid', 'residue', 'chain', 'atom', 'atom_num', 'structure'])
 
     # Reorder the columns of new_df as atom_num, atom, residue, resid, chain, X, Y, Z
-    new_df = new_df[['atom_num', 'atom', 'residue', 'resid', 'chain', 'X', 'Y', 'Z']]
+    new_df = new_df[['atom_num', 'atom', 'residue', 'resid', 'chain', 'X', 'Y', 'Z', 'structure']]
 
     # Return the new dataframe
     return new_df
