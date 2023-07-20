@@ -1,5 +1,5 @@
 {
-    "scale": 3.0,
+    "scale": 4.0,
     "atoms": {
         "C": "black_concrete",
         "N": "blue_concrete",
@@ -44,12 +44,12 @@
     },
     "mode": "",
     "backbone": true,
-    "sidechain": true,
+    "sidechain": false,
     "show_atoms": null,
-    "show_hetatm": true,
+    "show_hetatm": false,
     "by_chain": null,
     "mesh": null,
-    "pdb_file": "C:/Users/marku/Downloads/2rh3.pdb",
-    "save_path": "C:/Users/marku/AppData/Roaming/.minecraft/saves/creativey/datapacks\\mcPDB/data/protein/functions",
+    "pdb_file": null,
+    "save_path": null,
     "atom_scale": 1.5
 }

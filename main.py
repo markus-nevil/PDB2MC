@@ -292,6 +292,7 @@ if __name__ == '__main__':
                         else:
                             intermediate = find_intermediate_points(backbone)
 
+
                         intermediate = cylinderize(intermediate, 2)
                         intermediate = remove_inside_spheres(spheres, intermediate, 2)
                         create_minecraft_functions(intermediate, pdb_backbone, False, mc_dir, config_data['atoms'],
@@ -307,9 +308,11 @@ if __name__ == '__main__':
                         pdb_ribbon = pdb_name + "_ribbon"
                         ribbon_df = add_structure(rounded, pdb_file)
                         vectors_df = CO_vectors(ribbon_df, width=0.75)
-                        print("Ribbon with structure: ", ribbon_df.tail(n=1))
+                        print("Ribbon with structure: ", ribbon_df.tail(n=10))
 
-                        ribbon_df = smooth_line(ribbon_df)
+                        #ribbon_df = smooth_line(ribbon_df)
+                        ribbon_df = find_intermediate_points(ribbon_df, keep_columns=True, atoms=["CA", "C", "N"])
+                        ribbon_df = interpolate_dataframe(ribbon_df, smoothness=5000)
                         print("Smoothed: ", ribbon_df.tail(n=1))
 
                         flanked_df = flank_coordinates(ribbon_df, vectors_df)
@@ -350,7 +353,10 @@ if __name__ == '__main__':
                             intermediate = by_chain_df
                         else:
                             intermediate = find_intermediate_points(backbone)
-                            print(intermediate.head(n=20))
+
+                            intermediate = interpolate_dataframe(intermediate, 5000)
+                            print('yep')
+                            #print(intermediate.head(n=20))
                         if config_data["mode"] == "X-ray":
                             create_minecraft_functions(intermediate, pdb_backbone, False, mc_dir, config_data['atoms'],
                                                        replace=True)
