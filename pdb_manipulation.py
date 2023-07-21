@@ -271,6 +271,9 @@ def rotate_to_y(df):
     if z_range < x_range and z_range < y_range:
         df = rotate_z(df)
         #print("Rotated to Z")
+
+    df = set_min_y(df)
+
     return df
 
 def interpolate_dataframe(df, smoothness):

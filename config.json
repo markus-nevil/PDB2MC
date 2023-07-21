@@ -9,7 +9,7 @@
         "P": "lime_concrete",
         "FE": "iron_block",
         "backbone_atom": "gray_concrete",
-        "sidechain_atom": "gray_concrete",
+        "sidechain_atom": null,
         "other_atom": null
     },
     "amino_acids": {
@@ -42,14 +42,15 @@
         "dG": "black_wool",
         "dC": "blue_wool"
     },
-    "mode": "",
+    "mode": "Amino Acids",
     "backbone": true,
-    "sidechain": false,
+    "sidechain": null,
+    "backbone_size": "1.0",
     "show_atoms": null,
-    "show_hetatm": false,
+    "show_hetatm": null,
     "by_chain": null,
     "mesh": null,
-    "pdb_file": "C:/Users/marku/Downloads/4mi0.pdb",
+    "pdb_file": "C:/Users/marku/Downloads/3bep.pdb",
     "save_path": "C:/Users/marku/AppData/Roaming/.minecraft/saves/creativey\\datapacks/mcPDB/data/protein/functions",
     "atom_scale": 1.5
 }

@@ -52,7 +52,7 @@ chain_blocks = {"1" : "red_wool",
 # Define the layout of the window
 open_layout = [
     [sg.Text("Select mode"),
-     sg.DropDown(["Default", "Backbone", "Skeleton", "Space Filling", "X-ray", "X-ray Backbone", "Amino Acids", "Ribbon", "Max", "Min"],
+     sg.DropDown(["Custom", "Skeleton", "X-ray", "Space Filling", "Amino Acids", "Ribbon"],
                  key="mode", default_value="")],
     [sg.Button('Switch Layout')]
 ]
@@ -68,12 +68,12 @@ preset_layout = [
 ]
 
 
-# Default
+# Custom Mode
 default_layout = [
     [sg.Text("Select mode"),
-     sg.DropDown(["Default", "Backbone", "Skeleton", "Space Filling", "X-ray", "X-ray Backbone", "Amino Acids", "Max", "Min"],
-                 key="mode", default_value="Default")],
-    [sg.Button('Switch Layout')],
+     sg.DropDown(["Custom", "Skeleton", "X-ray", "Space Filling", "Amino Acids", "Ribbon"],
+                 key="mode", default_value="Custom"),
+    sg.Button('Switch Layout')],
     [sg.HorizontalSeparator()],
     [sg.Text("Select C atom"), sg.DropDown(decorative_blocks, key="C", default_value="black_concrete")],
     [sg.Text("Select O atom"), sg.DropDown(decorative_blocks, key="O", default_value="red_concrete")],
@@ -89,20 +89,21 @@ default_layout = [
     [sg.Checkbox("Show Atoms", default=True, key="show_atoms"),
      sg.Checkbox("Show Hetatoms", default=True, key="show_hetatm")],
     [sg.Checkbox("Show Backbone", default=True, key="backbone"),
-     sg.Checkbox("Show Sidechain", default=True, key="sidechain")],
-     [sg.Checkbox("Mesh-style atoms", default=False, key="mesh")],
+     sg.Input(default_text='1.0', key="backbone_size", size=(20, 5))],
+    [sg.Checkbox("Show Sidechain", default=True, key="sidechain"),
+     sg.Checkbox("Mesh-style atoms", default=False, key="mesh")],
     [sg.Text("Protein scale"), sg.Input(default_text='1.0', key="scale", size=(20,5)), sg.Text("Atom scale"), sg.Input(default_text='1.5', key="atom_scale", size=(20,5))],
     [sg.Button("Select PDB file"), sg.Text("or"), sg.Button("Select Included PDB file"), sg.Text("and"), sg.Button("Select Minecraft Save")],
     [sg.HorizontalSeparator()],
     [sg.Button("Create Minecraft Functions", bind_return_key=True)]
 ]
 
-## Backbone and Skeleton
+# Backbone and Skeleton
 backbone_layout = [
     [sg.Text("Select mode"),
-     sg.DropDown(["Default", "Backbone", "Skeleton", "Space Filling", "X-ray", "X-ray Backbone", "Amino Acids", "Max", "Min"],
-                 key="mode", default_value="Backbone")],
-    [sg.Button('Switch Layout')],
+     sg.DropDown(["Custom", "Skeleton", "X-ray", "Space Filling", "Amino Acids", "Ribbon"],
+                 key="mode", default_value="Skeleton"),
+        sg.Button('Switch Layout')],
     [sg.HorizontalSeparator()],
     [sg.Text("Select backbone atom"),
      sg.DropDown(decorative_blocks, key="backbone_atom", default_value="gray_concrete")],
@@ -110,9 +111,8 @@ backbone_layout = [
      sg.DropDown(decorative_blocks, key="sidechain_atom", default_value="gray_concrete")],
     [sg.Text("Select other atom"), sg.DropDown(decorative_blocks, key="other_atom", default_value="pink_concrete")],
     [sg.Checkbox("Backbone", default=True, key="backbone"),
-     sg.Checkbox("Sidechain", default=True, key="sidechain"),
-     sg.Checkbox("Mesh-style atoms", default=False, key="mesh"),
-     sg.Checkbox("Show Atoms", default=True, key="show_atoms"),
+        sg.Input(default_text='1.0', key="backbone_size", size=(20, 5))],
+    [sg.Checkbox("Sidechain", default=True, key="sidechain"),
      sg.Checkbox("Show Hetatoms", default=True, key="show_hetatm")],
     [sg.Text("Protein scale"), sg.Input(default_text='1.0', key="scale")],
     [sg.Text("Atom scale"), sg.Input(default_text='1.5', key="atom_scale")],
@@ -120,26 +120,20 @@ backbone_layout = [
     [sg.Button("Create Minecraft Functions", bind_return_key=True)]
 ]
 
-#Space Filling
+# Space Filling
 sf_layout = [
     [sg.Text("Select mode"),
-     sg.DropDown(["Default", "Backbone", "Skeleton", "Space Filling", "X-ray", "X-ray Backbone", "Amino Acids", "Max", "Min"],
-                 key="mode", default_value="Space Filling")],
-    [sg.Button('Switch Layout')],
+     sg.DropDown(["Custom", "Skeleton", "X-ray", "Space Filling", "Amino Acids", "Ribbon"],
+                 key="mode", default_value="Space Filling"),
+        sg.Button('Switch Layout')],
     [sg.HorizontalSeparator()],
     [sg.Text("Select C atom"), sg.DropDown(decorative_blocks, key="C", default_value="black_concrete")],
     [sg.Text("Select O atom"), sg.DropDown(decorative_blocks, key="O", default_value="red_concrete")],
     [sg.Text("Select N atom"), sg.DropDown(decorative_blocks, key="N", default_value="blue_concrete")],
     [sg.Text("Select S atom"), sg.DropDown(decorative_blocks, key="S", default_value="yellow_concrete")],
     [sg.Text("Select P atom"), sg.DropDown(decorative_blocks, key="P", default_value="lime_concrete")],
-    [sg.Text("Select backbone atom"),
-     sg.DropDown(decorative_blocks, key="backbone_atom", default_value="gray_concrete")],
-    [sg.Text("Select side chain atom"),
-     sg.DropDown(decorative_blocks, key="sidechain_atom", default_value="gray_concrete")],
     [sg.Text("Select other atom"), sg.DropDown(decorative_blocks, key="other_atom", default_value="pink_concrete")],
-    [sg.Checkbox("Backbone", default=True, key="backbone"),
-     sg.Checkbox("Sidechain", default=True, key="sidechain"),
-     sg.Checkbox("Mesh-style atoms", default=False, key="mesh"),
+    [sg.Checkbox("Mesh-style atoms", default=False, key="mesh"),
      sg.Checkbox("Show Atoms", default=True, key="show_atoms"),
      sg.Checkbox("Show Hetatoms", default= True, key="show_hetatm")],
     [sg.Text("Protein scale"), sg.Input(default_text='1.0', key="scale")],
@@ -147,12 +141,12 @@ sf_layout = [
     [sg.Button("Create Minecraft Functions", bind_return_key=True)]
 ]
 
-#X-ray and X-ray backbone
+# X-ray and X-ray backbone
 xray_layout = [
     [sg.Text("Select mode"),
-     sg.DropDown(["Default", "Backbone", "Skeleton", "Space Filling", "X-ray", "X-ray Backbone", "Amino Acids", "Max", "Min"],
-                 key="mode", default_value="")],
-    [sg.Button('Switch Layout')],
+     sg.DropDown(["Custom", "Skeleton", "X-ray", "Space Filling", "Amino Acids", "Ribbon"],
+                 key="mode", default_value="X-ray"),
+        sg.Button('Switch Layout')],
     [sg.HorizontalSeparator()],
     [sg.Text("Select C atom"), sg.DropDown(decorative_blocks, key="C", default_value="black_stained_glass")],
     [sg.Text("Select O atom"), sg.DropDown(decorative_blocks, key="O", default_value="red_stained_glass")],
@@ -165,7 +159,8 @@ xray_layout = [
      sg.DropDown(decorative_blocks, key="sidechain_atom", default_value="gray_concrete")],
     [sg.Text("Select other atom"), sg.DropDown(decorative_blocks, key="other_atom", default_value="pink_concrete")],
     [sg.Checkbox("Backbone", default=True, key="backbone"),
-     sg.Checkbox("Sidechain", default=True, key="sidechain"),
+        sg.Input(default_text='1.0', key="backbone_size", size=(20, 5))],
+    [sg.Checkbox("Sidechain", default=True, key="sidechain"),
      sg.Checkbox("Mesh-style atoms", default=False, key="mesh"),
      sg.Checkbox("Show Atoms", default=True, key="show_atoms"),
      sg.Checkbox("Show Hetatoms", default=True, key="show_hetatm")],
@@ -174,12 +169,12 @@ xray_layout = [
     [sg.Button("Select PDB file"), sg.Button("Select Minecraft Save")],
     [sg.Button("Create Minecraft Functions", bind_return_key=True)]
 ]
-#Ribbon mode
+# Ribbon mode
 ribbon_layout = [
     [sg.Text("Select mode"),
-        sg.DropDown(["Default", "Backbone", "Skeleton", "Space Filling", "X-ray", "X-ray Backbone", "Amino Acids", "Max", "Min"],
-                    key="mode", default_value="")],
-    [sg.Button('Switch Layout')],
+        sg.DropDown(["Custom", "Skeleton", "X-ray", "Space Filling", "Amino Acids", "Ribbon"],
+                    key="mode", default_value="Ribbon"),
+        sg.Button('Switch Layout')],
     [sg.HorizontalSeparator()],
     [sg.Text("Select Ribbon color"), sg.DropDown(decorative_blocks, key="O", default_value="red_concrete")],
     [sg.Text("Select backbone atom"),
@@ -194,12 +189,12 @@ ribbon_layout = [
     [sg.Button("Select PDB file"), sg.Text("or"), sg.Button("Select Included PDB file"), sg.Text("and"), sg.Button("Select Minecraft Save")],
     [sg.Button("Create Minecraft Functions", bind_return_key=True)]
 ]
-#Amino acid
+# Amino acid
 aa_layout = [
     [sg.Text("Select mode"),
-     sg.DropDown(["Default", "Backbone", "Skeleton", "Space Filling", "X-ray", "X-ray Backbone", "Amino Acids", "Max", "Min"],
-                 key="mode", default_value="")],
-    [sg.Button('Switch Layout')],
+     sg.DropDown(["Custom", "Skeleton", "X-ray", "Space Filling", "Amino Acids", "Ribbon"],
+                 key="mode", default_value="Amino Acids"),
+        sg.Button('Switch Layout')],
     [sg.HorizontalSeparator()],
     [sg.Text("Select Alanine"), sg.DropDown(decorative_blocks, key="ALA", default_value="white_stained_glass")],
     [sg.Text("Select Arginine"), sg.DropDown(decorative_blocks, key="ARG", default_value="red_stained_glass")],
@@ -224,7 +219,8 @@ aa_layout = [
     [sg.HorizontalSeparator()],
     [sg.Text("Select backbone atom"),
      sg.DropDown(decorative_blocks, key="backbone_atom", default_value="gray_concrete")],
-    [sg.Checkbox("Backbone", default=True, key="backbone")],
+    [sg.Checkbox("Backbone", default=True, key="backbone"),
+        sg.Input(default_text='1.0', key="backbone_size", size=(20, 5))],
     [sg.Text("Protein scale"), sg.Input(default_text='1.0', key="scale", size=(20, 5)), sg.Text("Atom scale"),
      sg.Input(default_text='1.5', key="atom_scale", size=(20, 5))],
     [sg.Button("Select PDB file"), sg.Text("or"), sg.Button("Select Included PDB file"), sg.Text("and"),

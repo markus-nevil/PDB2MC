@@ -6,6 +6,7 @@ from variables import *
 import pandas as pd
 import ast
 import json
+import shutil
 
 if __name__ == '__main__':
 
@@ -57,6 +58,7 @@ if __name__ == '__main__':
             },
             "mode": "Default",
             "backbone": True,
+            "backbone_size": 1,
             "sidechain": True,
             "show_atoms": True,
             "by_chain": False,
@@ -79,7 +81,7 @@ if __name__ == '__main__':
             f.truncate()
 
     # Create the window
-    window = sg.Window("My Window", open_layout)
+    window = sg.Window("Select plotting mode", open_layout)
 
     #Create the popup window and hide it
     preset_window = sg.Window("Preset Models", preset_layout, finalize=True)
@@ -92,8 +94,8 @@ if __name__ == '__main__':
         if event == sg.WIN_CLOSED:
             break
         elif event == 'Switch Layout':
-            if window['mode'].get() == 'Default':
-                master_mode = "Default"
+            if window['mode'].get() == 'Custom':
+                master_mode = "Custom"
                 window.close()
                 window = sg.Window("Default Plotting options", default_layout)
             elif window['mode'].get() == 'Backbone' or window['mode'].get() == 'Skeleton':
@@ -116,10 +118,6 @@ if __name__ == '__main__':
                 master_mode = "Ribbon"
                 window.close()
                 window = sg.Window("Ribbon Plotting Options", ribbon_layout)
-            elif window['mode'].get() == 'Min' or window['mode'].get() == 'Max':
-                master_mode = "Max"
-                window.close()
-                window = sg.Window("Min/Max Plotting Options", minmax_layout)
 
         if event == 'Select Included PDB file':
             cwd = os.getcwd()
@@ -132,13 +130,13 @@ if __name__ == '__main__':
                 json.dump(config, f, indent=4)
                 f.truncate()
 
-            #check if pdb_file contains a string
+            # check if pdb_file contains a string
             if type(preset_file) == str:
-                #check if the model is small enough for minecraft
+                # check if the model is small enough for minecraft
                 if not check_model_size(preset_file, world_max=320):
                     sg.popup("Model may be too large for Minecraft.")
                 else:
-                    #Calculate the maximum protein scale factor
+                    # Calculate the maximum protein scale factor
                     size_factor = check_max_size(preset_file, world_max=320)
                     size_factor = str(round(size_factor, 2))
                     sg.popup("The maximum protein scale is: " + size_factor + "x")
@@ -152,27 +150,39 @@ if __name__ == '__main__':
                 f.seek(0)
                 json.dump(config, f, indent=4)
                 f.truncate()
-            #check if pdb_file contains a string
+            # check if pdb_file contains a string
             if type(pdb_file) == str:
-                #check if the model is small enough for minecraft
+                # check if the model is small enough for minecraft
                 if not check_model_size(pdb_file, world_max=320):
                     sg.popup("Model may be too large for Minecraft.")
                 else:
-                    #Calculate the maximum protein scale factor
+                    # Calculate the maximum protein scale factor
                     size_factor = check_max_size(pdb_file, world_max=320)
                     size_factor = str(round(size_factor, 2))
                     sg.popup("The maximum protein scale is: " + size_factor + "x")
-
-
         if event == "Select Minecraft Save":
             home_dir = os.path.expanduser("~")
             appdata_dir = os.path.join(home_dir, "AppData\Roaming\.minecraft\saves")
+            good_dir = False
 
-            save_path = sg.popup_get_folder("Select your Minecraft save file", initial_folder=appdata_dir)
+            while not good_dir:
+                save_path = sg.popup_get_folder("Select your Minecraft save file", initial_folder=appdata_dir)
+
+                # check if save_path has structure .minecraft/saves/<save_name>
+                if save_path:
+                    if os.path.basename(os.path.dirname(save_path)) == "saves":
+                        good_dir = True
+                    else:
+                        sg.popup("You didn't select a Minecraft save file! Try again!")
 
             directory_path = os.path.join(save_path, "datapacks/mcPDB/data/protein/functions")
+            #print(directory_path, " is where you are going to save your functions")
             if not os.path.exists(directory_path):
                 os.makedirs(directory_path)
+
+            # check for pack.mcmeta in the /datapacks/mcPDB folder and if not copy it from the python directory
+            if not os.path.isfile(os.path.join(save_path, "datapacks/mcPDB/pack.mcmeta")):
+                shutil.copyfile("pack.mcmeta", os.path.join(save_path, "datapacks/mcPDB/pack.mcmeta"))
 
             # Save the save_path to config.json
             with open("config.json", "r+") as f:
@@ -225,6 +235,7 @@ if __name__ == '__main__':
                         config["amino_acids"]["VAL"] = values["VAL"]
                     config["mode"] = values.get("mode")
                     config["backbone"] = values.get("backbone")
+                    config["backbone_size"] = values.get("backbone_size")
                     config["sidechain"] = values.get("sidechain")
                     config["by_chain"] = values.get("by_chain")
                     config["show_atoms"] = values.get("show_atoms")
@@ -241,30 +252,24 @@ if __name__ == '__main__':
                 if config_data["mode"] != "Default":
                     config_data = change_mode(config_data)
 
-
                 pdb_file = config_data['pdb_file']
-
                 pdb_df = read_pdb(pdb_file)
-                # print(pdb_df.head(n=20))
-                # print(pdb_df.tail(n=20))
-
                 pdb_name = get_pdb_code(pdb_file)
-
                 scalar = config_data['scale']
-                # clipped = clip_coords(pdb_df)
-                # scaled = scale_coordinates(clipped, scalar)
                 scaled = scale_coordinates(pdb_df, scalar)
-                # print(scaled.head(n=5))
-                #moved = set_y_zero(scaled)
                 moved = move_coordinates(scaled)
                 moved = rotate_to_y(moved)
                 rounded = round_df(moved)
 
                 mc_dir = config_data['save_path']
+                #print(mc_dir)
+                delete_mcfunctions(mc_dir, pdb_name.lower())
 
-                hetatm_bonds = process_hetatom(rounded, pdb_file)
+                # Check if the user wants het-atoms, if so, process them
+                if config_data["show_hetatm"] == True:
+                    hetatm_bonds = process_hetatom(rounded, pdb_file)
+                    hetatom_df = filter_type_atom(rounded, remove_type="ATOM", remove_atom="H")
 
-                hetatom_df = filter_type_atom(rounded, remove_type="ATOM", remove_atom="H")
                 atom_df = filter_type_atom(rounded, remove_type="HETATM", remove_atom="H")
 
 
@@ -314,8 +319,8 @@ if __name__ == '__main__':
                         else:
                             intermediate = find_intermediate_points(backbone)
 
-
-                        intermediate = cylinderize(intermediate, 2)
+                        cyl_diameter = float(config_data['backbone_size'])
+                        intermediate = cylinderize(intermediate, cyl_diameter)
                         intermediate = remove_inside_spheres(spheres, intermediate, 2)
                         create_minecraft_functions(intermediate, pdb_backbone, False, mc_dir, config_data['atoms'],
                                                        replace=False)
@@ -324,21 +329,21 @@ if __name__ == '__main__':
 
                 # Otherwise print a normal model
                 else:
-                    delete_mcfunctions(mc_dir, pdb_name.lower())
+
 
                     if master_mode == "Ribbon":
                         pdb_ribbon = pdb_name + "_ribbon"
                         ribbon_df = add_structure(rounded, pdb_file)
                         vectors_df = CO_vectors(ribbon_df, width=0.75)
-                        print("Ribbon with structure: ", ribbon_df.tail(n=10))
+                        print("Ribbon with structure: ", ribbon_df.tail(n=5))
 
                         #ribbon_df = smooth_line(ribbon_df)
                         ribbon_df = find_intermediate_points(ribbon_df, keep_columns=True, atoms=["CA", "C", "N"])
                         ribbon_df = interpolate_dataframe(ribbon_df, smoothness=5000)
-                        print("Smoothed: ", ribbon_df.tail(n=1))
+                        print("Smoothed: ", ribbon_df.tail(n=5))
 
                         flanked_df = flank_coordinates(ribbon_df, vectors_df)
-                        print("Flanked: ", flanked_df.tail(n=1))
+                        print("Flanked: ", flanked_df.tail(n=5))
 
                         #replace the 'atom' column values to 'O' for the ribbon
                         flanked_df['atom'] = 'O'
@@ -375,10 +380,8 @@ if __name__ == '__main__':
                             intermediate = by_chain_df
                         else:
                             intermediate = find_intermediate_points(backbone)
-
                             intermediate = interpolate_dataframe(intermediate, 5000)
-                            print('yep')
-                            #print(intermediate.head(n=20))
+
                         if config_data["mode"] == "X-ray":
                             create_minecraft_functions(intermediate, pdb_backbone, False, mc_dir, config_data['atoms'],
                                                        replace=True)
