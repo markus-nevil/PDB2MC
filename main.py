@@ -132,6 +132,17 @@ if __name__ == '__main__':
                 json.dump(config, f, indent=4)
                 f.truncate()
 
+            #check if pdb_file contains a string
+            if type(preset_file) == str:
+                #check if the model is small enough for minecraft
+                if not check_model_size(preset_file, world_max=320):
+                    sg.popup("Model may be too large for Minecraft.")
+                else:
+                    #Calculate the maximum protein scale factor
+                    size_factor = check_max_size(preset_file, world_max=320)
+                    size_factor = str(round(size_factor, 2))
+                    sg.popup("The maximum protein scale is: " + size_factor + "x")
+
         if event == "Select PDB file":
             pdb_file = sg.popup_get_file("Select PDB file")
             # Save the pdb_file path to config.json
@@ -141,14 +152,25 @@ if __name__ == '__main__':
                 f.seek(0)
                 json.dump(config, f, indent=4)
                 f.truncate()
+            #check if pdb_file contains a string
+            if type(pdb_file) == str:
+                #check if the model is small enough for minecraft
+                if not check_model_size(pdb_file, world_max=320):
+                    sg.popup("Model may be too large for Minecraft.")
+                else:
+                    #Calculate the maximum protein scale factor
+                    size_factor = check_max_size(pdb_file, world_max=320)
+                    size_factor = str(round(size_factor, 2))
+                    sg.popup("The maximum protein scale is: " + size_factor + "x")
+
 
         if event == "Select Minecraft Save":
             home_dir = os.path.expanduser("~")
             appdata_dir = os.path.join(home_dir, "AppData\Roaming\.minecraft\saves")
 
-            save_path = sg.popup_get_folder("Select Minecraft 'datapacks' in your save", initial_folder=appdata_dir)
+            save_path = sg.popup_get_folder("Select your Minecraft save file", initial_folder=appdata_dir)
 
-            directory_path = os.path.join(save_path, "mcPDB/data/protein/functions")
+            directory_path = os.path.join(save_path, "datapacks/mcPDB/data/protein/functions")
             if not os.path.exists(directory_path):
                 os.makedirs(directory_path)
 

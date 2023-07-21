@@ -13,6 +13,29 @@ def choose_file():
     file_path = filedialog.askopenfilename()
     return file_path
 
+#Function that takes a pdb file, reads the coordinates of a single chain, and determines whether the shortest edge of the bounding box is shorter than the parameter ymax
+def check_model_size(file_path, world_max):
+    pdb_df = read_pdb(file_path)
+    chain = pdb_df.loc[pdb_df['chain'] == 'A']
+    chain = clip_coords(chain)
+    ymin = chain['Y'].min()
+    ymax = chain['Y'].max()
+    ydiff = ymax - ymin
+    if ydiff < world_max:
+        return True
+    else:
+        return False
+
+#Function that takes a pdb file, reads the coordinates of a single chain, determines the shortest edge of the bounding box, and determines the muliplication required to make that >= ymax.
+def check_max_size(file_path, world_max):
+    pdb_df = read_pdb(file_path)
+    chain = pdb_df.loc[pdb_df['chain'] == 'A']
+    chain = clip_coords(chain)
+    ymin = chain['Y'].min()
+    ymax = chain['Y'].max()
+    ydiff = ymax - ymin
+    multiplier = math.ceil(world_max / ydiff)
+    return multiplier
 
 def choose_subdir(file_path):
     if not file_path:
