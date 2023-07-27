@@ -1,4 +1,7 @@
 import PySimpleGUI as sg
+
+config_path = "docs/config.json"
+
 decorative_blocks = [
     'acacia_log', 'andesite', 'birch_log', 'blackstone', 'blue_ice', 'bone_block', 'brick_block',
     'chiseled_quartz_block', 'chiseled_red_sandstone', 'chiseled_sandstone', 'chiseled_stone_bricks',

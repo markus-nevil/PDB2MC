@@ -5,7 +5,6 @@
 
 import pandas as pd
 import csv
-from variables import *
 import os
 import PySimpleGUI as sg
 import json
@@ -16,6 +15,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import ast
+import variables
 
 #####
 #####
@@ -70,7 +70,7 @@ window.close()
 # Define layout for the main window
 layout = [
     [sg.Text("Click or hover over the question mark for more info:")],
-    [sg.Button("", image_filename="question_mark.png", key="-INFO-")],
+    [sg.Button("", image_filename="images/question_mark.png", key="-INFO-")],
     [sg.Button("Exit")]
 ]
 
@@ -574,7 +574,7 @@ if __name__ == '__main__':
 
 
     # Check if the config file exists
-    if not os.path.isfile("config.json"):
+    if not os.path.isfile(variables.config_path):
         # If it doesn't exist, create it
         config = {
             "scale":1.0,
@@ -593,20 +593,20 @@ if __name__ == '__main__':
             "pdb_file": "",
             "save_path": ""
         }
-        with open("config.json", "w") as f:
+        with open(variables.config_path, "w") as f:
             json.dump(config, f)
 
 
 
 # Define the layout of the window
 layout = [
-    [sg.Text("Select C atom"), sg.DropDown(decorative_blocks, key="C", default_value="black_concrete")],
-    [sg.Text("Select O atom"), sg.DropDown(decorative_blocks, key="O", default_value="red_concrete")],
-    [sg.Text("Select N atom"), sg.DropDown(decorative_blocks, key="N", default_value="blue_concrete")],
-    [sg.Text("Select S atom"), sg.DropDown(decorative_blocks, key="S", default_value="yellow_concrete")],
-    [sg.Text("Select backbone atom"), sg.DropDown(decorative_blocks, key="backbone_atom", default_value="gray_concrete")],
-    [sg.Text("Select side chain atom"), sg.DropDown(decorative_blocks, key="sidechain_atom", default_value="gray_concrete")],
-    [sg.Text("Select other atom"), sg.DropDown(decorative_blocks, key="other_atom", default_value="pink_concrete")],
+    [sg.Text("Select C atom"), sg.DropDown(variables.decorative_blocks, key="C", default_value="black_concrete")],
+    [sg.Text("Select O atom"), sg.DropDown(variables.decorative_blocks, key="O", default_value="red_concrete")],
+    [sg.Text("Select N atom"), sg.DropDown(variables.decorative_blocks, key="N", default_value="blue_concrete")],
+    [sg.Text("Select S atom"), sg.DropDown(variables.decorative_blocks, key="S", default_value="yellow_concrete")],
+    [sg.Text("Select backbone atom"), sg.DropDown(variables.decorative_blocks, key="backbone_atom", default_value="gray_concrete")],
+    [sg.Text("Select side chain atom"), sg.DropDown(variables.decorative_blocks, key="sidechain_atom", default_value="gray_concrete")],
+    [sg.Text("Select other atom"), sg.DropDown(variables.decorative_blocks, key="other_atom", default_value="pink_concrete")],
     [sg.Text("Select mode"), sg.DropDown(["Default", "Skeleton"], key="mode", default_value="Default")],
     [sg.Checkbox("Backbone", default=True, key="backbone"), sg.Checkbox("Sidechain", default=True, key="sidechain")],
     [sg.Text("Scale"), sg.InputText(default_text="1.0", key="scale")],
@@ -626,8 +626,8 @@ while True:
 
     if event == "Select PDB file":
         pdb_file = sg.popup_get_file("Select PDB file")
-        # Save the pdb_file path to config.json
-        with open("config.json", "r+") as f:
+        # Save the pdb_file path to config
+        with open(variables.config_path, "r+") as f:
             config = json.load(f)
             config["pdb_file"] = pdb_file
             f.seek(0)
@@ -636,8 +636,8 @@ while True:
 
     if event == "Select Minecraft Save":
         save_path = sg.popup_get_folder("Select Minecraft Save directory")
-        # Save the save_path to config.json
-        with open("config.json", "r+") as f:
+        # Save the save_path to config
+        with open(variables.config_path, "r+") as f:
             config = json.load(f)
             config["save_path"] = save_path
             f.seek(0)
@@ -662,15 +662,15 @@ window.close()
 
 # Define the layout of the window
 layout = [
-    [sg.Text("Select C atom"), sg.DropDown(decorative_blocks, key="C", default_value="black_concrete")],
-    [sg.Text("Select O atom"), sg.DropDown(decorative_blocks, key="O", default_value="red_concrete")],
-    [sg.Text("Select N atom"), sg.DropDown(decorative_blocks, key="N", default_value="blue_concrete")],
-    [sg.Text("Select S atom"), sg.DropDown(decorative_blocks, key="S", default_value="yellow_concrete")],
+    [sg.Text("Select C atom"), sg.DropDown(variables.decorative_blocks, key="C", default_value="black_concrete")],
+    [sg.Text("Select O atom"), sg.DropDown(variables.decorative_blocks, key="O", default_value="red_concrete")],
+    [sg.Text("Select N atom"), sg.DropDown(variables.decorative_blocks, key="N", default_value="blue_concrete")],
+    [sg.Text("Select S atom"), sg.DropDown(variables.decorative_blocks, key="S", default_value="yellow_concrete")],
     [sg.Text("Select backbone atom"),
-     sg.DropDown(decorative_blocks, key="backbone_atom", default_value="gray_concrete")],
+     sg.DropDown(variables.decorative_blocks, key="backbone_atom", default_value="gray_concrete")],
     [sg.Text("Select side chain atom"),
-     sg.DropDown(decorative_blocks, key="sidechain_atom", default_value="gray_concrete")],
-    [sg.Text("Select other atom"), sg.DropDown(decorative_blocks, key="other_atom", default_value="pink_concrete")],
+     sg.DropDown(variables.decorative_blocks, key="sidechain_atom", default_value="gray_concrete")],
+    [sg.Text("Select other atom"), sg.DropDown(variables.decorative_blocks, key="other_atom", default_value="pink_concrete")],
     [sg.Text("Select mode"),
      sg.DropDown(["Default", "Backbone", "Skeleton", "Space Filling", "X-ray", "X-ray Backbone", "Max", "Min"],
                  key="mode", default_value="Default")],

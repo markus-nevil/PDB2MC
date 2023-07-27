@@ -1,17 +1,17 @@
-from pdb_manipulation import *
-from plotting_functions import *
-from minecraft_functions import *
+import pdb_manipulation
+import minecraft_functions
 import PySimpleGUI as sg
-from variables import *
 import pandas as pd
 import ast
 import json
 import shutil
+import variables
+import os
 
 if __name__ == '__main__':
 
     # Check if the config file exists
-    if not os.path.isfile("config.json"):
+    if not os.path.isfile(variables.conf):
         # If it doesn't exist, create it
         config = {
             "scale": 1.0,
@@ -67,12 +67,12 @@ if __name__ == '__main__':
             "pdb_file": None,
             "save_path": None
         }
-        with open("config.json", "w") as f:
+        with open(variables.conf, "w") as f:
             json.dump(config, f)
 
     # Otherwise load in the existing config and make sure the paths are reset to None
     else:
-        with open("config.json", "r+") as f:
+        with open(variables.conf, "r+") as f:
             config = json.load(f)
             config["save_path"] = None
             config["pdb_file"] = None
@@ -81,10 +81,10 @@ if __name__ == '__main__':
             f.truncate()
 
     # Create the window
-    window = sg.Window("Select plotting mode", open_layout)
+    window = sg.Window("Select plotting mode", variables.open_layout)
 
     #Create the popup window and hide it
-    preset_window = sg.Window("Preset Models", preset_layout, finalize=True)
+    preset_window = sg.Window("Preset Models", variables.preset_layout, finalize=True)
     preset_window.hide()
 
     # Loop to keep the window open
@@ -97,33 +97,33 @@ if __name__ == '__main__':
             if window['mode'].get() == 'Custom':
                 master_mode = "Custom"
                 window.close()
-                window = sg.Window("Default Plotting options", default_layout)
+                window = sg.Window("Default Plotting options", variables.default_layout)
             elif window['mode'].get() == 'Backbone' or window['mode'].get() == 'Skeleton':
                 master_mode = "Skeleton"
                 window.close()
-                window = sg.Window("Backbone/Skeleton Plotting Options", backbone_layout)
+                window = sg.Window("Backbone/Skeleton Plotting Options", variables.backbone_layout)
             elif window['mode'].get() == 'Space Filling':
                 master_mode = "Space Filling"
                 window.close()
-                window = sg.Window("Space Filling Plotting Options", sf_layout)
+                window = sg.Window("Space Filling Plotting Options", variables.sf_layout)
             elif window['mode'].get() == 'X-ray' or window['mode'].get() == 'X-ray Backbone':
                 master_mode = "X-ray Backbone"
                 window.close()
-                window = sg.Window("X-ray Plotting Options", xray_layout)
+                window = sg.Window("X-ray Plotting Options", variables.xray_layout)
             elif window['mode'].get() == 'Amino Acids':
                 master_mode = "Amino Acids"
                 window.close()
-                window = sg.Window("Amino Acid Plotting Options", aa_layout)
+                window = sg.Window("Amino Acid Plotting Options", variables.aa_layout)
             elif window['mode'].get() == 'Ribbon':
                 master_mode = "Ribbon"
                 window.close()
-                window = sg.Window("Ribbon Plotting Options", ribbon_layout)
+                window = sg.Window("Ribbon Plotting Options", variables.ribbon_layout)
 
         if event == 'Select Included PDB file':
             cwd = os.getcwd()
             filepath = os.path.join(cwd, "presets")
             preset_file = sg.popup_get_file("Select Included PDB File", initial_folder=filepath)
-            with open("config.json", "r+") as f:
+            with open(variables.conf, "r+") as f:
                 config = json.load(f)
                 config["pdb_file"] = preset_file
                 f.seek(0)
@@ -133,18 +133,18 @@ if __name__ == '__main__':
             # check if pdb_file contains a string
             if type(preset_file) == str:
                 # check if the model is small enough for minecraft
-                if not check_model_size(preset_file, world_max=320):
+                if not pdb_manipulation.check_model_size(preset_file, world_max=320):
                     sg.popup("Model may be too large for Minecraft.")
                 else:
                     # Calculate the maximum protein scale factor
-                    size_factor = check_max_size(preset_file, world_max=320)
+                    size_factor = pdb_manipulation.check_max_size(preset_file, world_max=320)
                     size_factor = str(round(size_factor, 2))
                     sg.popup("The maximum protein scale is: " + size_factor + "x")
 
         if event == "Select PDB file":
             pdb_file = sg.popup_get_file("Select PDB file")
-            # Save the pdb_file path to config.json
-            with open("config.json", "r+") as f:
+            # Save the pdb_file path to config
+            with open(variables.conf, "r+") as f:
                 config = json.load(f)
                 config["pdb_file"] = pdb_file
                 f.seek(0)
@@ -153,11 +153,11 @@ if __name__ == '__main__':
             # check if pdb_file contains a string
             if type(pdb_file) == str:
                 # check if the model is small enough for minecraft
-                if not check_model_size(pdb_file, world_max=320):
+                if not pdb_manipulation.check_model_size(pdb_file, world_max=320):
                     sg.popup("Model may be too large for Minecraft.")
                 else:
                     # Calculate the maximum protein scale factor
-                    size_factor = check_max_size(pdb_file, world_max=320)
+                    size_factor = pdb_manipulation.check_max_size(pdb_file, world_max=320)
                     size_factor = str(round(size_factor, 2))
                     sg.popup("The maximum protein scale is: " + size_factor + "x")
         if event == "Select Minecraft Save":
@@ -184,8 +184,8 @@ if __name__ == '__main__':
             if not os.path.isfile(os.path.join(save_path, "datapacks/mcPDB/pack.mcmeta")):
                 shutil.copyfile("pack.mcmeta", os.path.join(save_path, "datapacks/mcPDB/pack.mcmeta"))
 
-            # Save the save_path to config.json
-            with open("config.json", "r+") as f:
+            # Save the save_path to config
+            with open(variables.conf, "r+") as f:
                 config = json.load(f)
                 config["save_path"] = directory_path
                 f.seek(0)
@@ -196,8 +196,8 @@ if __name__ == '__main__':
 
             # Execute further code here
             if config["save_path"] and config["pdb_file"]:
-                # Save the window variables to config.json
-                with open("config.json", "r+") as f:
+                # Save the window variables to config
+                with open(variables.conf, "r+") as f:
 
                     config = json.load(f)
                     config["scale"] = float(values["scale"])
@@ -245,7 +245,7 @@ if __name__ == '__main__':
                     json.dump(config, f, indent=4, default=None)
                     f.truncate()
 
-                f = open('config.json')
+                f = open(variables.conf)
                 config_data = json.load(f)
                 f.close
 
@@ -263,7 +263,7 @@ if __name__ == '__main__':
 
                 mc_dir = config_data['save_path']
                 #print(mc_dir)
-                delete_mcfunctions(mc_dir, pdb_name.lower())
+                minecraft_functions.delete_mcfunctions(mc_dir, pdb_name.lower())
 
                 # Check if the user wants het-atoms, if so, process them
                 if config_data["show_hetatm"] == True:
@@ -287,7 +287,7 @@ if __name__ == '__main__':
                     # Hard coded the "mesh" due to lack in the config file
                     spheres = fill_sphere_coordinates(coord, center, shortened)
 
-                    create_minecraft_functions(spheres, pdb_atoms, False, mc_dir, config_data['amino_acids'],
+                    minecraft_functions.create_minecraft_functions(spheres, pdb_atoms, False, mc_dir, config_data['amino_acids'],
                                                    replace=True)
 
                     if config_data["backbone"] == True:
@@ -322,7 +322,7 @@ if __name__ == '__main__':
                         cyl_diameter = float(config_data['backbone_size'])
                         intermediate = cylinderize(intermediate, cyl_diameter)
                         intermediate = remove_inside_spheres(spheres, intermediate, 2)
-                        create_minecraft_functions(intermediate, pdb_backbone, False, mc_dir, config_data['atoms'],
+                        minecraft_functions.create_minecraft_functions(intermediate, pdb_backbone, False, mc_dir, config_data['atoms'],
                                                        replace=False)
 
 
@@ -350,7 +350,7 @@ if __name__ == '__main__':
 
                         #flanked_df = add_missing_coordinates(flanked_df)
 
-                        create_minecraft_functions(flanked_df, pdb_ribbon, False, mc_dir, config_data['atoms'], replace=True)
+                        minecraft_functions.create_minecraft_functions(flanked_df, pdb_ribbon, False, mc_dir, config_data['atoms'], replace=True)
 
                     if config_data["backbone"] == True or master_mode == "Ribbon":
                         pdb_backbone = pdb_name + "_backbone"
@@ -383,10 +383,10 @@ if __name__ == '__main__':
                             intermediate = interpolate_dataframe(intermediate, 5000)
 
                         if config_data["mode"] == "X-ray":
-                            create_minecraft_functions(intermediate, pdb_backbone, False, mc_dir, config_data['atoms'],
+                            minecraft_functions.create_minecraft_functions(intermediate, pdb_backbone, False, mc_dir, config_data['atoms'],
                                                        replace=True)
                         else:
-                            create_minecraft_functions(intermediate, pdb_backbone, False, mc_dir, config_data['atoms'],
+                            minecraft_functions.create_minecraft_functions(intermediate, pdb_backbone, False, mc_dir, config_data['atoms'],
                                                        replace=False)
 
                     if config_data["sidechain"] == True and master_mode != "Amino Acids":
@@ -399,10 +399,10 @@ if __name__ == '__main__':
                         pdb_sidechain = pdb_name + "_sidechain"
 
                         if config_data["mode"] == "X-ray":
-                            create_minecraft_functions(branches, pdb_sidechain, False, mc_dir, config_data['atoms'],
+                            minecraft_functions.create_minecraft_functions(branches, pdb_sidechain, False, mc_dir, config_data['atoms'],
                                                        replace=True)
                         else:
-                            create_minecraft_functions(branches, pdb_sidechain, False, mc_dir, config_data['atoms'],
+                            minecraft_functions.create_minecraft_functions(branches, pdb_sidechain, False, mc_dir, config_data['atoms'],
                                                        replace=False)
 
                     if config_data["show_atoms"] == True:
@@ -413,10 +413,10 @@ if __name__ == '__main__':
                         spheres = add_sphere_coordinates(coord, center, shortened, mesh=config_data['mesh'])
                         #print(spheres)
                         if config_data["mode"] == "X-ray":
-                            create_minecraft_functions(spheres, pdb_atoms, False, mc_dir, config_data['atoms'],
+                            minecraft_functions.create_minecraft_functions(spheres, pdb_atoms, False, mc_dir, config_data['atoms'],
                                                        replace=False)
                         else:
-                            create_minecraft_functions(spheres, pdb_atoms, False, mc_dir, config_data['atoms'],
+                            minecraft_functions.create_minecraft_functions(spheres, pdb_atoms, False, mc_dir, config_data['atoms'],
                                                        replace=True)
                     if config_data["show_hetatm"] == True:
                         pdb_hetatm = pdb_name + "_hetatm"
@@ -425,15 +425,15 @@ if __name__ == '__main__':
                         shortened = shorten_atom_names(hetatom_df)
                         spheres = add_sphere_coordinates(coord, center, shortened, mesh=config_data['mesh'])
                         if config_data["mode"] == "X-ray":
-                            create_minecraft_functions(spheres, pdb_hetatm, False, mc_dir, config_data['atoms'],
+                            minecraft_functions.create_minecraft_functions(spheres, pdb_hetatm, False, mc_dir, config_data['atoms'],
                                                        replace=False)
                         else:
-                            create_minecraft_functions(spheres, pdb_hetatm, False, mc_dir, config_data['atoms'],
+                            minecraft_functions.create_minecraft_functions(spheres, pdb_hetatm, False, mc_dir, config_data['atoms'],
                                                        replace=True)
                         pdb_hetatm_bonds = pdb_name + "_hetatm_bonds"
-                        create_minecraft_functions(hetatm_bonds, pdb_hetatm_bonds, False, mc_dir, config_data['atoms'])
+                        minecraft_functions.create_minecraft_functions(hetatm_bonds, pdb_hetatm_bonds, False, mc_dir, config_data['atoms'])
 
-                mcfiles = find_mcfunctions(mc_dir, pdb_name.lower())
+                mcfiles = minecraft_functions.find_mcfunctions(mc_dir, pdb_name.lower())
                 print(mcfiles)
                 print(config_data)
 
