@@ -1,8 +1,7 @@
-import pdb_manipulation
-import minecraft_functions
+import pdb_manipulation as pdbm
+import minecraft_functions as mcf
 import PySimpleGUI as sg
 import pandas as pd
-import ast
 import json
 import shutil
 import variables
@@ -11,7 +10,7 @@ import os
 if __name__ == '__main__':
 
     # Check if the config file exists
-    if not os.path.isfile(variables.conf):
+    if not os.path.isfile(variables.config_path):
         # If it doesn't exist, create it
         config = {
             "scale": 1.0,
@@ -67,12 +66,12 @@ if __name__ == '__main__':
             "pdb_file": None,
             "save_path": None
         }
-        with open(variables.conf, "w") as f:
+        with open(variables.config_path, "w") as f:
             json.dump(config, f)
 
     # Otherwise load in the existing config and make sure the paths are reset to None
     else:
-        with open(variables.conf, "r+") as f:
+        with open(variables.config_path, "r+") as f:
             config = json.load(f)
             config["save_path"] = None
             config["pdb_file"] = None
@@ -90,6 +89,9 @@ if __name__ == '__main__':
     # Loop to keep the window open
     while True:
         event, values = window.read()
+        master_mode = ""
+        hetatom_df = pd.DataFrame()
+        hetatm_bonds = pd.DataFrame()
 
         if event == sg.WIN_CLOSED:
             break
@@ -123,7 +125,7 @@ if __name__ == '__main__':
             cwd = os.getcwd()
             filepath = os.path.join(cwd, "presets")
             preset_file = sg.popup_get_file("Select Included PDB File", initial_folder=filepath)
-            with open(variables.conf, "r+") as f:
+            with open(variables.config_path, "r+") as f:
                 config = json.load(f)
                 config["pdb_file"] = preset_file
                 f.seek(0)
@@ -133,18 +135,18 @@ if __name__ == '__main__':
             # check if pdb_file contains a string
             if type(preset_file) == str:
                 # check if the model is small enough for minecraft
-                if not pdb_manipulation.check_model_size(preset_file, world_max=320):
+                if not pdbm.check_model_size(preset_file, world_max=320):
                     sg.popup("Model may be too large for Minecraft.")
                 else:
                     # Calculate the maximum protein scale factor
-                    size_factor = pdb_manipulation.check_max_size(preset_file, world_max=320)
+                    size_factor = pdbm.check_max_size(preset_file, world_max=320)
                     size_factor = str(round(size_factor, 2))
                     sg.popup("The maximum protein scale is: " + size_factor + "x")
 
         if event == "Select PDB file":
             pdb_file = sg.popup_get_file("Select PDB file")
             # Save the pdb_file path to config
-            with open(variables.conf, "r+") as f:
+            with open(variables.config_path, "r+") as f:
                 config = json.load(f)
                 config["pdb_file"] = pdb_file
                 f.seek(0)
@@ -153,11 +155,11 @@ if __name__ == '__main__':
             # check if pdb_file contains a string
             if type(pdb_file) == str:
                 # check if the model is small enough for minecraft
-                if not pdb_manipulation.check_model_size(pdb_file, world_max=320):
+                if not pdbm.check_model_size(pdb_file, world_max=320):
                     sg.popup("Model may be too large for Minecraft.")
                 else:
                     # Calculate the maximum protein scale factor
-                    size_factor = pdb_manipulation.check_max_size(pdb_file, world_max=320)
+                    size_factor = pdbm.check_max_size(pdb_file, world_max=320)
                     size_factor = str(round(size_factor, 2))
                     sg.popup("The maximum protein scale is: " + size_factor + "x")
         if event == "Select Minecraft Save":
@@ -165,6 +167,7 @@ if __name__ == '__main__':
             appdata_dir = os.path.join(home_dir, "AppData\Roaming\.minecraft\saves")
             good_dir = False
 
+            save_path = ""
             while not good_dir:
                 save_path = sg.popup_get_folder("Select your Minecraft save file", initial_folder=appdata_dir)
 
@@ -185,7 +188,7 @@ if __name__ == '__main__':
                 shutil.copyfile("pack.mcmeta", os.path.join(save_path, "datapacks/mcPDB/pack.mcmeta"))
 
             # Save the save_path to config
-            with open(variables.conf, "r+") as f:
+            with open(variables.config_path, "r+") as f:
                 config = json.load(f)
                 config["save_path"] = directory_path
                 f.seek(0)
@@ -197,7 +200,7 @@ if __name__ == '__main__':
             # Execute further code here
             if config["save_path"] and config["pdb_file"]:
                 # Save the window variables to config
-                with open(variables.conf, "r+") as f:
+                with open(variables.config_path, "r+") as f:
 
                     config = json.load(f)
                     config["scale"] = float(values["scale"])
@@ -245,54 +248,55 @@ if __name__ == '__main__':
                     json.dump(config, f, indent=4, default=None)
                     f.truncate()
 
-                f = open(variables.conf)
+                f = open(variables.config_path)
                 config_data = json.load(f)
-                f.close
+
+                f.close()
 
                 if config_data["mode"] != "Default":
-                    config_data = change_mode(config_data)
+                    config_data = pdbm.change_mode(config_data)
 
                 pdb_file = config_data['pdb_file']
-                pdb_df = read_pdb(pdb_file)
-                pdb_name = get_pdb_code(pdb_file)
+                pdb_df = pdbm.read_pdb(pdb_file)
+                pdb_name = pdbm.get_pdb_code(pdb_file)
                 scalar = config_data['scale']
-                scaled = scale_coordinates(pdb_df, scalar)
-                moved = move_coordinates(scaled)
-                moved = rotate_to_y(moved)
-                rounded = round_df(moved)
+                scaled = pdbm.scale_coordinates(pdb_df, scalar)
+                moved = pdbm.move_coordinates(scaled)
+                moved = pdbm.rotate_to_y(moved)
+                rounded = pdbm.round_df(moved)
 
                 mc_dir = config_data['save_path']
                 #print(mc_dir)
-                minecraft_functions.delete_mcfunctions(mc_dir, pdb_name.lower())
+                mcf.delete_mcfunctions(mc_dir, pdb_name.lower())
 
                 # Check if the user wants het-atoms, if so, process them
                 if config_data["show_hetatm"] == True:
-                    hetatm_bonds = process_hetatom(rounded, pdb_file)
-                    hetatom_df = filter_type_atom(rounded, remove_type="ATOM", remove_atom="H")
+                    hetatm_bonds = pdbm.process_hetatom(rounded, pdb_file)
+                    hetatom_df = pdbm.filter_type_atom(rounded, remove_type="ATOM", remove_atom="H")
 
-                atom_df = filter_type_atom(rounded, remove_type="HETATM", remove_atom="H")
+                atom_df = pdbm.filter_type_atom(rounded, remove_type="HETATM", remove_atom="H")
 
 
                 print(config_data["mode"])
                 # Check if printing a special case
                 if master_mode == "Amino Acids":
                     print("Amino acid mode")
-                    residue = atom_subset(rounded, ['CA', "C4'"], include=True)
+                    residue = pdbm.atom_subset(rounded, ['CA', "C4'"], include=True)
 
                     pdb_atoms = pdb_name + "_atoms"
-                    coord = rasterized_sphere(config_data['atom_scale'])
-                    center = sphere_center(config_data['atom_scale'])
-                    shortened = residue_to_atoms(residue)
+                    coord = pdbm.rasterized_sphere(config_data['atom_scale'])
+                    center = pdbm.sphere_center(config_data['atom_scale'])
+                    shortened = pdbm.residue_to_atoms(residue)
 
                     # Hard coded the "mesh" due to lack in the config file
-                    spheres = fill_sphere_coordinates(coord, center, shortened)
+                    spheres = pdbm.fill_sphere_coordinates(coord, center, shortened)
 
-                    minecraft_functions.create_minecraft_functions(spheres, pdb_atoms, False, mc_dir, config_data['amino_acids'],
+                    mcf.create_minecraft_functions(spheres, pdb_atoms, False, mc_dir, config_data['amino_acids'],
                                                    replace=True)
 
                     if config_data["backbone"] == True:
                         pdb_backbone = pdb_name + "_backbone"
-                        backbone = atom_subset(rounded, ['C', 'N', 'CA', 'P', "O5'", "C5'", "C4'", "C3'", "O3'"],
+                        backbone = pdbm.atom_subset(rounded, ['C', 'N', 'CA', 'P', "O5'", "C5'", "C4'", "C3'", "O3'"],
                                                include=True)
 
                         if config_data["by_chain"]:
@@ -304,7 +308,7 @@ if __name__ == '__main__':
                                 chain_df = backbone[backbone["chain"] == chain_value]
 
                                 # perform intermediate calculations
-                                intermediate = find_intermediate_points(chain_df)
+                                intermediate = pdbm.find_intermediate_points(chain_df)
 
                                 # add a new column "atom" with values ranging from 1 to 10, repeating that pattern for unique "chain" values >10
                                 if i < 10:
@@ -317,12 +321,12 @@ if __name__ == '__main__':
 
                             intermediate = by_chain_df
                         else:
-                            intermediate = find_intermediate_points(backbone)
+                            intermediate = pdbm.find_intermediate_points(backbone)
 
                         cyl_diameter = float(config_data['backbone_size'])
-                        intermediate = cylinderize(intermediate, cyl_diameter)
-                        intermediate = remove_inside_spheres(spheres, intermediate, 2)
-                        minecraft_functions.create_minecraft_functions(intermediate, pdb_backbone, False, mc_dir, config_data['atoms'],
+                        intermediate = pdbm.cylinderize(intermediate, cyl_diameter)
+                        intermediate = pdbm.remove_inside_spheres(spheres, intermediate, 2)
+                        mcf.create_minecraft_functions(intermediate, pdb_backbone, False, mc_dir, config_data['atoms'],
                                                        replace=False)
 
 
@@ -333,16 +337,16 @@ if __name__ == '__main__':
 
                     if master_mode == "Ribbon":
                         pdb_ribbon = pdb_name + "_ribbon"
-                        ribbon_df = add_structure(rounded, pdb_file)
-                        vectors_df = CO_vectors(ribbon_df, width=0.75)
+                        ribbon_df = pdbm.add_structure(rounded, pdb_file)
+                        vectors_df = pdbm.CO_vectors(ribbon_df, width=0.75)
                         print("Ribbon with structure: ", ribbon_df.tail(n=5))
 
                         #ribbon_df = smooth_line(ribbon_df)
-                        ribbon_df = find_intermediate_points(ribbon_df, keep_columns=True, atoms=["CA", "C", "N"])
-                        ribbon_df = interpolate_dataframe(ribbon_df, smoothness=5000)
+                        ribbon_df = pdbm.find_intermediate_points(ribbon_df, keep_columns=True, atoms=["CA", "C", "N"])
+                        ribbon_df = pdbm.interpolate_dataframe(ribbon_df, smoothness=5000)
                         print("Smoothed: ", ribbon_df.tail(n=5))
 
-                        flanked_df = flank_coordinates(ribbon_df, vectors_df)
+                        flanked_df = pdbm.flank_coordinates(ribbon_df, vectors_df)
                         print("Flanked: ", flanked_df.tail(n=5))
 
                         #replace the 'atom' column values to 'O' for the ribbon
@@ -350,11 +354,11 @@ if __name__ == '__main__':
 
                         #flanked_df = add_missing_coordinates(flanked_df)
 
-                        minecraft_functions.create_minecraft_functions(flanked_df, pdb_ribbon, False, mc_dir, config_data['atoms'], replace=True)
+                        mcf.create_minecraft_functions(flanked_df, pdb_ribbon, False, mc_dir, config_data['atoms'], replace=True)
 
                     if config_data["backbone"] == True or master_mode == "Ribbon":
                         pdb_backbone = pdb_name + "_backbone"
-                        backbone = atom_subset(rounded, ['C', 'N', 'CA', 'P', "O5'", "C5'", "C4'", "C3'", "O3'"],
+                        backbone = pdbm.atom_subset(rounded, ['C', 'N', 'CA', 'P', "O5'", "C5'", "C4'", "C3'", "O3'"],
                                                include=True)
 
                         if config_data["by_chain"]:
@@ -366,7 +370,7 @@ if __name__ == '__main__':
                                 chain_df = backbone[backbone["chain"] == chain_value]
 
                                 # perform intermediate calculations
-                                intermediate = find_intermediate_points(chain_df)
+                                intermediate = pdbm.find_intermediate_points(chain_df)
 
                                 # add a new column "atom" with values ranging from 1 to 10, repeating that pattern for unique "chain" values >10
                                 if i < 10:
@@ -379,19 +383,19 @@ if __name__ == '__main__':
 
                             intermediate = by_chain_df
                         else:
-                            intermediate = find_intermediate_points(backbone)
-                            intermediate = interpolate_dataframe(intermediate, 5000)
+                            intermediate = pdbm.find_intermediate_points(backbone)
+                            intermediate = pdbm.interpolate_dataframe(intermediate, 5000)
 
                         if config_data["mode"] == "X-ray":
-                            minecraft_functions.create_minecraft_functions(intermediate, pdb_backbone, False, mc_dir, config_data['atoms'],
+                            mcf.create_minecraft_functions(intermediate, pdb_backbone, False, mc_dir, config_data['atoms'],
                                                        replace=True)
                         else:
-                            minecraft_functions.create_minecraft_functions(intermediate, pdb_backbone, False, mc_dir, config_data['atoms'],
+                            mcf.create_minecraft_functions(intermediate, pdb_backbone, False, mc_dir, config_data['atoms'],
                                                        replace=False)
 
                     if config_data["sidechain"] == True and master_mode != "Amino Acids":
 
-                        branches = sidechain(rounded)
+                        branches = pdbm.sidechain(rounded)
 
                         if config_data["by_chain"]:
                             branches = branches.drop("atom", axis=1)
@@ -399,45 +403,45 @@ if __name__ == '__main__':
                         pdb_sidechain = pdb_name + "_sidechain"
 
                         if config_data["mode"] == "X-ray":
-                            minecraft_functions.create_minecraft_functions(branches, pdb_sidechain, False, mc_dir, config_data['atoms'],
+                            mcf.create_minecraft_functions(branches, pdb_sidechain, False, mc_dir, config_data['atoms'],
                                                        replace=True)
                         else:
-                            minecraft_functions.create_minecraft_functions(branches, pdb_sidechain, False, mc_dir, config_data['atoms'],
+                            mcf.create_minecraft_functions(branches, pdb_sidechain, False, mc_dir, config_data['atoms'],
                                                        replace=False)
 
                     if config_data["show_atoms"] == True:
                         pdb_atoms = pdb_name + "_atoms"
-                        coord = rasterized_sphere(config_data['atom_scale'])
-                        center = sphere_center(config_data['atom_scale'])
-                        shortened = shorten_atom_names(atom_df)
-                        spheres = add_sphere_coordinates(coord, center, shortened, mesh=config_data['mesh'])
+                        coord = pdbm.rasterized_sphere(config_data['atom_scale'])
+                        center = pdbm.sphere_center(config_data['atom_scale'])
+                        shortened = pdbm.shorten_atom_names(atom_df)
+                        spheres = pdbm.add_sphere_coordinates(coord, center, shortened, mesh=config_data['mesh'])
                         #print(spheres)
                         if config_data["mode"] == "X-ray":
-                            minecraft_functions.create_minecraft_functions(spheres, pdb_atoms, False, mc_dir, config_data['atoms'],
+                            mcf.create_minecraft_functions(spheres, pdb_atoms, False, mc_dir, config_data['atoms'],
                                                        replace=False)
                         else:
-                            minecraft_functions.create_minecraft_functions(spheres, pdb_atoms, False, mc_dir, config_data['atoms'],
+                            mcf.create_minecraft_functions(spheres, pdb_atoms, False, mc_dir, config_data['atoms'],
                                                        replace=True)
                     if config_data["show_hetatm"] == True:
                         pdb_hetatm = pdb_name + "_hetatm"
-                        coord = rasterized_sphere(config_data['atom_scale'])
-                        center = sphere_center(config_data['atom_scale'])
-                        shortened = shorten_atom_names(hetatom_df)
-                        spheres = add_sphere_coordinates(coord, center, shortened, mesh=config_data['mesh'])
+                        coord = pdbm.rasterized_sphere(config_data['atom_scale'])
+                        center = pdbm.sphere_center(config_data['atom_scale'])
+                        shortened = pdbm.shorten_atom_names(hetatom_df)
+                        spheres = pdbm.add_sphere_coordinates(coord, center, shortened, mesh=config_data['mesh'])
                         if config_data["mode"] == "X-ray":
-                            minecraft_functions.create_minecraft_functions(spheres, pdb_hetatm, False, mc_dir, config_data['atoms'],
+                            mcf.create_minecraft_functions(spheres, pdb_hetatm, False, mc_dir, config_data['atoms'],
                                                        replace=False)
                         else:
-                            minecraft_functions.create_minecraft_functions(spheres, pdb_hetatm, False, mc_dir, config_data['atoms'],
+                            mcf.create_minecraft_functions(spheres, pdb_hetatm, False, mc_dir, config_data['atoms'],
                                                        replace=True)
                         pdb_hetatm_bonds = pdb_name + "_hetatm_bonds"
-                        minecraft_functions.create_minecraft_functions(hetatm_bonds, pdb_hetatm_bonds, False, mc_dir, config_data['atoms'])
+                        mcf.create_minecraft_functions(hetatm_bonds, pdb_hetatm_bonds, False, mc_dir, config_data['atoms'])
 
-                mcfiles = minecraft_functions.find_mcfunctions(mc_dir, pdb_name.lower())
+                mcfiles = mcf.find_mcfunctions(mc_dir, pdb_name.lower())
                 print(mcfiles)
                 print(config_data)
 
-                create_master_function(mcfiles, pdb_name, mc_dir)
+                mcf.create_master_function(mcfiles, pdb_name, mc_dir)
 
                 message = f"Finished! Remember to /reload in your world and /function protein:drop_{pdb_name}"
                 sg.popup(message)
