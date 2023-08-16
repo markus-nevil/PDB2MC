@@ -28,8 +28,9 @@ The structures of proteins and other biomolecules determined by X-ray crystallog
     2. `Generate Structures: OFF`
 ![MC2.png](images%2FMC2.png)
 
-5. On the `More` tab, select `Game Rules` to change the following (not required, but helpful!)
+5. On the `More` tab, select `Game Rules` to change the following
     1. `Spawn phantoms OFF`
+   2. `Max Command Chain Length: 1000000 (or higher)`
     2. `Spawn mobs OFF`
     3. `Spawn pillager patrols OFF`
     4. `Spawn Wandering Traders OFF`
@@ -86,23 +87,62 @@ The structures of proteins and other biomolecules determined by X-ray crystallog
 ## Glossary of terms
 
 1. X-ray Crystallography
+: A method of determining the structure of a molecule by shooting X-rays at a crystal of the molecule. The x-rays are
+deflected by the electrons surrounding the atoms of the molecule. By measuring this "diffraction" pattern, the structure
+of the molecule can be determined.
+
 2. PDB
+: The Protein Data Bank (PDB) file is a database of coordinates and other information that describes the structure of a 
+molecule or other biomolecule. The PDB file contains a lot of useful information but is often not human-readable and
+ requires another program to visualize the structure.
+
 3. Protein/Enzyme
-4. Primary, Secondary Tertiary structures
+: A protein is the biomolecule that makes up the structural and functional machines of all cells. Protein is a more general
+term for any of these molecules made from amino acids and encoded by the DNA of the organism. Enyzmes are proteins that
+ have a specific function, such as catalyzing a reaction to make a product.
+
+4. Primary, Secondary, Tertiary, Quarternary structures
+: Proteins can be described in terms of their structure. The primary structure is the first level of structure and is the
+ amino acid sequence of the protein. Secondary structure are the local structures within stretches of amino acids in a 
+protein such as alpha helices and beta sheets. Tertiary structure is the overall structure of the protein and is the primary
+structure folded into a 3D shape. Quaternary structure describes when multiple proteins come together to form a larger complex
+ potentially with more or a different function than the individual proteins.
+
 5. Amino Acid
+: Amino acids are the building blocks of proteins. Each individual amino acid "residue" has backbone atoms: An amino (N) group,
+ a carboxyl (C=O) group, and a center carbon atom. The center carbon has a variable "R" group which may be as small as a single
+ hydrogen atom or as large as a carbon ring structure. The R group determines the properties of the amino acid.
+
 6. Ligand, Co-factor, Substrate
-7. DNA, RNA
-8. Heteroatom, Atom
+: These terms refer to small-to-medium sized molecules that interact with proteins. A ligand is a molecule that binds to a protein
+ and may change the function of the protein. A co-factor is a molecule that is required for the protein to function. A substrate
+ is a molecule that is acted upon by the protein which may be changed into a product.
+
+7. DNA and RNA
+: These molecules represent the beginning and middle stage of the central dogma: DNA is the molecule that makes up the 
+genome, where genetic information is stored and inherited. RNA is the short-lived messenger molecule that is transcribed 
+from the DNA. Some RNA molecules are translated into proteins, but others may have other functions. DNA and RNA differ 
+in structure as well as function: RNA has an extra hydroxyl group on its ribose sugar and is single-stranded, while DNA 
+lacks this hydroxyl and is often double-stranded.
+
+8. Heteroatom and Atom
+: These terms are used to describe the atoms that make up the molecules in the PDB file. Both are atoms and most often
+Carbon, Oxygen, Nitogen, Phosphorous, and Sulfur, however some heteroatoms are metals or other elements. In the PDB file,
+the Protein, DNA, and/or RNA atoms are denoted as "atoms", while the atoms that make up ligands, co-factors, and substrates are denoted as
+"heteroatoms"
+
 9. Bond
+: A bond is the connection between two atoms and within the structure created by the PDB file. This represents the sharing
+of electrons between two atoms (in "covalent bonds"). Hydrogen and ionic bonds are not represented in the PDB file.
 
 ## Description of Program modes
 
 1. Custom
 2. Skeleton
 3. X-ray
-4. Amino Acid
-5. Ribbon
-6. Space Filling
+4. Space Filling 
+5. Amino Acid 
+6. Ribbon
 
 ## Description of options
 
