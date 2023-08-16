@@ -1,0 +1,10 @@
+HEADER    FLUORESCENT PROTEIN                     12-JUL-07   SER1              
+TITLE     GFP/S205V MUTANT                                                                                                       
+AUTHOR    X.SHU,S.J.REMINGTON                                                                  
+ATOM   1350  N   SER A 175     -47.691  10.907  14.737  1.00 32.85           N  
+ATOM   1351  CA  SER A 175     -46.527  11.738  14.924  1.00 38.56           C  
+ATOM   1352  C   SER A 175     -45.309  10.915  14.480  1.00 53.95           C  
+ATOM   1353  O   SER A 175     -45.448   9.763  14.052  1.00 31.64           O  
+ATOM   1354  CB  SER A 175     -46.403  12.146  16.413  1.00 38.34           C  
+ATOM   1355  OG  SER A 175     -46.366  13.566  16.529  1.00 90.15           O  
+END                                                                             

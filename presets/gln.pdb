@@ -1,0 +1,13 @@
+HEADER    FLUORESCENT PROTEIN                     12-JUL-07   GLN1              
+TITLE     GFP/S205V MUTANT                                                                                                       
+AUTHOR    X.SHU,S.J.REMINGTON                                                                  
+ATOM    491  N   GLN A  69     -23.522  -0.387   3.291  1.00 20.83           N  
+ATOM    492  CA  GLN A  69     -23.479   0.725   2.345  1.00 19.83           C  
+ATOM    493  C   GLN A  69     -22.596   0.542   1.183  1.00 18.96           C  
+ATOM    494  O   GLN A  69     -22.651   1.349   0.222  1.00 17.35           O  
+ATOM    495  CB  GLN A  69     -23.270   2.070   3.088  1.00 15.25           C  
+ATOM    496  CG  GLN A  69     -24.452   2.335   4.051  1.00 17.37           C  
+ATOM    497  CD  GLN A  69     -24.244   3.534   4.914  1.00 28.77           C  
+ATOM    498  OE1 GLN A  69     -23.267   3.610   5.610  1.00 23.08           O  
+ATOM    499  NE2 GLN A  69     -25.199   4.457   4.917  1.00 34.16           N  
+END                                

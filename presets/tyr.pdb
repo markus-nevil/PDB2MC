@@ -1,0 +1,16 @@
+HEADER    FLUORESCENT PROTEIN                     12-JUL-07   TYR1              
+TITLE     GFP/S205V MUTANT                                                                                                       
+AUTHOR    X.SHU,S.J.REMINGTON                                                                  
+ATOM    256  N   TYR A  39     -27.340  -2.083  -9.130  1.00 24.54           N  
+ATOM    257  CA  TYR A  39     -28.636  -1.455  -9.064  1.00 20.06           C  
+ATOM    258  C   TYR A  39     -28.882  -0.847  -7.679  1.00 45.90           C  
+ATOM    259  O   TYR A  39     -29.987  -0.410  -7.414  1.00 29.25           O  
+ATOM    260  CB  TYR A  39     -29.703  -2.483  -9.388  1.00 21.52           C  
+ATOM    261  CG  TYR A  39     -29.450  -3.149 -10.727  1.00 23.03           C  
+ATOM    262  CD1 TYR A  39     -28.777  -4.379 -10.806  1.00 30.53           C  
+ATOM    263  CD2 TYR A  39     -29.811  -2.498 -11.926  1.00 23.43           C  
+ATOM    264  CE1 TYR A  39     -28.549  -4.995 -12.023  1.00 26.72           C  
+ATOM    265  CE2 TYR A  39     -29.514  -3.069 -13.161  1.00 19.31           C  
+ATOM    266  CZ  TYR A  39     -28.896  -4.323 -13.191  1.00 32.79           C  
+ATOM    267  OH  TYR A  39     -28.641  -4.906 -14.387  1.00 38.83           O  
+END                                                                             

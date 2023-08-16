@@ -1,0 +1,12 @@
+HEADER    FLUORESCENT PROTEIN                     12-JUL-07   ILE1              
+TITLE     GFP/S205V MUTANT                                                                                                       
+AUTHOR    X.SHU,S.J.REMINGTON                                                                  
+ATOM     73  N   ILE A  14     -25.036 -12.066   1.324  1.00 21.07           N  
+ATOM     74  CA  ILE A  14     -24.808 -11.320   2.546  1.00 16.24           C  
+ATOM     75  C   ILE A  14     -25.247 -12.139   3.771  1.00 17.49           C  
+ATOM     76  O   ILE A  14     -26.286 -12.832   3.741  1.00 20.00           O  
+ATOM     77  CB  ILE A  14     -25.727 -10.041   2.590  1.00 21.83           C  
+ATOM     78  CG1 ILE A  14     -25.485  -9.127   1.379  1.00 31.21           C  
+ATOM     79  CG2 ILE A  14     -25.567  -9.288   3.954  1.00 16.67           C  
+ATOM     80  CD1 ILE A  14     -26.513  -7.971   1.206  1.00 19.01           C  
+END                                                                             

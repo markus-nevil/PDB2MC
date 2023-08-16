@@ -1,0 +1,12 @@
+HEADER    FLUORESCENT PROTEIN                     12-JUL-07   GLU1              
+TITLE     GFP/S205V MUTANT                                                                                                       
+AUTHOR    X.SHU,S.J.REMINGTON                                                                  
+ATOM      5  N   GLU A   5     -14.606  -2.365  -6.081  1.00 36.39           N  
+ATOM      6  CA  GLU A   5     -15.847  -2.294  -6.891  1.00 99.97           C  
+ATOM      7  C   GLU A   5     -16.268  -3.651  -7.600  1.00 35.56           C  
+ATOM      8  O   GLU A   5     -17.380  -4.132  -7.368  1.00 56.13           O  
+ATOM      9  CB  GLU A   5     -15.773  -1.076  -7.867  1.00 43.60           C  
+ATOM     10  CG  GLU A   5     -17.031  -0.162  -7.932  1.00 47.90           C  
+ATOM     11  CD  GLU A   5     -18.216  -0.786  -8.707  1.00 99.97           C  
+ATOM     12  OE1 GLU A   5     -18.694  -1.909  -8.381  1.00 48.47           O                                         
+END                                                                             

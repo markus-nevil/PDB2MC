@@ -1,0 +1,14 @@
+HEADER    FLUORESCENT PROTEIN                     12-JUL-07   HIS1              
+TITLE     GFP/S205V MUTANT                                                                                                       
+AUTHOR    X.SHU,S.J.REMINGTON                                                                  
+ATOM    152  N   HIS A  25     -32.481  -6.005  28.142  1.00 31.09           N  
+ATOM    153  CA  HIS A  25     -33.182  -7.096  27.418  1.00 24.80           C  
+ATOM    154  C   HIS A  25     -32.203  -7.536  26.363  1.00 38.77           C  
+ATOM    155  O   HIS A  25     -31.908  -6.779  25.425  1.00 35.01           O  
+ATOM    156  CB  HIS A  25     -34.458  -6.623  26.696  1.00 30.31           C  
+ATOM    157  CG  HIS A  25     -35.363  -5.775  27.533  1.00 47.31           C  
+ATOM    158  ND1 HIS A  25     -35.353  -4.399  27.473  1.00 81.41           N  
+ATOM    159  CD2 HIS A  25     -36.350  -6.107  28.401  1.00 35.87           C  
+ATOM    160  CE1 HIS A  25     -36.273  -3.915  28.289  1.00 78.38           C  
+ATOM    161  NE2 HIS A  25     -36.887  -4.928  28.871  1.00 42.45           N                                                             
+END                                                                             

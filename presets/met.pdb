@@ -1,0 +1,12 @@
+HEADER    FLUORESCENT PROTEIN                     12-JUL-07   MET1              
+TITLE     GFP/S205V MUTANT                                                                                                       
+AUTHOR    X.SHU,S.J.REMINGTON                                                                  
+ATOM    571  N   MET A  78     -19.156   9.245 -10.062  1.00 20.67           N  
+ATOM    572  CA  MET A  78     -18.912   9.441  -8.621  1.00 27.31           C  
+ATOM    573  C   MET A  78     -18.076   8.326  -8.049  1.00 31.32           C  
+ATOM    574  O   MET A  78     -17.826   8.277  -6.851  1.00 22.31           O  
+ATOM    575  CB  MET A  78     -20.238   9.485  -7.854  1.00 38.55           C  
+ATOM    576  CG  MET A  78     -20.948  10.809  -8.018  1.00 29.59           C  
+ATOM    577  SD  MET A  78     -22.419  10.971  -7.036  1.00 24.23           S  
+ATOM    578  CE  MET A  78     -21.674  10.826  -5.411  1.00 13.88           C  
+END                                                                             

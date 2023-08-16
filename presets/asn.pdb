@@ -1,0 +1,12 @@
+HEADER    FLUORESCENT PROTEIN                     12-JUL-07   ASN1              
+TITLE     GFP/S205V MUTANT                                                                                                       
+AUTHOR    X.SHU,S.J.REMINGTON                                                                  
+ATOM    140  N   ASN A  23     -31.446  -1.807  27.457  1.00 30.93           N  
+ATOM    141  CA  ASN A  23     -31.950  -1.659  28.826  1.00 35.62           C  
+ATOM    142  C   ASN A  23     -31.909  -3.032  29.518  1.00 40.72           C  
+ATOM    143  O   ASN A  23     -32.756  -3.349  30.355  1.00 37.72           O  
+ATOM    144  CB  ASN A  23     -33.399  -1.148  28.792  1.00 23.47           C  
+ATOM    145  CG  ASN A  23     -33.481   0.339  28.721  1.00 44.37           C  
+ATOM    146  OD1 ASN A  23     -32.539   0.992  28.250  1.00 34.62           O  
+ATOM    147  ND2 ASN A  23     -34.593   0.908  29.231  1.00 41.31           N              
+END                                                                             

@@ -1,0 +1,11 @@
+HEADER    FLUORESCENT PROTEIN                     12-JUL-07   THR1              
+TITLE     GFP/S205V MUTANT                                                                                                       
+AUTHOR    X.SHU,S.J.REMINGTON                                                                  
+ATOM    826  N   THR A 108     -23.543   1.209  18.482  1.00 23.71           N  
+ATOM    827  CA  THR A 108     -23.332  -0.054  17.816  1.00 25.20           C  
+ATOM    828  C   THR A 108     -21.951  -0.031  17.286  1.00 18.88           C  
+ATOM    829  O   THR A 108     -21.406   1.034  17.032  1.00 21.95           O  
+ATOM    830  CB  THR A 108     -24.329  -0.236  16.615  1.00 27.43           C  
+ATOM    831  OG1 THR A 108     -24.133   0.837  15.668  1.00 23.12           O  
+ATOM    832  CG2 THR A 108     -25.768  -0.149  17.141  1.00 21.43           C  
+END                                                                             

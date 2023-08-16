@@ -1,0 +1,11 @@
+HEADER    FLUORESCENT PROTEIN                     12-JUL-07   PRO1              
+TITLE     GFP/S205V MUTANT                                                                                                       
+AUTHOR    X.SHU,S.J.REMINGTON                                                                  
+ATOM     66  N   PRO A  13     -23.709 -12.649  -1.988  1.00 26.07           N  
+ATOM     67  CA  PRO A  13     -24.421 -13.064  -0.789  1.00 17.21           C  
+ATOM     68  C   PRO A  13     -24.033 -12.255   0.451  1.00 19.95           C  
+ATOM     69  O   PRO A  13     -22.861 -11.852   0.653  1.00 22.81           O  
+ATOM     70  CB  PRO A  13     -24.054 -14.545  -0.619  1.00 15.31           C  
+ATOM     71  CG  PRO A  13     -23.160 -14.857  -1.703  1.00 28.11           C  
+ATOM     72  CD  PRO A  13     -22.702 -13.631  -2.395  1.00 31.46           C  
+END                                                                             

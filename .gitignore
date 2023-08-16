@@ -2,3 +2,7 @@
 build/
 main.exe
 __pycache__/
+mcpdb.zip
+mcpdb.spec
+plotting_functions.py
+scratch.py
