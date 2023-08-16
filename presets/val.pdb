@@ -1,0 +1,11 @@
+HEADER    FLUORESCENT PROTEIN                     12-JUL-07   VAL1              
+TITLE     GFP/S205V MUTANT                                                                                                       
+AUTHOR    X.SHU,S.J.REMINGTON                                                                  
+ATOM     52  N   VAL A  11     -24.359 -10.193  -8.158  1.00 26.80           N  
+ATOM     53  CA  VAL A  11     -25.096 -10.480  -6.939  1.00 23.77           C  
+ATOM     54  C   VAL A  11     -24.131 -11.140  -5.956  1.00 31.16           C  
+ATOM     55  O   VAL A  11     -23.408 -12.045  -6.296  1.00 31.17           O  
+ATOM     56  CB  VAL A  11     -26.305 -11.380  -7.294  1.00 22.86           C  
+ATOM     57  CG1 VAL A  11     -27.058 -11.838  -6.112  1.00 21.61           C  
+ATOM     58  CG2 VAL A  11     -27.245 -10.623  -8.272  1.00 23.87           C  
+END                                                                             

@@ -1,0 +1,12 @@
+HEADER    FLUORESCENT PROTEIN                     12-JUL-07   ASP1              
+TITLE     GFP/S205V MUTANT                                                                                                       
+AUTHOR    X.SHU,S.J.REMINGTON                                                                  
+ATOM    113  N   ASP A  19     -25.898  -9.019  18.025  1.00 24.17           N  
+ATOM    114  CA  ASP A  19     -25.972  -9.463  19.430  1.00 27.90           C  
+ATOM    115  C   ASP A  19     -26.409  -8.191  20.099  1.00 23.96           C  
+ATOM    116  O   ASP A  19     -25.733  -7.188  19.954  1.00 30.33           O  
+ATOM    117  CB  ASP A  19     -24.565  -9.825  19.901  1.00 34.54           C  
+ATOM    118  CG  ASP A  19     -24.536 -10.485  21.276  1.00 99.97           C  
+ATOM    119  OD1 ASP A  19     -25.627 -10.664  21.883  1.00 99.97           O  
+ATOM    120  OD2 ASP A  19     -23.405 -10.808  21.735  1.00 99.97           O                             
+END                                                                             

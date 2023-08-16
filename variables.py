@@ -52,6 +52,15 @@ chain_blocks = {"1" : "red_wool",
                 "9" : "green_wool",
                 "10": "orange_wool"}
 
+radii = {"C": 0.7,
+         "N": 0.65,
+         "O": 0.6,
+         "S": 1.0,
+         "P": 1.0,
+         "Mg": 1.5,
+         "K": 2.2,
+         "Ca": 1.8}
+
 # Define the layout of the window
 open_layout = [
     [sg.Text("Select mode"),
@@ -117,6 +126,7 @@ backbone_layout = [
         sg.Input(default_text='1.0', key="backbone_size", size=(20, 5))],
     [sg.Checkbox("Sidechain", default=True, key="sidechain"),
      sg.Checkbox("Show Hetatoms", default=True, key="show_hetatm")],
+    [sg.Checkbox("Color the backbone by chain?", default= False, key="by_chain")],
     [sg.Text("Protein scale"), sg.Input(default_text='1.0', key="scale")],
     [sg.Text("Atom scale"), sg.Input(default_text='1.5', key="atom_scale")],
     [sg.Button("Select PDB file"), sg.Button("Select Minecraft Save")],
@@ -136,11 +146,12 @@ sf_layout = [
     [sg.Text("Select S atom"), sg.DropDown(decorative_blocks, key="S", default_value="yellow_concrete")],
     [sg.Text("Select P atom"), sg.DropDown(decorative_blocks, key="P", default_value="lime_concrete")],
     [sg.Text("Select other atom"), sg.DropDown(decorative_blocks, key="other_atom", default_value="pink_concrete")],
+    [sg.Checkbox("Color the backbone by chain?", default= False, key="by_chain")],
     [sg.Checkbox("Mesh-style atoms", default=False, key="mesh"),
      sg.Checkbox("Show Atoms", default=True, key="show_atoms"),
      sg.Checkbox("Show Hetatoms", default= True, key="show_hetatm")],
     [sg.Text("Protein scale"), sg.Input(default_text='1.0', key="scale")],
-    [sg.Button("Select PDB file"), sg.Button("Select Minecraft Save")],
+    [sg.Button("Select PDB file"), sg.Text("or"), sg.Button("Select Included PDB file"), sg.Text("and"), sg.Button("Select Minecraft Save")],
     [sg.Button("Create Minecraft Functions", bind_return_key=True)]
 ]
 

@@ -1,0 +1,15 @@
+HEADER    FLUORESCENT PROTEIN                     12-JUL-07   ARG1              
+TITLE     GFP/S205V MUTANT                                                                                                       
+AUTHOR    X.SHU,S.J.REMINGTON                                                                  
+ATOM    523  N   ARG A  73     -25.416   2.252  -5.044  1.00 24.70           N  
+ATOM    524  CA  ARG A  73     -25.084   2.389  -6.428  1.00 16.80           C  
+ATOM    525  C   ARG A  73     -24.445   3.774  -6.540  1.00 20.69           C  
+ATOM    526  O   ARG A  73     -25.110   4.764  -6.352  1.00 21.88           O  
+ATOM    527  CB  ARG A  73     -26.334   2.374  -7.292  1.00 17.48           C  
+ATOM    528  CG  ARG A  73     -26.014   2.789  -8.690  1.00 21.09           C  
+ATOM    529  CD  ARG A  73     -27.198   2.553  -9.559  1.00 27.31           C  
+ATOM    530  NE  ARG A  73     -27.986   3.751  -9.620  1.00 67.91           N  
+ATOM    531  CZ  ARG A  73     -28.177   4.426 -10.736  1.00 66.10           C  
+ATOM    532  NH1 ARG A  73     -27.628   3.992 -11.867  1.00 99.97           N  
+ATOM    533  NH2 ARG A  73     -28.917   5.525 -10.717  1.00 80.95           N     
+END                                                                             

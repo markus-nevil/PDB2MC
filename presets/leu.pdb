@@ -1,0 +1,12 @@
+HEADER    FLUORESCENT PROTEIN                     12-JUL-07   LEU1              
+TITLE     GFP/S205V MUTANT                                                                                                       
+AUTHOR    X.SHU,S.J.REMINGTON                                                                  
+ATOM     22  N   LEU A   7     -15.709  -6.614  -7.010  1.00 33.18           N  
+ATOM     23  CA  LEU A   7     -16.135  -7.572  -6.018  1.00 42.91           C  
+ATOM     24  C   LEU A   7     -17.660  -7.459  -6.019  1.00 28.07           C  
+ATOM     25  O   LEU A   7     -18.359  -8.314  -5.498  1.00 27.98           O  
+ATOM     26  CB  LEU A   7     -15.638  -7.049  -4.657  1.00 31.44           C  
+ATOM     27  CG  LEU A   7     -14.949  -7.919  -3.610  1.00 48.22           C  
+ATOM     28  CD1 LEU A   7     -14.047  -8.879  -4.339  1.00 38.01           C  
+ATOM     29  CD2 LEU A   7     -14.153  -7.057  -2.640  1.00 39.52           C  
+END                                                                             
