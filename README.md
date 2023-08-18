@@ -143,29 +143,37 @@ of electrons between two atoms (in "covalent bonds"). Hydrogen and ionic bonds a
 
 ## Description of Program modes
 
-1. Custom
+1. Features common to most-or-all modes
+    1. Scale determination
+    2. Rotation of model
+    3. Removal of Hydrogen and Water
+    4. Removal of ambiguous residues
+    5. Color of chains
+    6. Minecraft datapack
+    7. ..
+3. Custom
 : This mode allows for the most customization of the visualization of atoms and bonds. Useful if you want to add, remove,
 or modify most elements of the model.
 
-2. Skeleton
+4. Skeleton
 : Makes a simple model of the protein backbone. Useful for visualizing the overall shape of the protein with or without 
 amino acid side chains.
 
-3. X-ray
+5. X-ray
 : Preset that creates a model that is similar to the default view of the PDB file. However, the default setting for the
 visualization of the atoms are set to glass, which allows for the visualization of the bonds between atoms.
 
-4. Space Filling 
+6. Space Filling 
 : This mode creates a model where the atoms are represented by spheres that are scaled to the size of the atom. This gives
 the general appearance of what a protein would look like if it were scaled up. Bonds are still created by default but only
 visible if the atoms are made of glass. **Caution:** This mode may take a long time to run and may take Minecraft a long
 time to process.
 
-5. Amino Acid 
+7. Amino Acid 
 : This mode creates a model where the amino acids are represented by a single sphere. This is no longer a true representation
 however, it is useful for visualizing the overall shape of the protein and the location/identity of the amino acids.
 
-6. Ribbon
+8. Ribbon
 : This is preset creates a cartoon-like representation of the protein. The backbone is presented as a smoothed line. Residues
 that are part of either an alpha-helix or beta-sheet are represented as ribbons. The ribbons are colored based on the peptide
 or DNA/RNA chain to which they belong. This mode is useful for visualizing the secondary and tertiary structure of the protein.
