@@ -113,36 +113,62 @@ structure folded into a 3D shape. Quaternary structure describes when multiple p
  a carboxyl (C=O) group, and a center carbon atom. The center carbon has a variable "R" group which may be as small as a single
  hydrogen atom or as large as a carbon ring structure. The R group determines the properties of the amino acid.
 
-6. Ligand, Co-factor, Substrate
+6. Backbone and Sidechain
+: These terms refer to the parts of an amino acid. The backbone is the amino and carboxyl groups and the center carbon, 
+thus when visualized, appears to be a long string that snakes through the protein. The sidechain is the variable R group.
+that gives each individual amino acid its unique properties. In certain models, these are visualized as shapes that protrude
+from the backbone.
+
+7. Ligand, Co-factor, Substrate
 : These terms refer to small-to-medium sized molecules that interact with proteins. A ligand is a molecule that binds to a protein
  and may change the function of the protein. A co-factor is a molecule that is required for the protein to function. A substrate
  is a molecule that is acted upon by the protein which may be changed into a product.
 
-7. DNA and RNA
+8. DNA and RNA
 : These molecules represent the beginning and middle stage of the central dogma: DNA is the molecule that makes up the 
 genome, where genetic information is stored and inherited. RNA is the short-lived messenger molecule that is transcribed 
 from the DNA. Some RNA molecules are translated into proteins, but others may have other functions. DNA and RNA differ 
 in structure as well as function: RNA has an extra hydroxyl group on its ribose sugar and is single-stranded, while DNA 
 lacks this hydroxyl and is often double-stranded.
 
-8. Heteroatom and Atom
+9. Heteroatom and Atom
 : These terms are used to describe the atoms that make up the molecules in the PDB file. Both are atoms and most often
 Carbon, Oxygen, Nitogen, Phosphorous, and Sulfur, however some heteroatoms are metals or other elements. In the PDB file,
 the Protein, DNA, and/or RNA atoms are denoted as "atoms", while the atoms that make up ligands, co-factors, and substrates are denoted as
 "heteroatoms"
 
-9. Bond
+10. Bond
 : A bond is the connection between two atoms and within the structure created by the PDB file. This represents the sharing
 of electrons between two atoms (in "covalent bonds"). Hydrogen and ionic bonds are not represented in the PDB file.
 
 ## Description of Program modes
 
 1. Custom
+: This mode allows for the most customization of the visualization of atoms and bonds. Useful if you want to add, remove,
+or modify most elements of the model.
+
 2. Skeleton
+: Makes a simple model of the protein backbone. Useful for visualizing the overall shape of the protein with or without 
+amino acid side chains.
+
 3. X-ray
+: Preset that creates a model that is similar to the default view of the PDB file. However, the default setting for the
+visualization of the atoms are set to glass, which allows for the visualization of the bonds between atoms.
+
 4. Space Filling 
+: This mode creates a model where the atoms are represented by spheres that are scaled to the size of the atom. This gives
+the general appearance of what a protein would look like if it were scaled up. Bonds are still created by default but only
+visible if the atoms are made of glass. **Caution:** This mode may take a long time to run and may take Minecraft a long
+time to process.
+
 5. Amino Acid 
+: This mode creates a model where the amino acids are represented by a single sphere. This is no longer a true representation
+however, it is useful for visualizing the overall shape of the protein and the location/identity of the amino acids.
+
 6. Ribbon
+: This is preset creates a cartoon-like representation of the protein. The backbone is presented as a smoothed line. Residues
+that are part of either an alpha-helix or beta-sheet are represented as ribbons. The ribbons are colored based on the peptide
+or DNA/RNA chain to which they belong. This mode is useful for visualizing the secondary and tertiary structure of the protein.
 
 ## Description of options
 
