@@ -180,6 +180,8 @@ or DNA/RNA chain to which they belong. This mode is useful for visualizing the s
 
 ## Description of options
 
-1. Atom
-2. Heteroatom
-3. Bonds
+1. Atom Scale
+2. Protein Scale
+3. "Select _____ atom"
+4. Heteroatom
+5. Bonds
