@@ -35,6 +35,7 @@ def run_mode(config_data, pdb_name, rounded, mc_dir, atom_df, hetatom_df, hetatm
                 coord = pdbm.rasterized_sphere(config_data['scale'] * radius_mod)
                 center = pdbm.sphere_center(config_data['scale'] * radius_mod)
                 spheres_temp = pdbm.add_sphere_coordinates(coord, center, shortened, mesh=config_data['mesh'])
+                spheres_temp = pdbm.filter_exterior_points(spheres_temp)
                 spheres = pd.concat([spheres_temp, spheres], ignore_index=True)
                 # Remove any rows with duplicate coordinates
                 spheres = spheres.drop_duplicates(subset=['X', 'Y', 'Z'], keep='first')
@@ -42,7 +43,9 @@ def run_mode(config_data, pdb_name, rounded, mc_dir, atom_df, hetatom_df, hetatm
             spheres['atom'] = num
 
             #Remove any rows with duplicate coordinates
-            spheres = spheres.drop_duplicates(subset=['X', 'Y', 'Z'], keep='first')
+            #spheres = spheres.drop_duplicates(subset=['X', 'Y', 'Z'], keep='first')
+            spheres = pdbm.filter_exterior_points(spheres)
+            #spheres = pd.merge(spheres_matrix[['X', 'Y', 'Z']], spheres, on=['X', 'Y', 'Z'], how='left')
 
             mcf.create_minecraft_functions(spheres, pdb_atoms, False, mc_dir, config_data['atoms'], replace=False)
 

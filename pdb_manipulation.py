@@ -5,6 +5,7 @@ from tkinter import filedialog
 import numpy as np
 import math
 import re
+import trimesh
 from scipy.interpolate import splprep, splev
 from scipy.spatial import ConvexHull, Delaunay
 from skimage.draw import ellipsoid, ellipsoid_stats
@@ -1311,6 +1312,19 @@ def remove_inside_spheres(sphere_df, coord_df, diameter):
     # Create a dataframe from the coordinates list and return it
     return pd.DataFrame(coordinates, columns=['X', 'Y', 'Z'])
 
+
+def filter_exterior_points(dataframe):
+    # Extract the X, Y, Z coordinates
+    points = dataframe[['X', 'Y', 'Z']].values
+
+    # Perform Delaunay triangulation to extract surface
+    tri = Delaunay(points)
+    exterior_indices = np.unique(tri.simplices.flatten())
+
+    # Filter the dataframe to keep only exterior points
+    exterior_dataframe = dataframe.iloc[exterior_indices]
+
+    return exterior_dataframe
 
 def is_inside_sphere(x, y, z, sphere_coords):
     # Iterate over the coordinates of the sphere

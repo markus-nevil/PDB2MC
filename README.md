@@ -144,13 +144,21 @@ of electrons between two atoms (in "covalent bonds"). Hydrogen and ionic bonds a
 ## Description of Program modes
 
 1. Features common to most-or-all modes
-    1. Scale determination
-    2. Rotation of model
-    3. Removal of Hydrogen and Water
-    4. Removal of ambiguous residues
-    5. Color of chains
-    6. Minecraft datapack
-    7. ..
+    1. `Scale determination: `Once a PDB file is loaded, the program will determine the size of the model and suggest a
+maximum scale for the model. This is to prevent the model from being too large for Minecraft's limited up-and-down (Y) axis.
+In the current version, this appears as a pop-up.
+    2. `Rotation of model: `Once the user starts generating the model, the model will rotate such that the shortest dimension
+will become the up-and-down (Y) axis. This is to prevent the model from being too large for Minecraft.
+    3. `Removal of Hydrogen and Water: `Due to the nature of X-ray crystallography, hydrogen atoms are often not captured
+in the PDB file. Additionally, water molecules are often present in the crystal and are not part of the protein. If present
+these atoms are removed from the visualization.
+    4. `Removal of ambiguous residues: `Some PDB files contain amino acids that are not fully resolved. This means that the
+exact orientation of amino acid residues are not known. The ambiguous residues are removed from the visualization.
+    5. `Color of chains: `In modes that color the backbone of the protein by default or optionally, the chains will be colored
+based on a preset set of brightly colored blocks. This may be made customizable in the future versions.
+    6. `Minecraft datapack: `When a new Minecraft world first has model functions generated, a "datapack" is required. 
+The program will automatically generate the datapack file structure and place the required pack.mcmeta file in the datapack.
+   
 3. Custom
 : This mode allows for the most customization of the visualization of atoms and bonds. Useful if you want to add, remove,
 or modify most elements of the model.
@@ -181,7 +189,18 @@ or DNA/RNA chain to which they belong. This mode is useful for visualizing the s
 ## Description of options
 
 1. Atom Scale
+: This option allows the user to change the size of the atoms by applying a scaling factor to the radius of the spheres 
+that will represent those atoms.
+
 2. Protein Scale
+: This option allows the user to change the size of the protein by applying a scaling factor to the distance between
+each atoms. Thus, the protein will be scaled up or down. This option is useful for visualizing the bonds between each atom
+since `Atom Scale` will not change the distance between atoms and is a separate option. 
+
 3. "Select _____ atom"
+: These sets of options allow the user to individually select the Minecraft block that will represent a particular atom,
+group of atoms, or bond. The user may select a block from a curated list from the current version of
+Minecraft.
+
 4. Heteroatom
 5. Bonds
