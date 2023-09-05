@@ -17,10 +17,14 @@ def create_minecraft_functions(df, name, air, dir, blocks, replace=False):
         x, y, z = row['X'], row['Y'], row['Z']
 
         if 'atom' in df.columns:
-            if str(row['atom']).isdigit():
-                block = variables.chain_blocks.get(str(row['atom']), 'gray_concrete')
+            # Check if block_dict is a single minecraft block
+            if isinstance(block_dict, str):
+                block = block_dict
             else:
-                block = block_dict.get(row['atom'], 'pink_concrete')
+                if str(row['atom']).isdigit():
+                    block = variables.chain_blocks.get(str(row['atom']), 'gray_concrete')
+                else:
+                    block = block_dict.get(row['atom'], 'pink_concrete')
         else:
             block = block_dict.get('backbone_atom', 'pink_concrete')
 

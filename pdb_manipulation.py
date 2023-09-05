@@ -7,8 +7,9 @@ import math
 import re
 import trimesh
 from scipy.interpolate import splprep, splev
-from scipy.spatial import ConvexHull, Delaunay
-from skimage.draw import ellipsoid, ellipsoid_stats
+from scipy.spatial import ConvexHull, Delaunay, cKDTree
+from scipy.ndimage import label, generate_binary_structure
+import tifffile as tiff
 
 
 def choose_file():
@@ -382,7 +383,6 @@ def flank_coordinates(df, vector_df):
 
     return final_df
 
-# TODO
 
 # Function that takes a dataframe of coordinates and a integer, "width", and returns a dataframe of vectors calculated as the vector between each dataframe row with "atom" value of "C" to the next row with matching "resid" and "atom" value of "O".
 def DNA_vectors(df, width=1):
@@ -1313,18 +1313,103 @@ def remove_inside_spheres(sphere_df, coord_df, diameter):
     return pd.DataFrame(coordinates, columns=['X', 'Y', 'Z'])
 
 
-def filter_exterior_points(dataframe):
-    # Extract the X, Y, Z coordinates
-    points = dataframe[['X', 'Y', 'Z']].values
+def construct_surface_array(df):
+    min_x, max_x = df['X'].min(), df['X'].max()
+    min_y, max_y = df['Y'].min(), df['Y'].max()
+    min_z, max_z = df['Z'].min(), df['Z'].max()
 
-    # Perform Delaunay triangulation to extract surface
-    tri = Delaunay(points)
-    exterior_indices = np.unique(tri.simplices.flatten())
+    x_range = max_x - min_x + 3  # Adding 2 for the extra border
+    y_range = max_y - min_y + 3
+    z_range = max_z - min_z + 3
 
-    # Filter the dataframe to keep only exterior points
-    exterior_dataframe = dataframe.iloc[exterior_indices]
+    #surface_array = np.full((x_range, y_range, z_range), 1000, dtype=object)
+    surface_array = np.full((x_range, y_range, z_range), 1e6, dtype=object)
 
-    return exterior_dataframe
+    for index, row in df.iterrows():
+        x, y, z = row['X'] - min_x + 1, row['Y'] - min_y + 1, row['Z'] - min_z + 1
+        surface_array[x, y, z] = index
+
+    return surface_array
+
+def preprocess_3d_array(arr_3d, fill_value=1e7, empty_value=1e6):
+    # Replace fill_value with 0 and empty_value with 255
+    arr_3d[arr_3d == fill_value] = 0
+    arr_3d[arr_3d == empty_value] = 255
+
+    # Replace any remaining values with 100
+    arr_3d[(arr_3d != 0) & (arr_3d != 255)] = 150
+
+    # Cast the array to np.uint8
+    arr_3d = arr_3d.astype(np.uint8)
+
+    return arr_3d
+
+def paint_bucket_fill(arr_3d, row=1, col=1, fill_value=1e7, empty_value=1e6):
+    for _ in range(3):
+        arr_3d = np.moveaxis(arr_3d, source=0, destination=2)
+        depth = arr_3d.shape[2]
+        queue = [(row, col, d) for d in range(depth)]
+
+        while queue:
+            r, c, d = queue.pop(0)
+
+            if r < 0 or r >= arr_3d.shape[0] or c < 0 or c >= arr_3d.shape[1] or arr_3d[r, c, d] != empty_value:
+                continue
+
+            arr_3d[r, c, d] = fill_value
+            queue.append((r + 1, c, d))
+            queue.append((r - 1, c, d))
+            queue.append((r, c + 1, d))
+            queue.append((r, c - 1, d))
+
+    #array_path = "C:/Users/marku/Desktop/large_array.tif"
+    #tiff_array = preprocess_3d_array(arr_3d)
+    #tiff.imwrite(array_path, tiff_array)
+
+    return arr_3d
+def filter_dataframe_by_fill_value(arr_3d, df, fill_value=1e7):
+    filtered_indices = set()
+    for _ in range(3):
+        arr_3d = np.moveaxis(arr_3d, source=0, destination=2)
+        #arr_3d = np.moveaxis(arr_3d, source=0, destination=1)
+
+        for d in range(arr_3d.shape[2]):
+            for r in range(arr_3d.shape[0]):
+                for c in range(arr_3d.shape[1]):
+                    if arr_3d[r, c, d] == fill_value:
+                        if r > 0 and arr_3d[r - 1, c, d] != fill_value:
+                            filtered_indices.add(int(arr_3d[r - 1, c, d]))
+                        if r < arr_3d.shape[0] - 1 and arr_3d[r + 1, c, d] != fill_value:
+                            filtered_indices.add(int(arr_3d[r + 1, c, d]))
+                        if c > 0 and arr_3d[r, c - 1, d] != fill_value:
+                            filtered_indices.add(int(arr_3d[r, c - 1, d]))
+                        if c < arr_3d.shape[1] - 1 and arr_3d[r, c + 1, d] != fill_value:
+                            filtered_indices.add(int(arr_3d[r, c + 1, d]))
+
+    filtered_df = df[df.index.isin(filtered_indices)].drop_duplicates()
+    return filtered_df
+
+def find_outer_surface(surface_array):
+    surface_mask = np.zeros_like(surface_array, dtype=bool)
+
+    for z in range(surface_array.shape[2]):
+        slice_2d = surface_array[:, :, z]
+        slice_2d = np.ravel(slice_2d)
+        convolved = np.convolve(slice_2d < 1e6, np.array([1, 1, 1]), mode='same')
+        print(convolved)
+        surface_mask[:, :, z] = (convolved > 0) & (convolved < 3)
+
+    surface_array[surface_mask] = surface_array[surface_mask]
+    surface_array[surface_array == 1e6] = np.nan  # Remove the large value
+    return surface_array
+
+
+def filter_dataframe(original_df, surface_array):
+    filtered_indices = [index for index in np.ravel(surface_array) if isinstance(index, int)]
+    filtered_df = original_df.loc[filtered_indices]
+
+    return filtered_df
+
 
 def is_inside_sphere(x, y, z, sphere_coords):
     # Iterate over the coordinates of the sphere
@@ -1424,6 +1509,17 @@ def add_sphere_coordinates(sphere_array, center, df, mesh=False):
     sphere_df = pd.DataFrame(new_rows, columns=['X', 'Y', 'Z', 'atom'])
     return sphere_df
 
+def add_filled_sphere_coordinates(sphere_array, center, df):
+    sphere_coords = np.transpose(np.nonzero(sphere_array))
+    new_rows = []
+
+    for row_index, row in df.iterrows():
+        for i, j, k in sphere_coords:
+            i_norm, j_norm, k_norm = i - center[0], j - center[1], k - center[2]
+            #distance = math.sqrt(i_norm ** 2 + j_norm ** 2 + k_norm ** 2)
+            new_rows.append([row['X'] + i_norm, row['Y'] + j_norm, row['Z'] + k_norm, row['atom']])
+    sphere_df = pd.DataFrame(new_rows, columns=['X', 'Y', 'Z', 'atom'])
+    return sphere_df
 
 def fill_sphere_coordinates(sphere_array, center, df):
     sphere_coords = np.transpose(np.nonzero(sphere_array))

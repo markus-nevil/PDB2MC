@@ -291,7 +291,7 @@ if __name__ == '__main__':
 
                 # Delete the old mcfunctions if they match the current one
                 mc_dir = config_data['save_path']
-                mcf.delete_mcfunctions(mc_dir, pdb_name.lower())
+                mcf.delete_mcfunctions(mc_dir, "z"+pdb_name.lower())
 
                 # set some important parameters
                 if config_data["mode"] != "Default":

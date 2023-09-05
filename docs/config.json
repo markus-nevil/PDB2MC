@@ -50,7 +50,7 @@
     "show_hetatm": true,
     "by_chain": true,
     "mesh": false,
-    "pdb_file": "C:/Users/marku/Downloads/3bj2.pdb",
+    "pdb_file": "C:/Users/marku/PycharmProjects/mcpdb/presets/GFP.pdb",
     "save_path": "C:/Users/marku/AppData/Roaming/.minecraft/saves/flat_white\\datapacks/mcPDB/data/protein/functions",
     "atom_scale": 1.5
 }
