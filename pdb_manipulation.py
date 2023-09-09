@@ -1332,17 +1332,19 @@ def construct_surface_array(df):
     return surface_array
 
 def preprocess_3d_array(arr_3d, fill_value=1e7, empty_value=1e6):
+    tmp_array = arr_3d
+
     # Replace fill_value with 0 and empty_value with 255
-    arr_3d[arr_3d == fill_value] = 0
-    arr_3d[arr_3d == empty_value] = 255
+    tmp_array[tmp_array == fill_value] = 0
+    tmp_array[tmp_array == empty_value] = 255
 
     # Replace any remaining values with 100
-    arr_3d[(arr_3d != 0) & (arr_3d != 255)] = 150
+    tmp_array[(tmp_array != 0) & (tmp_array != 255)] = 150
 
     # Cast the array to np.uint8
-    arr_3d = arr_3d.astype(np.uint8)
+    tmp_array = tmp_array.astype(np.uint8)
 
-    return arr_3d
+    return tmp_array
 
 def paint_bucket_fill(arr_3d, row=1, col=1, fill_value=1e7, empty_value=1e6):
     for _ in range(3):
@@ -1362,9 +1364,9 @@ def paint_bucket_fill(arr_3d, row=1, col=1, fill_value=1e7, empty_value=1e6):
             queue.append((r, c + 1, d))
             queue.append((r, c - 1, d))
 
-    #array_path = "C:/Users/marku/Desktop/large_array.tif"
-    #tiff_array = preprocess_3d_array(arr_3d)
-    #tiff.imwrite(array_path, tiff_array)
+    # array_path = "C:/Users/Duronio Lab/Desktop/large_array.tif"
+    # tiff_array = preprocess_3d_array(arr_3d)
+    # tiff.imwrite(array_path, tiff_array)
 
     return arr_3d
 def filter_dataframe_by_fill_value(arr_3d, df, fill_value=1e7):
@@ -1504,7 +1506,7 @@ def add_sphere_coordinates(sphere_array, center, df, mesh=False):
             distance = math.sqrt(i_norm ** 2 + j_norm ** 2 + k_norm ** 2)
             if abs(distance - math.ceil(sphere_array.shape[0] / 2)) <= 1 and mesh == True:
                 new_rows.append([row['X'] + i_norm, row['Y'] + j_norm, row['Z'] + k_norm, row['atom']])
-            if abs(distance - math.ceil(sphere_array.shape[0] / 2)) <= 2 and mesh == False:
+            if abs(distance - math.ceil(sphere_array.shape[0] / 2)) <= 3 and mesh == False:
                 new_rows.append([row['X'] + i_norm, row['Y'] + j_norm, row['Z'] + k_norm, row['atom']])
     sphere_df = pd.DataFrame(new_rows, columns=['X', 'Y', 'Z', 'atom'])
     return sphere_df
