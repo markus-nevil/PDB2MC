@@ -68,6 +68,29 @@ def find_mcfunctions(directory, name):
     print(df)
     return df
 
+def create_clear_function(mc_dir, pdb_name):
+    # find all files in the directory that start with "z" + pdb_name and copy all the lines into a list
+    functions = []
+    pdb_name = pdb_name.lower()
+
+    for filename in os.listdir(mc_dir):
+        if filename.startswith("z" + pdb_name) and filename.endswith(".mcfunction"):
+            with open(os.path.join(mc_dir, filename), 'r') as f:
+                #skip any lines that start with setblock ~ ~-1 ~
+                functions += [x for x in f.readlines() if not x.startswith("setblock ~ ~-1 ~")]
+
+
+    for i in range(len(functions)):
+        if 'minecraft' in functions[i]:
+            functions[i] = functions[i].split('minecraft', 1)[0] + 'minecraft:air replace\n'
+
+    #remove duplicate lines
+    functions = list(dict.fromkeys(functions))
+
+    # create a clear_{name}.mcfunction file with the commands
+    with open(os.path.join(mc_dir, f"clear_{pdb_name}.mcfunction"), 'w') as f:
+        #f.write('execute as @a[scores={}] run teleport @s[scores={X=1.., Y=1.., Z=1..}] ~ ~ ~\n')
+        f.writelines(functions)
 
 def create_master_function(df, name, directory):
     name = name.lower()
@@ -83,8 +106,33 @@ def create_master_function(df, name, directory):
         lines = f.readlines()
         first_block = lines[2].split(" ")[1:4]
     # create a make_{name}.mcfunction file with the commands
-    with open(os.path.join(directory, f"make_{name}.mcfunction"), 'w') as f:
+    with open(os.path.join(directory, f"build_{name}.mcfunction"), 'w') as f:
         f.write(f'gamerule maxCommandChainLength 1000000\n')
         f.write(f'tp @s ~ ~ ~ facing {first_block[0]} {first_block[1]} {first_block[2]}\n')
+        #f.write(f'summon armor_stand ~ ~ ~ {Invisible:true, Invulnerable:true, CustomName:'"{name}"', CustomNameVisible:false, ShowArms:false} ')
+
         for i in range(0, len(commands)):
             f.write(f'{commands[i]}\n')
+
+def create_simple_function(name, directory):
+    functions = []
+    pdb_name = name.lower()
+
+    for filename in os.listdir(directory):
+        if filename.startswith("z" + pdb_name) and filename.endswith(".mcfunction"):
+            with open(os.path.join(directory, filename), 'r') as f:
+                #skip any lines that start with setblock ~ ~-1 ~
+                functions += [x for x in f.readlines() if not x.startswith("setblock ~ ~-1 ~")]
+
+    #remove duplicate lines
+    functions = list(dict.fromkeys(functions))
+
+    # Take the coordinates of the fifth line and save it to a variable, "first_block"
+    first_block = functions[2].split(" ")[1:4]
+
+    # create a make_{name}.mcfunction file with the commands
+    with open(os.path.join(directory, f"build_{pdb_name}.mcfunction"), 'w') as f:
+        f.write(f'gamerule maxCommandChainLength 1000000\n')
+        f.write(f'tp @s ~ ~ ~ facing {first_block[0]} {first_block[1]} {first_block[2]}\n')
+        f.write(f'setblock ~ ~-1 ~ minecraft:obsidian replace\n')
+        f.writelines(functions)

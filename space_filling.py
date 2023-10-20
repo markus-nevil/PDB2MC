@@ -92,7 +92,15 @@ def run_mode(config_data, pdb_name, rounded, mc_dir, atom_df, hetatom_df, hetatm
 
         pdb_sidechain = pdb_name + "_sidechain"
 
-        mcf.create_minecraft_functions(branches, pdb_sidechain, False, mc_dir, config_data['atoms'], replace=True)
+        mcf.create_minecraft_functions(branches, pdb_sidechain, False, mc_dir, "glowstone", replace=True)
+
+        pdb_backbone = pdb_name + "_" + "_backbone"
+        backbone = pdbm.atom_subset(rounded, ['C', 'N', 'CA', 'P', "O5'", "C5'", "C4'", "C3'", "O3'"],
+                                    include=True)
+        intermediate = pdbm.find_intermediate_points(backbone)
+        intermediate['atom'] = 1
+        mcf.create_minecraft_functions(intermediate, pdb_backbone, False, mc_dir, "glowstone",
+                                       replace=False)
 
         pdb_atoms = pdb_name + "_atoms"
 
@@ -106,14 +114,22 @@ def run_mode(config_data, pdb_name, rounded, mc_dir, atom_df, hetatom_df, hetatm
             else:
                 radius_mod = 0.9
             print(value, ": ", radius_mod)
-            coord = pdbm.rasterized_sphere(config_data['scale']*radius_mod)
-            center = pdbm.sphere_center(config_data['scale']*radius_mod)
+            coord = pdbm.rasterized_sphere(round(config_data['scale']*radius_mod))
+            center = pdbm.sphere_center(round(config_data['scale']*radius_mod))
             spheres_temp = pdbm.add_sphere_coordinates(coord, center, shortened, mesh=config_data['mesh'])
             spheres = pd.concat([spheres_temp, spheres], ignore_index=True)
 
+        print(len(spheres))
+        surface_array = pdbm.construct_surface_array(spheres)
+        print(len(surface_array))
+        surface_array = pdbm.paint_bucket_fill(surface_array)
+        print(len(surface_array))
+        spheres = pdbm.filter_dataframe_by_fill_value(surface_array, spheres)
+        print(len(spheres))
+
         # Remove any rows with duplicate coordinates
         spheres = spheres.drop_duplicates(subset=['X', 'Y', 'Z'], keep='first')
-
+        print(len(spheres))
         mcf.create_minecraft_functions(spheres, pdb_atoms, False, mc_dir, config_data['atoms'], replace=False)
 
     if config_data["show_hetatm"]:

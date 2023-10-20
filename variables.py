@@ -169,7 +169,7 @@ default_layout = [
     [sg.Checkbox("Show Sidechain", default=True, key="sidechain"),
      sg.Checkbox("Mesh-style atoms", default=False, key="mesh")],
     [sg.Text("Protein scale"), sg.Input(default_text='1.0', key="scale", size=(20,5)), sg.Text("Atom scale"), sg.Input(default_text='1.5', key="atom_scale", size=(20,5))],
-    [sg.Button("Select PDB file"), sg.Text("or"), sg.Button("Select Included PDB file"), sg.Text("and"), sg.Button("Select Minecraft Save")],
+    [sg.Button("Select PDB file"), sg.Text("or"), sg.Button("Select Included PDB file"), sg.Text("and"), sg.Button("Select Minecraft Save"), sg.Checkbox("Simple output", default=True, key="simple")],
     [sg.HorizontalSeparator()],
     [sg.Button("Create Minecraft Functions", bind_return_key=True)]
 ]
@@ -193,7 +193,7 @@ backbone_layout = [
     [sg.Checkbox("Color the backbone by chain?", default= False, key="by_chain")],
     [sg.Text("Protein scale"), sg.Input(default_text='1.0', key="scale")],
     [sg.Text("Atom scale"), sg.Input(default_text='1.5', key="atom_scale")],
-    [sg.Button("Select PDB file"), sg.Button("Select Minecraft Save")],
+    [sg.Button("Select PDB file"), sg.Button("Select Minecraft Save"), sg.Checkbox("Simple output", default=True, key="simple")],
     [sg.Button("Create Minecraft Functions", bind_return_key=True)]
 ]
 
@@ -215,7 +215,7 @@ sf_layout = [
      sg.Checkbox("Show Atoms", default=True, key="show_atoms"),
      sg.Checkbox("Show Hetatoms", default= True, key="show_hetatm")],
     [sg.Text("Protein scale"), sg.Input(default_text='1.0', key="scale")],
-    [sg.Button("Select PDB file"), sg.Text("or"), sg.Button("Select Included PDB file"), sg.Text("and"), sg.Button("Select Minecraft Save")],
+    [sg.Button("Select PDB file"), sg.Text("or"), sg.Button("Select Included PDB file"), sg.Text("and"), sg.Button("Select Minecraft Save"), sg.Checkbox("Simple output", default=True, key="simple")],
     [sg.Button("Create Minecraft Functions", bind_return_key=True)]
 ]
 
@@ -244,7 +244,7 @@ xray_layout = [
      sg.Checkbox("Show Hetatoms", default=True, key="show_hetatm")],
     [sg.Text("Protein scale"), sg.Input(default_text='1.0', key="scale")],
     [sg.Text("Atom scale"), sg.Input(default_text='1.5', key="atom_scale")],
-    [sg.Button("Select PDB file"), sg.Button("Select Minecraft Save")],
+    [sg.Button("Select PDB file"), sg.Button("Select Minecraft Save"), sg.Checkbox("Simple output", default=True, key="simple")],
     [sg.Button("Create Minecraft Functions", bind_return_key=True)]
 ]
 # Ribbon mode
@@ -261,10 +261,10 @@ ribbon_layout = [
      sg.DropDown(decorative_blocks, key="sidechain_atom", default_value="gray_concrete")],
     [sg.Checkbox("Show Backbone", default=True, key="backbone"),
      sg.Checkbox("Sidechain", default=False, key="sidechain"),
-     sg.Checkbox("Show Hetatoms", default=False, key="show_hetatm")],
+     sg.Checkbox("Show Hetatoms", default=True, key="show_hetatm")],
     [sg.Text("Protein scale"), sg.Input(default_text='4.0', key="scale")],
     [sg.Text("Atom scale"), sg.Input(default_text='1.5', key="atom_scale")],
-    [sg.Button("Select PDB file"), sg.Text("or"), sg.Button("Select Included PDB file"), sg.Text("and"), sg.Button("Select Minecraft Save")],
+    [sg.Button("Select PDB file"), sg.Text("or"), sg.Button("Select Included PDB file"), sg.Text("and"), sg.Button("Select Minecraft Save"), sg.Checkbox("Simple output", default=True, key="simple")],
     [sg.Button("Create Minecraft Functions", bind_return_key=True)]
 ]
 # Amino acid
@@ -302,7 +302,7 @@ aa_layout = [
     [sg.Text("Protein scale"), sg.Input(default_text='1.0', key="scale", size=(20, 5)), sg.Text("Atom scale"),
      sg.Input(default_text='1.5', key="atom_scale", size=(20, 5))],
     [sg.Button("Select PDB file"), sg.Text("or"), sg.Button("Select Included PDB file"), sg.Text("and"),
-     sg.Button("Select Minecraft Save")],
+     sg.Button("Select Minecraft Save"), sg.Checkbox("Simple output", default=True, key="simple")],
     [sg.HorizontalSeparator()],
     [sg.Button("Create Minecraft Functions", bind_return_key=True)]
 ]
@@ -330,6 +330,6 @@ minmax_layout = [
      sg.Checkbox("Show Atoms", default=True, key="show_atoms"),
      sg.Checkbox("Show Hetatoms", default= True, key="show_hetatm")],
     [sg.Text("Protein scale"), sg.Input(default_text='1.0', key="scale")],
-    [sg.Button("Select PDB file"), sg.Button("Select Minecraft Save")],
+    [sg.Button("Select PDB file"), sg.Button("Select Minecraft Save"), sg.Checkbox("Simple output", default=True, key="simple")],
     [sg.Button("Create Minecraft Functions", bind_return_key=True)]
 ]

@@ -72,7 +72,7 @@ def read_pdb(filename):
         for line in f:
             if line.startswith('ATOM') or line.startswith("HETATM"):
                 record = {'row': line[0:6].strip(),
-                          'atom_num': line[7:11].strip(),
+                          'atom_num': line[6:11].strip(),
                           'atom': line[12:16].strip(),
                           'residue': line[17:20].strip(),
                           'chain': line[21],
@@ -1267,6 +1267,7 @@ def sidechain(atom_df):
         # Iterate over the matching chain rows
         for _, chain_row in matching_chains.iterrows():
             # Find the next row in the atom dataframe that matches the residue and atom2 values
+            #print(row['residue'], row['resid'], row['chain'], chain_row['atom2'])
             next_row = atom_df[(atom_df['residue'] == row['residue']) & (atom_df['resid'] == row['resid']) & (
                     atom_df['chain'] == row['chain']) & (atom_df['atom'] == chain_row['atom2'])].iloc[0]
 
@@ -1628,56 +1629,55 @@ def change_mode(config):
     return config
 
 
-# def process_hetatom(df):
-#
-#     # Filter HETATM lines with "HOH" in the fourth column
-#     df = df[~((df['row'] == 'HETATM') & (df['atom'] == 'HOH'))]
-#
-#     print(df)
-#     # Step 2: Create a dictionary for CONECT records
-#     conect_dict = {}
-#     for _, row in df.iterrows():
-#         if row['row'].startswith('CONECT'):
-#             key = int(row['col2'])
-#             values = [int(x) for x in row['col3':] if str(x).isdigit()]
-#             conect_dict[key] = values
-#
-#     # Step 3: Filter dictionary based on keys present in DataFrame
-#     valid_keys = set(df['row'].astype(int).values)
-#     conect_dict = {k: v for k, v in conect_dict.items() if k in valid_keys}
-#
-#     # Step 4: Call bresenham_line for each key-value pair in the dictionary
-#     results_df = pd.DataFrame(columns=['X', 'Y', 'Z'])
-#     for key, values in conect_dict.items():
-#         key_coords = df[df['row'] == key][['X', 'Y', 'Z']].values[0]
-#         for value in values:
-#             value_coords = df[df['row'] == value][['X', 'Y', 'Z']].values[0]
-#             line_coords = list(bresenham_line(int(key_coords[0]), int(key_coords[1]), int(key_coords[2]),
-#                                          int(value_coords[0]), int(value_coords[1]), int(value_coords[2])))
-#             results_df = results_df.append(pd.DataFrame(line_coords, columns=['X', 'Y', 'Z']), ignore_index=True)
-#
-#     # Step 5: Remove duplicate rows from results_df
-#     results_df = results_df.drop_duplicates()
-#
-#     return results_df
-
 def process_hetatom(atom_df, pdb_file):
     # #Filter HETATM lines with "HOH" in the fourth column
     # atom_df = atom_df[~((atom_df['row'] == 'HETATM') & (atom_df['atom'] == 'HOH'))]
 
     # Step 1: Read CONECT lines from file
     conect_ids = []
+    # with open(pdb_file, 'r') as f:
+    #     for line in f:
+    #         if line.startswith('CONECT'):
+    #             cols = line.split()
+    #             atom1 = int(cols[1])
+    #             for atom2 in cols[2:]:
+    #                 conect_ids.append([atom1, int(atom2)])
+
+    # with open(pdb_file, 'r') as f:
+    #     for line in f:
+    #         if line.startswith('CONECT'):
+    #             line = line[len('CONECT'):].replace(" ", "")  # Remove spaces
+    #             cols = [line[i:i + 5] for i in range(0, len(line), 5)]
+    #             print(cols)
+    #             first_num = int(cols[0])
+    #             for col in cols[1:]:
+    #                 if col.strip():
+    #                     conect_ids.append([first_num, int(col)])
+    ##TODO: Fix this! It needs to count 5 characters from the right to left
+
     with open(pdb_file, 'r') as f:
         for line in f:
             if line.startswith('CONECT'):
-                cols = line.split()
-                atom1 = int(cols[1])
-                for atom2 in cols[2:]:
-                    conect_ids.append([atom1, int(atom2)])
+                #Remove only the word 'CONECT'
+                line = re.split(r'(\s+)', line)
+
+                print(line)
+                #Split the line into a list of 5 character strings
+                cols = [line[i:i + 5] for i in range(0, len(line), 5)]
+                #Remove spaces from the chars in the columns
+                cols = [col.strip() for col in cols]
+
+                #Take the first column as first_num
+                first_num = int(cols[0])
+                #Take the rest of the columns as rest_nums
+                rest_nums = [int(col) for col in cols[1:] if col]
+
+
+                print(first_num, rest_nums)
+
 
     # Step 2: Create dataframe from conect_ids
     conect_ids_df = pd.DataFrame(conect_ids, columns=['atom_1', 'atom_2'])
-
     # Step 3: Filter dataframe based on atoms present in atom_df
     valid_atoms = set(atom_df['atom_num'].astype(int).values)
 
@@ -1687,6 +1687,7 @@ def process_hetatom(atom_df, pdb_file):
     results_df = pd.DataFrame(columns=['X', 'Y', 'Z'])
     atom1_coords = []
     atom2_coords = []
+    print(conect_ids_df.head(n=25))
     for index, row in conect_ids_df.iterrows():
         atom1_coords = atom_df[atom_df['atom_num'].astype('int64') == row['atom_1']][['X', 'Y', 'Z']].values[0]
         atom2_coords = atom_df[atom_df['atom_num'].astype('int64') == row['atom_2']][['X', 'Y', 'Z']].values[0]
@@ -1699,8 +1700,8 @@ def process_hetatom(atom_df, pdb_file):
 
         line_coords = bresenham_line(atom1['X'].values[0], atom1['Y'].values[0], atom1['Z'].values[0],
                                      atom2['X'].values[0], atom2['Y'].values[0], atom2['Z'].values[0])
+        #print("try: ", line_coords)
         # results_df = results_df.append(pd.DataFrame(line_coords, columns=['X', 'Y', 'Z']), ignore_index=True)
-        print(line_coords)
         results_df = pd.concat([results_df, pd.DataFrame(line_coords, columns=['X', 'Y', 'Z'])], ignore_index=True)
 
     # Step 5: Remove duplicate rows from results_df

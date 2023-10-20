@@ -69,6 +69,7 @@ if __name__ == '__main__':
             "by_chain": False,
             "show_hetatm": True,
             "mesh": False,
+            "simple": True,
             "pdb_file": None,
             "save_path": None
         }
@@ -153,6 +154,8 @@ if __name__ == '__main__':
         # If the user selects a new PDB file, open the file selection window
         if event == "Select PDB file":
             pdb_file = sg.popup_get_file("Select PDB file")
+            good_pdb = False
+
             # Save the pdb_file path to config
             with open(variables.config_path, "r+") as f:
                 config = json.load(f)
@@ -274,6 +277,7 @@ if __name__ == '__main__':
                 moved = pdbm.move_coordinates(scaled)
                 moved = pdbm.rotate_to_y(moved)
                 rounded = pdbm.round_df(moved)
+                #print(rounded.tail(n=25))
 
                 # Check if the user wants het-atoms, if so, process them
                 if config_data["show_hetatm"] == True:
@@ -283,9 +287,11 @@ if __name__ == '__main__':
                     if "HETATM" in rounded.iloc[:, 0].values:
                         hetatm_bonds = pdbm.process_hetatom(rounded, pdb_file)
                         hetatom_df = pdbm.filter_type_atom(rounded, remove_type="ATOM", remove_atom="H")
+                        #hetatom_df = pdbm.filter_type_atom(rounded, remove_type="ATOM")
                     else:
                         hetatm_bonds = None
                         hetatom_df = None
+                        config_data["show_hetatm"] = False
 
                 atom_df = pdbm.filter_type_atom(rounded, remove_type="HETATM", remove_atom="H")
 
@@ -312,8 +318,17 @@ if __name__ == '__main__':
                         ribbon.run_mode(pdb_name, pdb_file, rounded, mc_dir, config_data, hetatom_df, hetatm_bonds)
 
                 mcfiles = mcf.find_mcfunctions(mc_dir, pdb_name.lower())
-                mcf.create_master_function(mcfiles, pdb_name, mc_dir)
-                message = f"Finished!\nRemember to /reload in your world and /function protein:make_{pdb_name}"
+
+                if config_data["simple"]:
+                    mcf.create_simple_function(pdb_name, mc_dir)
+                    mcf.create_clear_function(mc_dir, pdb_name)
+                    mcf.delete_mcfunctions(mc_dir, "z"+pdb_name.lower())
+                else:
+                    mcf.create_master_function(mcfiles, pdb_name, mc_dir)
+                    mcf.create_clear_function(mc_dir, pdb_name)
+
+                lower = pdb_name.lower()
+                message = f"Finished!\nRemember to /reload in your world and /function protein:build_{lower}"
                 sg.popup(message)
             else:
                 sg.Popup("You are missing a PDB file and/or a save directory!", title="Warning!")

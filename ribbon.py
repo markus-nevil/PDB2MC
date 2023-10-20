@@ -28,7 +28,6 @@ def run_mode(pdb_name, pdb_file, rounded, mc_dir, config_data, hetatom_df, hetat
             vectors_df = pdbm.get_chain(vectors_master_df, chain[1])
             ribbon_intermediate_df = pdbm.find_intermediate_points(ribbon_df, keep_columns=True, atoms=["CA", "C", "N"])
             ribbon_interpolated_df = pdbm.interpolate_dataframe(ribbon_intermediate_df, smoothness=5000)
-            #print(ribbon_interpolated_df.head())
             flanked_df = pdbm.flank_coordinates(ribbon_interpolated_df, vectors_df)
         # check if the dataframe contains nucleic acids
         elif ribbon_df["residue"].isin(["A", "C", "G", "U", "DA", "DC", "DG", "DT", "DI"]).any():
@@ -47,18 +46,19 @@ def run_mode(pdb_name, pdb_file, rounded, mc_dir, config_data, hetatom_df, hetat
         # TODO: Decide how many backbone items to keep
         #backbone = pdbm.atom_subset(ribbon_df, ['C', 'N', 'CA', "O5'", "C5'", "C4'", "C3'", "O3'"], include=True)
         backbone = pdbm.atom_subset(ribbon_df, ['C', 'N', 'CA', "C4'", "C3'"], include=True)
+        #Remove rows that start with 'HETATM' or have a different chain in 'chain' column from the first row
+        backbone = backbone[~backbone['row'].str.startswith('HETATM')]
+        backbone = backbone[~backbone['chain'].isin(backbone['chain'].unique()[1:])]
         if ribbon_df["residue"].isin(["ALA", "ARG", "ASN", "ASP", "CYS", "GLN", "GLU", "GLY", "HIS",
                                       "ILE", "LEU", "LYS", "MET", "PHE", "PRO", "SER", "THR", "TRP",
                                       "TYR", "VAL"]).any():
+            print(backbone.tail())
             intermediate = pdbm.find_intermediate_points(backbone)
             intermediate = pdbm.interpolate_dataframe(intermediate, 5000)
 
         elif ribbon_df["residue"].isin(["A", "C", "G", "U", "DA", "DC", "DG", "DT", "DI"]).any():
-            #print(backbone.head())
             intermediate = pdbm.find_intermediate_points(backbone, keep_columns=True)
-            #print(intermediate.head())
             intermediate = pdbm.interpolate_dataframe(intermediate, 5000)
-            #print(intermediate.head())
             intermediate = pdbm.flank_DNA(intermediate, dna_vectors_master_df)
             #Filter to ensure intermediate is only X, Y, Z columns
             intermediate = intermediate.filter(['X', 'Y', 'Z'])
@@ -73,15 +73,13 @@ def run_mode(pdb_name, pdb_file, rounded, mc_dir, config_data, hetatom_df, hetat
     if config_data["show_hetatm"] == True:
         if hetatom_df is not None:
             pdb_hetatm = pdb_name + "_hetatm"
-            coord = pdbm.rasterized_sphere(config_data['atom_scale'])
-            center = pdbm.sphere_center(config_data['atom_scale'])
+            coord = pdbm.rasterized_sphere(1.5)
+            center = pdbm.sphere_center(1.5)
             shortened = pdbm.shorten_atom_names(hetatom_df)
-            spheres = pdbm.add_sphere_coordinates(coord, center, shortened, mesh=config_data['mesh'])
-            if config_data["mode"] == "X-ray":
-                mcf.create_minecraft_functions(spheres, pdb_hetatm, False, mc_dir, config_data['atoms'],
-                                               replace=False)
-            else:
-                mcf.create_minecraft_functions(spheres, pdb_hetatm, False, mc_dir, config_data['atoms'],
-                                               replace=True)
+            spheres = pdbm.add_sphere_coordinates(coord, center, shortened)
+
+            ##TODO Make this user configurable
+            mcf.create_minecraft_functions(spheres, pdb_hetatm, False, mc_dir, config_data['atoms'], replace=True)
+
             pdb_hetatm_bonds = pdb_name + "_hetatm_bonds"
             mcf.create_minecraft_functions(hetatm_bonds, pdb_hetatm_bonds, False, mc_dir, config_data['atoms'])
