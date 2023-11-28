@@ -23,6 +23,9 @@ def create_minecraft_functions(df, name, air, dir, blocks, replace=False):
             else:
                 if str(row['atom']).isdigit():
                     block = variables.chain_blocks.get(str(row['atom']), 'gray_concrete')
+                #Check if the str in the 'atom' is a digit and 'b'
+                elif str(row['atom']).endswith('b'):
+                    block = variables.dark_skeleton_blocks.get(str(row['atom']), 'gray_concrete')
                 else:
                     block = block_dict.get(row['atom'], 'pink_concrete')
         else:

@@ -256,6 +256,7 @@ if __name__ == '__main__':
                     config["backbone_size"] = values.get("backbone_size")
                     config["sidechain"] = values.get("sidechain")
                     config["by_chain"] = values.get("by_chain")
+                    config["simple"] = values.get("simple")
                     config["show_atoms"] = values.get("show_atoms")
                     config["show_hetatm"] = values.get("show_hetatm")
                     config["mesh"] = values.get("mesh")
@@ -319,6 +320,7 @@ if __name__ == '__main__':
 
                 mcfiles = mcf.find_mcfunctions(mc_dir, pdb_name.lower())
 
+                print(config_data["simple"])
                 if config_data["simple"]:
                     mcf.create_simple_function(pdb_name, mc_dir)
                     mcf.create_clear_function(mc_dir, pdb_name)

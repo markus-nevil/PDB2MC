@@ -8,9 +8,42 @@ import re
 import trimesh
 from scipy.interpolate import splprep, splev
 from scipy.spatial import ConvexHull, Delaunay, cKDTree
-from scipy.ndimage import label, generate_binary_structure
+from scipy import ndimage
 import tifffile as tiff
+import cv2
+from scipy.ndimage import convolve
+from scipy.spatial import cKDTree
 
+def assign_atom_values(surface_df, branch_df):
+    # Build a k-d tree from branch_df
+    tree = cKDTree(branch_df[['X', 'Y', 'Z']].values)
+
+    # For each point in surface_df, find the nearest point(s) in branch_df
+    for i, surface_row in surface_df.iterrows():
+        dist, indices = tree.query(surface_row[['X', 'Y', 'Z']], k=1, distance_upper_bound=np.inf)
+        closest_atoms = branch_df.iloc[indices]['atom']
+        #breakpoint()
+        # If there are multiple points in branch_df with the same minimum distance, check if they all have the same 'atom' value
+        if isinstance(closest_atoms, pd.Series):
+            #print(f"Number of unique closest atoms for point {i}: {closest_atoms.nunique()}")
+            #if closest_atoms.nunique() == 1:
+            surface_df.at[i, 'atom'] = 0
+        else:
+            #print(f"Closest atom for point {i}: {closest_atoms}")
+            #if closest_atoms != surface_df.at[i, 'atom']:
+            surface_df.at[i, 'atom'] = closest_atoms
+
+    #print(surface_df.head(), "\n", surface_row.tail())
+    return surface_df
+
+def remove_random_rows(df, percent):
+    # Calculate the number of rows to keep
+    num_rows_to_keep = int(len(df) * (1 - percent / 100))
+
+    # Randomly select rows to keep
+    df_sample = df.sample(num_rows_to_keep)
+
+    return df_sample
 
 def choose_file():
     root = tk.Tk()
@@ -18,6 +51,24 @@ def choose_file():
     file_path = filedialog.askopenfilename()
     return file_path
 
+def calculate_centroid(df):
+    return df[['X', 'Y', 'Z']].mean()
+
+def shift_dataframe(df, vector):
+    df[['X', 'Y', 'Z']] = df[['X', 'Y', 'Z']] - vector
+    return df
+
+def align_dataframes(*dfs):
+    # Calculate the centroid of the first DataFrame
+    target_centroid = calculate_centroid(dfs[0])
+
+    # Align all DataFrames to the target centroid
+    for df in dfs[1:]:
+        centroid = calculate_centroid(df)
+        shift_vector = centroid - target_centroid
+        df = shift_dataframe(df, shift_vector)
+
+    return dfs
 
 # Function that takes a pdb file, reads the coordinates of a single chain, and determines whether the shortest edge of the bounding box is shorter than the parameter ymax
 def check_model_size(file_path, world_max):
@@ -1315,22 +1366,84 @@ def remove_inside_spheres(sphere_df, coord_df, diameter):
 
 
 def construct_surface_array(df):
-    min_x, max_x = df['X'].min(), df['X'].max()
-    min_y, max_y = df['Y'].min(), df['Y'].max()
-    min_z, max_z = df['Z'].min(), df['Z'].max()
+    # min_x, max_x = df['X'].min(), df['X'].max()
+    # min_y, max_y = df['Y'].min(), df['Y'].max()
+    # min_z, max_z = df['Z'].min(), df['Z'].max()
+    #
+    # x_range = max_x - min_x
+    # y_range = max_y - min_y
+    # z_range = max_z - min_z
+    #
+    # surface_array = np.full((x_range, y_range, z_range), 0, dtype=object)
+    #
+    # for index, row in df.iterrows():
+    #     x, y, z = row['X'] - min_x + 1, row['Y'] - min_y + 1, row['Z'] - min_z + 1
+    #     surface_array[x, y, z] = index
+    #
+    # return surface_array
 
-    x_range = max_x - min_x + 3  # Adding 2 for the extra border
-    y_range = max_y - min_y + 3
-    z_range = max_z - min_z + 3
+    # Determine the minimum and maximum coordinates from the DataFrame
+    min_x, min_y, min_z = df[['X', 'Y', 'Z']].min()
+    max_x, max_y, max_z = df[['X', 'Y', 'Z']].max()
 
-    #surface_array = np.full((x_range, y_range, z_range), 1000, dtype=object)
-    surface_array = np.full((x_range, y_range, z_range), 1e6, dtype=object)
+    # Calculate the dimensions for the 3D numpy array
+    dim_x = max_x - min_x + 1
+    dim_y = max_y - min_y + 1
+    dim_z = max_z - min_z + 1
 
+    # Create an empty 3D numpy array filled with zeros
+    array_3d = np.zeros((dim_x, dim_y, dim_z), dtype=int)
+
+    # Iterate over the DataFrame rows and fill the array
     for index, row in df.iterrows():
-        x, y, z = row['X'] - min_x + 1, row['Y'] - min_y + 1, row['Z'] - min_z + 1
-        surface_array[x, y, z] = index
+        x, y, z = row['X'] - min_x, row['Y'] - min_y, row['Z'] - min_z
+        #array_3d[x, y, z] = index + 1  # Set the value to the row index (starting from 1)
+        array_3d[x, y, z] = 255
+    return array_3d
 
-    return surface_array
+
+def filter_3d_array_with_bool(num_array, bool_array):
+
+    num_array_copy = num_array.copy()
+    bool_array_copy = bool_array.copy()
+
+    # Ensure both arrays have the same shape
+    if num_array_copy.shape != bool_array_copy.shape:
+        raise ValueError("Input arrays must have the same shape.")
+
+    # Element-wise multiplication with bool_array
+    filtered_array = num_array_copy * bool_array_copy
+
+    #breakpoint()
+    return filtered_array
+
+##TODO make sure to fix this
+def save_3d_tiff(numpy_array, output_path):
+    saved_array = numpy_array.copy()
+
+    #check if it is a boolean area, if so then convert false to 0, and true to 255
+    if saved_array.dtype == bool:
+        saved_array = saved_array.astype(np.uint8)
+        saved_array[saved_array == 0] = 0
+        saved_array[saved_array == 1] = 255
+    else:
+        # Check array for values >255, if they exist change the value to 255
+        saved_array[saved_array > 255] = 255
+
+    # Check for values <0, if they exist change the value to 0
+    saved_array[saved_array < 0] = 0
+
+    # Ensure the numpy_array contains only integers
+    saved_array = saved_array.astype(np.uint8)
+
+    # Create a TiffWriter and write the NumPy array to a 3D TIFF file
+    with tiff.TiffWriter(output_path) as tif:
+        for i in range(numpy_array.shape[0]):
+            # Save each 2D slice as a TIFF image
+            tif.write(numpy_array[i])
+
+
+
 
 def preprocess_3d_array(arr_3d, fill_value=1e7, empty_value=1e6):
     # Replace fill_value with 0 and empty_value with 255
@@ -1344,6 +1457,671 @@ def preprocess_3d_array(arr_3d, fill_value=1e7, empty_value=1e6):
     arr_3d = arr_3d.astype(np.uint8)
 
     return arr_3d
+
+def SASA_gaussian_surface(arr_3d, sigma = 1.1, fill = False):
+
+    image_array = arr_3d.copy()
+
+    # Reverse the array values: 0 is now 255, >=1 is now 0
+    image_array = np.where(image_array >= 1, 0, 255)
+
+    # increase the size of the array by 10 in each dimension
+    image_array = np.pad(image_array, 30, mode='constant', constant_values=255)
+
+    # Create empty arrays for the three lines
+    outer_line = np.zeros_like(image_array, dtype=np.uint8)
+    center_line = np.zeros_like(image_array, dtype=np.uint8)
+    inner_line = np.zeros_like(image_array, dtype=np.uint8)
+    eroded_line = np.zeros_like(image_array, dtype=np.uint8)
+
+    selem = np.array([[0, 0, 1, 0, 0],
+                            [0, 1, 1, 1, 0],
+                            [1, 1, 1, 1, 1],
+                            [0, 1, 1, 1, 0],
+                            [0, 0, 1, 0, 0]], dtype=np.uint8)
+
+    # Iterate through each dimension (0, 1, 2)
+    for j in range(0, 3):
+
+        # Swap the axes for the current dimension
+        if j == 2:
+            image_array = np.swapaxes(image_array, 0, 1)
+            image_array = np.swapaxes(image_array, 0, 2)
+            inner_line = np.swapaxes(inner_line, 0, 1)
+            inner_line = np.swapaxes(inner_line, 0, 2)
+            eroded_line = np.swapaxes(eroded_line, 0, 1)
+            eroded_line = np.swapaxes(eroded_line, 0, 2)
+        elif j == 1:
+            image_array = np.swapaxes(image_array, 1, 0)
+            image_array = np.swapaxes(image_array, 2, 1)
+            inner_line = np.swapaxes(inner_line, 1, 0)
+            inner_line = np.swapaxes(inner_line, 2, 1)
+            eroded_line = np.swapaxes(eroded_line, 1, 0)
+            eroded_line = np.swapaxes(eroded_line, 2, 1)
+
+        # Iterate through each slice of the 3D image
+        for z in range(image_array.shape[0]):
+            # Process each 2D slice
+            slice = image_array[z]
+
+            # Ensure the slice contains only integers
+            slice = slice.astype(np.uint8)
+
+            # Perform morphological erosion to simulate the rolling circle
+            eroded = cv2.erode(slice, selem)
+
+            # Calculate the outline by subtracting the eroded image from the original image
+            outline = slice - eroded
+
+            # Calculate the center line by eroding the outline
+            center = cv2.erode(outline, selem)
+
+            # Calculate the inner line by subtracting the center line from the outline
+            inner = outline - center
+
+            # center = cv2.morphologyEx(slice, cv2.MORPH_TOPHAT, selem)
+
+            # Accumulate the results in the respective 3D arrays
+            inner_line[z] += inner
+            eroded_line[z] += eroded
+
+        if j == 2:
+            image_array = np.swapaxes(image_array, 0, 2)
+            image_array = np.swapaxes(image_array, 0, 1)
+            inner_line = np.swapaxes(inner_line, 0, 2)
+            inner_line = np.swapaxes(inner_line, 0, 1)
+            eroded_line = np.swapaxes(eroded_line, 0, 2)
+            eroded_line = np.swapaxes(eroded_line, 0, 1)
+        elif j == 1:
+            image_array = np.swapaxes(image_array, 2, 0)
+            image_array = np.swapaxes(image_array, 1, 2)
+            inner_line = np.swapaxes(inner_line, 2, 0)
+            inner_line = np.swapaxes(inner_line, 1, 2)
+            eroded_line = np.swapaxes(eroded_line, 2, 0)
+            eroded_line = np.swapaxes(eroded_line, 1, 2)
+
+    # Ensure the values are reversed (0 is 255, >=1 is 0)
+    inner_line = np.where(inner_line >= 1, 255, 0)
+
+    inner_smooth = blur_3d_array(inner_line, sigma=sigma)
+    inner_smooth = contour_outline(inner_smooth, fill=fill)
+
+    save_3d_tiff(inner_smooth, r'C:\Users\marku\Desktop\pdb_blurred_inner_line.tif')
+
+    #expanded = array_to_voxel(inner_smooth, original_array=image_array, padding_size=30)
+
+    #return expanded
+    return inner_smooth
+
+def blur_3d_array(arr_3d, sigma=1):
+    # Create a copy of the array
+    arr_3d_copy = arr_3d.copy()
+
+    #Add a layer of 5 zeroes on all sides of the array
+    #arr_3d_copy = np.pad(arr_3d_copy, 10, mode='constant', constant_values=0)
+
+    # Create a Gaussian filter
+    gaussian_filter = ndimage.gaussian_filter(arr_3d_copy, sigma=sigma)
+
+    # Cast the array to np.uint8
+    gaussian_filter = gaussian_filter.astype(np.uint8)
+
+    # Save your 3D NumPy array as a 3D TIFF image
+    output_path = r'C:\Users\marku\Desktop\pdb_blurred_original_array.tif'  # Path where you want to save the TIFF image
+    save_3d_tiff(gaussian_filter, output_path)
+
+    # Change the values of the array to 0 or 255
+    gaussian_filter[gaussian_filter >= 1] = 255
+
+    return gaussian_filter
+
+#A function that takes can take one to two arrays. If one array is taken, makes a dataframe with X, Y, Z columns that are the coordinates of the entries (>=1) in the array. If two arrays are taken, then it compares query_array to original_array and assumes that query_array was made by extending original_array on all sides by an equal amount. It derives that amount and returns a dataframe with the coordinates of the value (>= 1) of query_array adjusted for the change in size.
+def array_to_voxel(query_array, original_array=None, padding_size=10):
+    # Make a copy of the query array
+    query_array_copy = query_array.copy()
+
+    # Test to see if the query_array is a boolean array
+    if query_array_copy.dtype == bool:
+        query_array_copy = query_array_copy.astype(np.uint8)
+        query_array_copy[query_array_copy == 0] = 0
+        query_array_copy[query_array_copy == 1] = 255
+    else:
+        query_array_copy[query_array_copy >= 1] = 255
+
+    # Find the coordinates of cells with values >= 1 in the query_array
+    nonzero_coords = np.argwhere(query_array_copy >= 1)
+
+    if original_array is None:
+        # Create a voxel dataframe of the coordinates and an 'atom' column
+        voxel_df = pd.DataFrame(nonzero_coords, columns=['X', 'Y', 'Z'])
+        voxel_df['atom'] = 1
+    else:
+        # Make a copy of the original array
+        original_array_copy = original_array.copy()
+
+        # Test to see if original_array is boolean
+        if original_array_copy.dtype == bool:
+            original_array_copy = original_array_copy.astype(np.uint8)
+            original_array_copy[original_array_copy == 0] = 0
+            original_array_copy[original_array_copy == 1] = 255
+        else:
+            original_array_copy[original_array_copy >= 1] = 255
+
+        # Find the coordinates of cells with values >= 1 in the query_array
+        coords = np.argwhere(query_array >= 1)
+
+        # Modify the coordinates only if the original array is provided
+        if coords.size > 0:
+            coords -= padding_size
+
+        # Create a voxel dataframe of the coordinates and an 'atom' column
+        voxel_df = pd.DataFrame(coords, columns=['X', 'Y', 'Z'])
+        voxel_df['atom'] = 1
+
+    return voxel_df
+
+#A function that takes four dataframes: original_bonds, moved_bonds, hetatm_bonds, hetatm. It compares the min and max X, Y, Z coordinates of original_bonds and moved_bonds and alters the coordinates of hetatm_bonds and hetatm accordingly. It returns the altered hetatm_bonds and hetatm dataframes.
+def adjust_hetatm_coordinates(original_bonds, moved_bonds, hetatm_bonds, hetatm):
+    # Find the minimum and maximum coordinates of the original_bonds dataframe
+    min_x, min_y, min_z = original_bonds[['X', 'Y', 'Z']].min()
+    max_x, max_y, max_z = original_bonds[['X', 'Y', 'Z']].max()
+
+    # Find the minimum and maximum coordinates of the moved_bonds dataframe
+    min_x2, min_y2, min_z2 = moved_bonds[['X', 'Y', 'Z']].min()
+    max_x2, max_y2, max_z2 = moved_bonds[['X', 'Y', 'Z']].max()
+
+    # Find the difference between the minimum and maximum coordinates of the original_bonds and moved_bonds dataframes
+    diff_x = min_x2 - min_x
+    diff_y = min_y2 - min_y
+    diff_z = min_z2 - min_z
+
+    # Add the difference to the coordinates of the hetatm_bonds dataframe
+    hetatm_bonds['X'] += diff_x
+    hetatm_bonds['Y'] += diff_y
+    hetatm_bonds['Z'] += diff_z
+
+    # Add the difference to the coordinates of the hetatm dataframe
+    hetatm['X'] += diff_x
+    hetatm['Y'] += diff_y
+    hetatm['Z'] += diff_z
+
+    return hetatm, hetatm_bonds
+
+# def array_to_voxel(arr_3d, atom):
+#     # Find the coordinates where arr_3d is True
+#     nonzero_coords = np.array(np.where(arr_3d)).T
+#
+#     #subtract 10 from each coordinate
+#     nonzero_coords = nonzero_coords - 10
+#
+#     #subtract 40 from the x coordinate
+#     nonzero_coords[:, 0] = nonzero_coords[:, 0] - 40
+#
+#     #subtract 3 to the y coordinate
+#     nonzero_coords[:, 1] = nonzero_coords[:, 1] - 3
+#
+#     #subtract 35 from the z coordinate
+#     nonzero_coords[:, 2] = nonzero_coords[:, 2] - 35
+#
+#     #Create a voxel dataframe of the coordinates and an 'atom' column from the atom parameter
+#     voxel_df = pd.DataFrame(nonzero_coords, columns=['X', 'Y', 'Z'])
+#     voxel_df['atom'] = atom
+#
+#     return voxel_df
+
+def contour_outline(voxel_array, smooth=False, smooth_factor=0.02, fill = False):
+
+    # make an empty 3d array with the shape of image_array
+    final_tif = np.zeros(voxel_array.shape, dtype=np.uint8)
+
+    #Ensure the voxel_array contains only integers
+    voxel_array = voxel_array.astype(np.uint8)
+
+    #Convert all numbers >= 1 to 100 in the voxel_array
+    voxel_array[voxel_array >= 1] = 255
+
+    # Iterate through 0 to 2
+    for j in range(0, 3):
+
+        filled_list = []
+
+        # Swap the axes for the current dimension
+        if j == 2:
+            voxel_array = np.swapaxes(voxel_array, 0, 1)
+            voxel_array = np.swapaxes(voxel_array, 0, 2)
+        elif j == 1:
+            voxel_array = np.swapaxes(voxel_array, 1, 0)
+            voxel_array = np.swapaxes(voxel_array, 2, 1)
+
+
+        # Iterate through each slice of the 3D image_array
+        for i in range(voxel_array.shape[0]):
+
+            gray = voxel_array[i, :, :]
+
+            # Threshold the image to create a binary image
+            ret, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY)
+
+            if smooth:
+                # Find the contours in the binary image
+                contours, hierarchy = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            else:
+                # Find the contours in the binary image
+                contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+            # Create a blank image with the same dimensions as the original image
+            filled_img = np.zeros(gray.shape[:2], dtype=np.uint8)
+            external_contours = []
+            # Iterate over the contours and their hierarchies
+            for i, contour in enumerate(contours):
+                if smooth and hierarchy[0][i][3] == -1:
+                    epsilon = smooth_factor * cv2.arcLength(contour, True)
+                    approx = cv2.approxPolyDP(contour, epsilon, True)
+                    # If the contour doesn't have a parent, fill it with pixel value 255
+                    cv2.drawContours(filled_img, [approx], -1, 255, thickness=1)
+                elif fill and hierarchy[0][i][3] == -1:
+                    # If the contour doesn't have a parent, fill it with pixel value 255
+                    #epsilon = 0.01 * cv2.arcLength(contour, True)
+                    #cv2.drawContours(filled_img, [contour], -1, 255, thickness=cv2.FILLED)
+                    external_contours.append(contour)
+                    #cv2.drawContours(filled_img, [contour], -1, 255, thickness=1)
+                # Check if the contour has a parent
+                elif hierarchy[0][i][3] == -1:
+                    # If the contour doesn't have a parent, fill it with pixel value 255
+                    cv2.drawContours(filled_img, [contour], -1, 255, thickness=1)
+
+            if fill:
+                cv2.drawContours(filled_img, external_contours, -1, 255, thickness=cv2.FILLED)
+            # append filled_im to filled_list
+            filled_list.append(filled_img)
+
+        temp_tif = np.asarray(filled_list)
+
+        # Ensure the final_tif contains only integers
+        temp_tif = temp_tif.astype(np.uint8)
+        temp_tif[temp_tif >= 1] = 1
+
+        if j == 2:
+            voxel_array = np.swapaxes(voxel_array, 0, 2)
+            voxel_array = np.swapaxes(voxel_array, 0, 1)
+            temp_tif = np.swapaxes(temp_tif, 0, 2)
+            temp_tif = np.swapaxes(temp_tif, 0, 1)
+
+        elif j == 1:
+            voxel_array = np.swapaxes(voxel_array, 2, 0)
+            voxel_array = np.swapaxes(voxel_array, 1, 2)
+            temp_tif = np.swapaxes(temp_tif, 2, 0)
+            temp_tif = np.swapaxes(temp_tif, 1, 2)
+
+        # Use np.logical_or to combine the two arrays
+        final_tif = np.logical_or(final_tif, temp_tif)
+
+    return final_tif
+
+def find_border_cells(arr_3d):
+    #Make a copy of the array and make the values np.int32
+    arr_3d_copy = arr_3d.copy()
+    arr_3d_copy = arr_3d_copy.astype(np.int32)
+
+    # Define a shape
+    # kernel = np.array([[[0, 0, 0],
+    #                     [0, 1, 0],
+    #                     [0, 0, 0]],
+    #                    [[0, 1, 0],
+    #                     [1, 1, 1],
+    #                     [0, 1, 0]],
+    #                    [[0, 0, 0],
+    #                     [0, 1, 0],
+    #                     [0, 0, 0]]])
+
+    # Define a 3D kernel for the convolution operation
+    kernel = np.ones((3, 3, 3), dtype=np.int32)
+
+    # Perform the convolution operation
+    convolved = convolve(arr_3d_copy, kernel, mode='constant', cval=0)
+
+
+    # Create a boolean mask for cells that are filled (255) and have at least one neighboring cell that is empty (0)
+    border_mask = (arr_3d_copy == 255) & (convolved < 255 * 27)
+
+    # Apply the mask to the original array
+    border_cells = np.where(border_mask, arr_3d_copy, 0)
+
+    return border_cells
+def align_and_filter_dataframes(numpy_array, original_df):
+    # Convert the numpy array to a dataframe with columns X, Y, Z
+    numpy_df = pd.DataFrame(np.argwhere(numpy_array >= 1), columns=['X', 'Y', 'Z'])
+
+    # Find the minimum coordinates in both dataframes
+    min_coords_numpy = numpy_df[['X', 'Y', 'Z']].min()
+    min_coords_original = original_df[['X', 'Y', 'Z']].min()
+
+    # Calculate the differences between the minimum coordinates
+    coord_diff = min_coords_original - min_coords_numpy
+
+    # Apply the coordinate differences to the numpy_df
+    aligned_numpy_df = numpy_df + coord_diff
+
+    # Merge the original_df and aligned_numpy_df on the coordinates
+    merged_df = pd.merge(original_df, aligned_numpy_df, on=['X', 'Y', 'Z'], how='inner')
+
+    #convert aligned_numpy_df to a 3d numpy array with filled values = 255
+
+    aligned_numpy_array = construct_surface_array(aligned_numpy_df)
+    #set all values >= 1 to 255
+    aligned_numpy_array[aligned_numpy_array >= 1] = 255
+    save_3d_tiff(aligned_numpy_array, r'C:\Users\marku\Desktop\pdb_aligned_numpy_array.tif')
+
+    #convert merged_df to a 3d numpy array with filled values = 255
+    merged_numpy_array = construct_surface_array(merged_df)
+    #set all values >= 1 to 255
+    merged_numpy_array[merged_numpy_array >= 1] = 255
+    save_3d_tiff(merged_numpy_array, r'C:\Users\marku\Desktop\pdb_merged_numpy_array.tif')
+
+    #convert the original df to a 3d numpy array with filled values = 255
+    original_numpy_array = construct_surface_array(original_df)
+    #Set all values >= 1 to 255
+    original_numpy_array[original_numpy_array >= 1] = 255
+    save_3d_tiff(original_numpy_array, r'C:\Users\marku\Desktop\pdb_original_numpy_array.tif')
+
+    print("numpy rows: ", len(numpy_df))
+    print("aligned numpy rows: ", len(aligned_numpy_df))
+    print("original rows: ", len(merged_df))
+
+    return merged_df
+
+
+#Function that takes a dataframe of coordinates and a 3d numpy array and returns a dataframe only with the rows that have coordinates that are inside the 3d numpy array
+def filter_df_with_array(df, arr_3d):
+    #check to make sure the array is 0 if empty, and 255 if filled by checking 0, 0, 0 first
+    if arr_3d[0, 0, 0] == 0:
+        arr_3d[arr_3d == 0] = 0
+        arr_3d[arr_3d >= 1] = 1
+    else:
+        arr_3d[arr_3d >= 1] = 0
+        arr_3d[arr_3d == 0] = 1
+
+    # Create an empty list to store the coordinates
+    coordinates = []
+    print(arr_3d.shape)
+    print(df.max())
+    # Iterate over the rows of the dataframe
+    for i, row in df.iterrows():
+        # Check if the coordinates are inside the array
+        if arr_3d[row['X'], row['Y'], row['Z']] >= 1:
+            # If so, add the coordinates and 'atom' column of df to the list
+            coordinates.append([row['X'], row['Y'], row['Z'], row['atom']])
+
+    # Create a dataframe from the coordinates list and return it
+    return pd.DataFrame(coordinates, columns=['X', 'Y', 'Z', 'atom'])
+
+def contour_outline2(voxel_array, smooth=False, smooth_factor=0.02, fill = False):
+
+    # make an empty 3d array with the shape of image_array
+    final_tif = np.zeros(voxel_array.shape, dtype=np.uint8)
+
+    #Ensure the voxel_array contains only integers
+    voxel_array = voxel_array.astype(np.uint8)
+
+    #Convert all numbers >= 1 to 100 in the voxel_array
+    voxel_array[voxel_array >= 1] = 255
+
+    # Iterate through 0 to 2
+    for j in range(0, 3):
+
+        filled_list = []
+        voxel_array = np.swapaxes(voxel_array, j, 0)
+        print(voxel_array.shape)
+
+        # Iterate through each slice of the 3D image_array
+        for i in range(voxel_array.shape[0]):
+
+            gray = voxel_array[i, :, :]
+
+            # Threshold the image to create a binary image
+            ret, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY)
+
+            if smooth:
+                # Find the contours in the binary image
+                contours, hierarchy = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            else:
+                # Find the contours in the binary image
+                contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+            # Create a blank image with the same dimensions as the original image
+            filled_img = np.zeros(gray.shape[:2], dtype=np.uint8)
+
+            # Iterate over the contours and their hierarchies
+            for i, contour in enumerate(contours):
+                if smooth and hierarchy[0][i][3] == -1:
+                    epsilon = smooth_factor * cv2.arcLength(contour, True)
+                    approx = cv2.approxPolyDP(contour, epsilon, True)
+                    # If the contour doesn't have a parent, fill it with pixel value 255
+                    cv2.drawContours(filled_img, [approx], -1, 255, thickness=1)
+                elif fill and hierarchy[0][i][3] == -1:
+                    # If the contour doesn't have a parent, fill it with pixel value 255
+                    cv2.drawContours(filled_img, [contour], -1, 255, thickness=cv2.FILLED)
+                # Check if the contour has a parent
+                elif hierarchy[0][i][3] == -1:
+                    # If the contour doesn't have a parent, fill it with pixel value 255
+                    cv2.drawContours(filled_img, [contour], -1, 255, thickness=1)
+
+
+            # append filled_im to filled_list
+            filled_list.append(filled_img)
+
+        temp_tif = np.asarray(filled_list)
+
+        # Ensure the final_tif contains only integers
+        temp_tif = temp_tif.astype(np.uint8)
+        temp_tif[temp_tif >= 1] = 1
+
+        if j == 2:
+            temp_tif = np.swapaxes(temp_tif, 0, 2)
+            temp_tif = np.swapaxes(temp_tif, 0, 1)
+        else:
+            temp_tif = np.swapaxes(temp_tif, j, 0)
+
+        # Use np.logical_or to combine the two arrays
+        final_tif = np.logical_or(final_tif, temp_tif)
+
+    return final_tif
+
+
+def construct_surface_array_by_type(df, include=['backbone', 'branches']):
+    # Determine the minimum and maximum coordinates from the DataFrame
+    min_x, min_y, min_z = df[['X', 'Y', 'Z']].min()
+    max_x, max_y, max_z = df[['X', 'Y', 'Z']].max()
+
+    # Calculate the dimensions for the 3D numpy array
+    dim_x = max_x - min_x + 1
+    dim_y = max_y - min_y + 1
+    dim_z = max_z - min_z + 1
+
+    # Create an empty 3D numpy array filled with zeros
+    array_3d = np.zeros((dim_x, dim_y, dim_z), dtype=np.uint8)
+    extra = np.zeros((dim_x, dim_y, dim_z), dtype=np.uint8)
+
+    # Create an atom mapping dictionary
+    atom_mapping = {atom: 555 for atom in include}
+    atom_mapping.update({atom: 1 for atom in df['atom'].unique() if atom not in include})
+
+    # Iterate over the DataFrame rows and fill the array based on 'atom' values
+    for _, row in df.iterrows():
+        x, y, z = row['X'] - min_x, row['Y'] - min_y, row['Z'] - min_z
+        atom_value = atom_mapping.get(row['atom'], 1)  # Default to 1 if not in mapping
+
+        # Check if 'atom' value is included and if the array cell is not already filled
+        if atom_value == 555 and array_3d[x, y, z] == 0:
+            array_3d[x, y, z] = atom_value
+        else:
+            extra[x, y, z] = atom_value
+
+
+    # Change all values >= 1 to 255
+    array_3d[array_3d >= 1] = 255
+    extra[extra >= 1] = 255
+
+    save_3d_tiff(array_3d, r'C:\Users\marku\Desktop\point_inside_function.tif')
+    save_3d_tiff(extra, r'C:\Users\marku\Desktop\point_inside_function_extra.tif')
+    # Create an output array with filled cells based on the 'include' parameter
+    #output_array = np.where(np.isin(array_3d, [555]), 255, 0).astype(np.uint8)
+
+    return array_3d
+
+
+
+def contour_outlinetwo(voxel_array, smooth=False, smooth_factor=0.02):
+
+    # make an empty 3d array with the shape of image_array
+    final_tif = np.zeros(voxel_array.shape, dtype=np.uint8)
+
+    #Ensure the voxel_array contains only integers
+    voxel_array = voxel_array.astype(np.uint8)
+
+    #Convert all numbers >= 1 to 100 in the voxel_array
+    voxel_array[voxel_array >= 1] = 255
+
+    # Iterate through 0 to 2
+    for j in range(0, 3):
+
+        filled_list = []
+
+        # Swap the axes for the current dimension
+        if j == 2:
+            voxel_array = np.swapaxes(voxel_array, 0, 1)
+            voxel_array = np.swapaxes(voxel_array, 0, 2)
+            final_tif = np.swapaxes(final_tif, 0, 1)
+            final_tif = np.swapaxes(final_tif, 0, 2)
+        elif j == 1:
+            voxel_array = np.swapaxes(voxel_array, 1, 0)
+            voxel_array = np.swapaxes(voxel_array, 2, 1)
+            final_tif = np.swapaxes(final_tif, 1, 0)
+            final_tif = np.swapaxes(final_tif, 2, 1)
+
+       #print("On cycle ", j, " the shape is: ", voxel_array.shape)
+
+        # Iterate through each slice of the 3D image_array
+        for i in range(voxel_array.shape[0]):
+
+            gray = voxel_array[i, :, :]
+
+            # Threshold the image to create a binary image
+            ret, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY)
+
+            if smooth:
+                # Find the contours in the binary image
+                contours, hierarchy = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            else:
+                # Find the contours in the binary image
+                contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+            # Create a blank image with the same dimensions as the original image
+            filled_img = np.zeros(gray.shape[:2], dtype=np.uint8)
+
+            # Iterate over the contours and their hierarchies
+            for i, contour in enumerate(contours):
+                if smooth and hierarchy[0][i][3] == -1:
+                    epsilon = smooth_factor * cv2.arcLength(contour, True)
+                    approx = cv2.approxPolyDP(contour, epsilon, True)
+                    # If the contour doesn't have a parent, fill it with pixel value 255
+                    cv2.drawContours(filled_img, [approx], -1, 255, thickness=1)
+                # Check if the contour has a parent
+                elif hierarchy[0][i][3] == -1:
+                    # If the contour doesn't have a parent, fill it with pixel value 255
+                    cv2.drawContours(filled_img, [contour], -1, 255, cv2.FILLED)
+
+            # append filled_im to filled_list
+            filled_list.append(filled_img)
+
+        temp_tif = np.asarray(filled_list)
+
+        #print("temp_tif on cycle ", j, " is ", temp_tif.shape)
+
+        # Ensure the final_tif contains only integers
+        temp_tif = temp_tif.astype(np.uint8)
+        temp_tif[temp_tif >= 1] = 1
+        final_tif = np.logical_or(final_tif, temp_tif)
+
+        # Swap the axes for the current dimension
+        if j == 2:
+            voxel_array = np.swapaxes(voxel_array, 0, 2)
+            voxel_array = np.swapaxes(voxel_array, 0, 1)
+            final_tif = np.swapaxes(final_tif, 0, 2)
+            final_tif = np.swapaxes(final_tif, 0, 1)
+        elif j == 1:
+            voxel_array = np.swapaxes(voxel_array, 2, 0)
+            voxel_array = np.swapaxes(voxel_array, 1, 2)
+            final_tif = np.swapaxes(final_tif, 2, 0)
+            final_tif = np.swapaxes(final_tif, 1, 2)
+
+
+    return final_tif
+
+
+def filter_dataframe_by_array(df, arr_3d):
+    modified_arr_3d = arr_3d.copy()
+
+    # Ensure arr_3d contains only integers
+    modified_arr_3d = modified_arr_3d.astype(np.uint32)
+
+    arr_1d = modified_arr_3d.ravel()
+    arr_1d = arr_1d[arr_1d != 0]
+
+    #Convert arr_1d to a list called valid_indices
+    valid_indices = arr_1d.tolist()
+    valid_indices= [x - 1 for x in valid_indices]
+
+    # Filter the DataFrame using these values
+    filtered_df = df[df.index.isin(valid_indices)]
+
+    return filtered_df
+def paint_bucket_fill2old(voxel_array, original_dataframe):
+    def is_valid(coords):
+        z, y, x = coords
+        return 0 <= z < voxel_array.shape[0] and 0 <= y < voxel_array.shape[1] and 0 <= x < voxel_array.shape[2]
+
+    def get_neighbors(coords):
+        z, y, x = coords
+        neighbors = [(z + 1, y, x), (z - 1, y, x), (z, y + 1, x), (z, y - 1, x), (z, y, x + 1), (z, y, x - 1)]
+        return [n for n in neighbors if is_valid(n)]
+
+    def fill(coords):
+        stack = [coords]
+        while stack:
+            current_coords = stack.pop()
+            voxel_array[current_coords] = 1  # You can use any value you like here
+            for neighbor in get_neighbors(current_coords):
+                if voxel_array[neighbor] == 0:
+                    stack.append(neighbor)
+
+    empty_cells = (voxel_array == 0)
+    bordering_empty = np.zeros(voxel_array.shape, dtype=bool)
+    found_rows = set()
+
+    for z in range(voxel_array.shape[0]):
+        for y in range(voxel_array.shape[1]):
+            for x in range(voxel_array.shape[2]):
+                if empty_cells[z, y, x]:
+                    neighbors = get_neighbors((z, y, x))
+                    for nz, ny, nx in neighbors:
+                        if is_valid((nz, ny, nx)):
+                            bordering_empty[nz, ny, nx] = True
+
+    result = np.where((voxel_array >= 1) & bordering_empty, voxel_array, 0)
+    result = result.astype(int)
+    output_np = result
+    output_np[output_np >= 1] = 255
+    with tiff.TiffWriter(r'C:\Users\marku\Desktop\test.tiff') as tif:
+        for i in range(output_np.shape[0]):
+            tif.write(output_np[i])
+
+    print("printed :P")
+
+    # Create a new DataFrame with selected rows
+    selected_rows = original_dataframe[original_dataframe.index.isin(found_rows)]
+
+    return result
 
 def paint_bucket_fill(arr_3d, row=1, col=1, fill_value=1e7, empty_value=1e6):
     for _ in range(3):
@@ -1389,6 +2167,21 @@ def filter_dataframe_by_fill_value(arr_3d, df, fill_value=1e7):
 
     filtered_df = df[df.index.isin(filtered_indices)].drop_duplicates()
     return filtered_df
+
+
+# def filter_dataframe_by_array_bad(array, dataframe):
+#     unique_values = np.unique(array[array != 0])
+#
+#     # Create an array of boolean masks to filter the DataFrame
+#     masks = [dataframe.index == value for value in unique_values]
+#
+#     # Concatenate the masks along the rows to get a single boolean mask
+#     combined_mask = np.any(masks, axis=0)
+#
+#     # Use the combined mask to filter the DataFrame
+#     filtered_df = dataframe[combined_mask]
+#
+#     return filtered_df
 
 def find_outer_surface(surface_array):
     surface_mask = np.zeros_like(surface_array, dtype=bool)
@@ -1509,6 +2302,7 @@ def add_sphere_coordinates(sphere_array, center, df, mesh=False):
                 new_rows.append([row['X'] + i_norm, row['Y'] + j_norm, row['Z'] + k_norm, row['atom']])
     sphere_df = pd.DataFrame(new_rows, columns=['X', 'Y', 'Z', 'atom'])
     return sphere_df
+
 
 def add_filled_sphere_coordinates(sphere_array, center, df):
     sphere_coords = np.transpose(np.nonzero(sphere_array))
@@ -1635,46 +2429,25 @@ def process_hetatom(atom_df, pdb_file):
 
     # Step 1: Read CONECT lines from file
     conect_ids = []
-    # with open(pdb_file, 'r') as f:
-    #     for line in f:
-    #         if line.startswith('CONECT'):
-    #             cols = line.split()
-    #             atom1 = int(cols[1])
-    #             for atom2 in cols[2:]:
-    #                 conect_ids.append([atom1, int(atom2)])
-
-    # with open(pdb_file, 'r') as f:
-    #     for line in f:
-    #         if line.startswith('CONECT'):
-    #             line = line[len('CONECT'):].replace(" ", "")  # Remove spaces
-    #             cols = [line[i:i + 5] for i in range(0, len(line), 5)]
-    #             print(cols)
-    #             first_num = int(cols[0])
-    #             for col in cols[1:]:
-    #                 if col.strip():
-    #                     conect_ids.append([first_num, int(col)])
-    ##TODO: Fix this! It needs to count 5 characters from the right to left
-
     with open(pdb_file, 'r') as f:
         for line in f:
-            if line.startswith('CONECT'):
-                #Remove only the word 'CONECT'
-                line = re.split(r'(\s+)', line)
+            # Check if the line starts with "CONECT"
+            if line.startswith("CONECT"):
+                # Save the part after "CONECT" in the 'start' variable
+                start = line[6:]
 
-                print(line)
-                #Split the line into a list of 5 character strings
-                cols = [line[i:i + 5] for i in range(0, len(line), 5)]
-                #Remove spaces from the chars in the columns
-                cols = [col.strip() for col in cols]
+                # Split the 'start' variable into values of 5 characters each
+                values = [start[i:i + 5] for i in range(0, len(start), 5)]
 
-                #Take the first column as first_num
-                first_num = int(cols[0])
-                #Take the rest of the columns as rest_nums
-                rest_nums = [int(col) for col in cols[1:] if col]
+                # Remove any strings with only spaces from the list
+                values = [value for value in values if value.strip()]
 
+                if values:
+                    base_value = int(values[0].replace(" ", ""))
 
-                print(first_num, rest_nums)
-
+                    for val in values[1:]:
+                        val = val.replace(" ", "")
+                        conect_ids.append([base_value, int(val)])
 
     # Step 2: Create dataframe from conect_ids
     conect_ids_df = pd.DataFrame(conect_ids, columns=['atom_1', 'atom_2'])
@@ -1687,7 +2460,7 @@ def process_hetatom(atom_df, pdb_file):
     results_df = pd.DataFrame(columns=['X', 'Y', 'Z'])
     atom1_coords = []
     atom2_coords = []
-    print(conect_ids_df.head(n=25))
+
     for index, row in conect_ids_df.iterrows():
         atom1_coords = atom_df[atom_df['atom_num'].astype('int64') == row['atom_1']][['X', 'Y', 'Z']].values[0]
         atom2_coords = atom_df[atom_df['atom_num'].astype('int64') == row['atom_2']][['X', 'Y', 'Z']].values[0]
@@ -1700,8 +2473,7 @@ def process_hetatom(atom_df, pdb_file):
 
         line_coords = bresenham_line(atom1['X'].values[0], atom1['Y'].values[0], atom1['Z'].values[0],
                                      atom2['X'].values[0], atom2['Y'].values[0], atom2['Z'].values[0])
-        #print("try: ", line_coords)
-        # results_df = results_df.append(pd.DataFrame(line_coords, columns=['X', 'Y', 'Z']), ignore_index=True)
+
         results_df = pd.concat([results_df, pd.DataFrame(line_coords, columns=['X', 'Y', 'Z'])], ignore_index=True)
 
     # Step 5: Remove duplicate rows from results_df

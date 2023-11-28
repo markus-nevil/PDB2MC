@@ -1,5 +1,5 @@
 {
-    "scale": 2.0,
+    "scale": 3.0,
     "atoms": {
         "C": "black_concrete",
         "N": "blue_concrete",
@@ -42,16 +42,16 @@
         "dG": "black_wool",
         "dC": "blue_wool"
     },
-    "mode": "Custom",
+    "mode": "Skeleton",
     "backbone": true,
     "sidechain": true,
     "backbone_size": "1.0",
-    "show_atoms": true,
+    "show_atoms": null,
     "show_hetatm": true,
-    "by_chain": false,
-    "mesh": false,
+    "by_chain": true,
+    "mesh": null,
     "simple": true,
-    "pdb_file": "C:/Users/marku/Downloads/3lel.pdb",
+    "pdb_file": "C:/Users/marku/Downloads/3fxp.pdb",
     "save_path": "C:/Users/marku/AppData/Roaming/.minecraft/saves/flat_proteins\\datapacks/mcPDB/data/protein/functions",
     "atom_scale": 1.5
 }
