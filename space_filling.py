@@ -162,7 +162,12 @@ def run_mode(config_data, pdb_name, rounded, mc_dir, atom_df, hetatom_df, hetatm
 
             pdb_atoms = pdb_name + "_" + chain[1] + "_atoms"
 
-            atom_chain_df = pdbm.get_chain(atom_df, chain[1])
+            #atom_chain_df = pdbm.get_chain(atom_df, chain[1])
+            atom_chain_df = pdbm.get_chain(space_filling_df, chain[1])
+
+            #make a new column with the atom type with column name 'atom_specific'
+            atom_chain_df['atom_specific'] = atom_chain_df['atom']
+
             shortened = pdbm.shorten_atom_names(atom_chain_df)
 
             coord = pdbm.rasterized_sphere(round(config_data['scale'] * .9))
