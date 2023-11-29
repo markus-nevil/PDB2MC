@@ -73,8 +73,14 @@ if __name__ == '__main__':
             "pdb_file": None,
             "save_path": None
         }
+        # Check if the directory exists
+        if not os.path.exists('docs'):
+            # If it doesn't exist, create it
+            os.makedirs('docs')
+
+        #save the config file to /docs/config.json
         with open(variables.config_path, "w") as f:
-            json.dump(config, f)
+            json.dump(config, f, indent=4)
 
     # Otherwise load in the existing config and make sure the paths are reset to None
     else:

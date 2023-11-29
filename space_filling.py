@@ -88,21 +88,36 @@ def run_mode(config_data, pdb_name, rounded, mc_dir, atom_df, hetatom_df, hetatm
         pdbm.save_3d_tiff(test_check, r'C:\Users\marku\Desktop\test_check.tif')
         master_array['atom'] = 0
 
+
         if hetatom_df is not None:
-            aligned_dfs = pdbm.align_dataframes(master_array, point_df, atoms_only_df, hetatom_df, hetatm_bonds)
-            master_array = aligned_dfs[0]
-            point_df = aligned_dfs[1]
+            #Get the 8 corner points of point_df
+            corner_points = pdbm.get_corner_points(point_df)
+            #Add the corner points to hetatom_df and hetatm_bonds with the 'atom' column value "temp"
+            hetatom_df = pdbm.add_corner_points(hetatom_df, corner_points)
+            hetatm_bonds = pdbm.add_corner_points(hetatm_bonds, corner_points)
+
+            aligned_dfs = pdbm.align_dataframes(point_df, master_array, atoms_only_df, hetatom_df, hetatm_bonds)
+            point_df = aligned_dfs[0]
+            master_array = aligned_dfs[1]
             atoms_subset_df = aligned_dfs[2]
             aligned_hetatm = aligned_dfs[3]
             aligned_hetatm_bonds = aligned_dfs[4]
+
+            #Remove any rows that have 'atom' value of "temp"
+            aligned_hetatm = aligned_hetatm[aligned_hetatm['atom'] != "temp"]
+            aligned_hetatm_bonds = aligned_hetatm_bonds[aligned_hetatm_bonds['atom'] != "temp"]
+
+            #Remove any rows that have an 'atom' value of H
+            atoms_subset_df = atoms_subset_df[atoms_subset_df['atom'] != "H"]
+
         else:
-            aligned_dfs = pdbm.align_dataframes(master_array, point_df, atoms_only_df)
-            master_array = aligned_dfs[0]
-            point_df = aligned_dfs[1]
+            aligned_dfs = pdbm.align_dataframes(point_df, master_array, atoms_only_df)
+            point_df = aligned_dfs[0]
+            master_array = aligned_dfs[1]
             atoms_subset_df = aligned_dfs[2]
 
         if config_data['mesh'] == True:
-            master_array = pdbm.remove_random_rows(master_array, percent = 90)
+            master_array = pdbm.remove_random_rows(master_array, percent=90)
 
         output_df = pdbm.assign_atom_values(master_array, atoms_subset_df)
 
@@ -129,8 +144,8 @@ def run_mode(config_data, pdb_name, rounded, mc_dir, atom_df, hetatom_df, hetatm
                 pdb_hetatm_bonds = pdb_name + "_hetatm_bonds"
 
                 # Easiest way to ensure bonds are grey concrete
-                hetatm_bonds['atom'] = 99
-                mcf.create_minecraft_functions(hetatm_bonds, pdb_hetatm_bonds, False, mc_dir, config_data['atoms'])
+                aligned_hetatm_bonds['atom'] = 99
+                mcf.create_minecraft_functions(aligned_hetatm_bonds, pdb_hetatm_bonds, False, mc_dir, config_data['atoms'])
 
 
 

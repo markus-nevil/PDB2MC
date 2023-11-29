@@ -70,6 +70,42 @@ def align_dataframes(*dfs):
 
     return dfs
 
+def add_corner_points(df, corner_points):
+    # Create a DataFrame from the corner points
+    corner_df = pd.DataFrame(corner_points, columns=['X', 'Y', 'Z'])
+
+    # Add an 'atom' column with the value 'temp'
+    corner_df['atom'] = 'temp'
+
+    # For each column in the original DataFrame that is not in the corner DataFrame, add the column with the value 'NA'
+    for column in set(df.columns) - set(corner_df.columns):
+        corner_df[column] = 'NA'
+
+    # Concatenate the original DataFrame with the corner DataFrame
+    df = pd.concat([df, corner_df], ignore_index=True)
+
+    return df
+
+def get_corner_points(df):
+    # Find the minimum and maximum coordinates
+    min_x, max_x = df['X'].min(), df['X'].max()
+    min_y, max_y = df['Y'].min(), df['Y'].max()
+    min_z, max_z = df['Z'].min(), df['Z'].max()
+
+    # Create a list of the 8 corner points
+    corner_points = [
+        (min_x, min_y, min_z),
+        (min_x, min_y, max_z),
+        (min_x, max_y, min_z),
+        (min_x, max_y, max_z),
+        (max_x, min_y, min_z),
+        (max_x, min_y, max_z),
+        (max_x, max_y, min_z),
+        (max_x, max_y, max_z)
+    ]
+
+    return corner_points
+
 # Function that takes a pdb file, reads the coordinates of a single chain, and determines whether the shortest edge of the bounding box is shorter than the parameter ymax
 def check_model_size(file_path, world_max):
     pdb_df = read_pdb(file_path)
