@@ -2421,43 +2421,53 @@ def shorten_atom_names(df):
 
 
 def change_mode(config):
-    if config["mode"] == "Backbone":
-        print("Backbone")
-        config["show_atoms"] = False
-        config["sidechain"] = False
-        config["backbone"] = True
-    elif config["mode"] == "Skeleton":
-        print("Skeleton")
-        config["show_atoms"] = False
-        config["sidechain"] = True
-        config["backbone"] = True
-    elif config["mode"] == "Space Filling":
-        print("TODO")
-    elif config["mode"] == "X-ray":
-        print("X-ray")
-        config["show_atoms"] = True
-        config["sidechain"] = True
-        config["backbone"] = True
-        config["atoms"]["C"] = "black_stained_glass"
-        config["atoms"]["N"] = "blue_stained_glass"
-        config["atoms"]["O"] = "red_stained_glass"
-        config["atoms"]["S"] = "yellow_stained_glass"
-        config["atoms"]["P"] = "lime_stained_glass"
-        config["atoms"]["other_atom"] = "pink_stained_glass"
-    elif config["mode"] == "X-ray Backbone":
-        print("X-ray Backbone")
-        config["show_atoms"] = True
-        config["sidechain"] = False
-        config["backbone"] = True
-        config["atoms"]["C"] = "black_stained_glass"
-        config["atoms"]["N"] = "blue_stained_glass"
-        config["atoms"]["O"] = "red_stained_glass"
-        config["atoms"]["S"] = "yellow_stained_glass"
-        config["atoms"]["P"] = "lime_stained_glass"
-        config["atoms"]["other_atom"] = "pink_stained_glass"
-    elif config["mode"] == "Amino Acids":
-        config["sidechain"] = False
-        config["backbone"] = True
+    config["show_atoms"] = True
+    config["sidechain"] = True
+    config["backbone"] = True
+    config["atoms"]["C"] = "black_stained_glass"
+    config["atoms"]["N"] = "blue_stained_glass"
+    config["atoms"]["O"] = "red_stained_glass"
+    config["atoms"]["S"] = "yellow_stained_glass"
+    config["atoms"]["P"] = "lime_stained_glass"
+    config["atoms"]["other_atom"] = "pink_stained_glass"
+        
+    # if config["mode"] == "Backbone":
+    #     print("Backbone")
+    #     config["show_atoms"] = False
+    #     config["sidechain"] = False
+    #     config["backbone"] = True
+    # elif config["mode"] == "Skeleton":
+    #     print("Skeleton")
+    #     config["show_atoms"] = False
+    #     config["sidechain"] = True
+    #     config["backbone"] = True
+    # elif config["mode"] == "Space Filling":
+    #     print("TODO")
+    # elif config["mode"] == "X-ray":
+    #     print("X-ray")
+    #     config["show_atoms"] = True
+    #     config["sidechain"] = True
+    #     config["backbone"] = True
+    #     config["atoms"]["C"] = "black_stained_glass"
+    #     config["atoms"]["N"] = "blue_stained_glass"
+    #     config["atoms"]["O"] = "red_stained_glass"
+    #     config["atoms"]["S"] = "yellow_stained_glass"
+    #     config["atoms"]["P"] = "lime_stained_glass"
+    #     config["atoms"]["other_atom"] = "pink_stained_glass"
+    # elif config["mode"] == "X-ray Backbone":
+    #     print("X-ray Backbone")
+    #     config["show_atoms"] = True
+    #     config["sidechain"] = False
+    #     config["backbone"] = True
+    #     config["atoms"]["C"] = "black_stained_glass"
+    #     config["atoms"]["N"] = "blue_stained_glass"
+    #     config["atoms"]["O"] = "red_stained_glass"
+    #     config["atoms"]["S"] = "yellow_stained_glass"
+    #     config["atoms"]["P"] = "lime_stained_glass"
+    #     config["atoms"]["other_atom"] = "pink_stained_glass"
+    # elif config["mode"] == "Amino Acids":
+    #     config["sidechain"] = False
+    #     config["backbone"] = True
     return config
 
 
