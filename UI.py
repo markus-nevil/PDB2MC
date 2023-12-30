@@ -1,8 +1,19 @@
-from PyQt6.QtWidgets import QHBoxLayout, QApplication, QPushButton, QMainWindow, QComboBox, QLabel, QVBoxLayout, QWidget, QStylePainter
+import os
+from shutil import copyfile
+from PyQt6.QtWidgets import QFileDialog, QHBoxLayout, QApplication, QListWidget, QPushButton, QMainWindow, QMessageBox, QLabel, QVBoxLayout, QWidget, QStylePainter
 from PyQt6.QtGui import QMovie, QPalette, QBrush, QPixmap, QDesktopServices
-from PyQt6.QtCore import Qt
-import sys
+from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from PyQt6 import QtCore, QtGui, QtWidgets
+from variables import decorative_blocks
+
+import pdb_manipulation as pdbm
+
+class MyComboBox(QtWidgets.QComboBox):
+    focusOut = pyqtSignal()
+
+    def focusOutEvent(self, event):
+        super().focusOutEvent(event)
+        self.focusOut.emit()
 
 class SkeletonWindow(QMainWindow):
     def __init__(self):
@@ -10,10 +21,156 @@ class SkeletonWindow(QMainWindow):
         self.setWindowTitle("Skeleton Window")
         self.resize(580, 411)
 
+#Quick dialog window that says "Nothing selected!"
+class NothingSelected(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Nothing Selected")
+        self.resize(150, 75)
+        self.label = QLabel(self)
+        self.label.setText("Nothing selected!")
+        self.label.move(25, 10)
+        self.label.adjustSize()
+        self.okayButton = QPushButton("Okay", self)
+        self.okayButton.move(25, 30)
+        self.okayButton.clicked.connect(self.close)
+
+#A new popup menu that will show several text options in a list. It has two buttons: "Okay" and "Cancel"
+class IncludedPDBPopup(QMainWindow):
+    selected = pyqtSignal(str)
+    def ListAvailableModels(self):
+        available = os.listdir("C:/Users/Duronio Lab/PycharmProjects/mcpdb/presets/")
+        listOutput = ['-none-']
+        for file in available:
+            if file.endswith(".pdb"):
+                # remove the .pdb
+                file = file[:-4]
+                listOutput.append(file)
+        return listOutput
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Select one included PDB model")
+        self.resize(350, 200)
+
+        #Create a selectable list where user can select one item
+        self.listWidget = QListWidget(self)
+        self.listWidget.setGeometry(QtCore.QRect(50, 10, 250, 130))
+        self.listWidget.setObjectName("listWidget")
+
+        elementsList = self.ListAvailableModels()
+        #populate the listWidget with elements of elementsList
+        self.listWidget.addItems(elementsList)
+
+        #set default selection to "NA"
+        self.listWidget.setCurrentRow(0)
+        #change font size of list
+        font = QtGui.QFont()
+        font.setPointSize(11)
+        self.listWidget.setFont(font)
+
+        #Create button named "okay"
+        self.okayButton = QPushButton("Okay", self)
+        self.okayButton.move(60, 150)
+
+        #Create button named "Cancel"
+        self.cancelButton = QPushButton("Cancel", self)
+        self.cancelButton.move(185, 150)
+
+        self.okayButton.clicked.connect(self.getSelected)
+        self.cancelButton.clicked.connect(self.cancelSelected)
+
+    #save the output of the selected item
+    def getSelected(self):
+        selected_text = self.listWidget.currentItem().text()
+
+        if selected_text == '-none-':
+            self.nothing = NothingSelected()
+            self.nothing.show()
+        else:
+            preset_file = os.path.join("presets", selected_text + ".pdb")
+            # check if the model is small enough for minecraft
+            if not pdbm.check_model_size(preset_file, world_max=320):
+                QMessageBox.warning(self, "Too large", f"Model may be too large for Minecraft.")
+            else:
+                # Calculate the maximum protein scale factor
+                size_factor = pdbm.check_max_size(preset_file, world_max=320)
+                size_factor = str(round(size_factor, 2))
+                QMessageBox.information(self, "Maximum scale", f"The maximum protein scale is: {size_factor}x")
+            self.selected.emit(selected_text)
+            self.close()
+            return selected_text
+    def cancelSelected(self):
+        print('close window')
+        self.close()
+
+#A new popup that will show the system file explorer starting from a specific path
+class FileExplorerPopup(QMainWindow):
+    #fileSelected = pyqtSignal(str)
+    def __init__(self):
+        super().__init__()
+        file_name, _ = QFileDialog.getOpenFileName(self, "QFileDialog.getOpenFileName()", "",
+                                                  "Protein Databank files (*.pdb)")
+        if file_name:
+            print(file_name)
+            #preset_file = os.path(file_name)
+            #print(preset_file)
+            # check if the model is small enough for minecraft
+            if not pdbm.check_model_size(file_name, world_max=320):
+                QMessageBox.warning(self, "Too large", f"Model may be too large for Minecraft.")
+            else:
+                # Calculate the maximum protein scale factor
+                size_factor = pdbm.check_max_size(file_name, world_max=320)
+                size_factor = str(round(size_factor, 2))
+                QMessageBox.information(self, "Maximum scale", f"The maximum protein scale is: {size_factor}x")
+            self.selected_file = file_name
+
+
+# class MinecraftPopup(QMainWindow):
+#     def __init__(self):
+#         super().__init__()
+#         home_dir = os.path.expanduser("~")
+#         wd = os.path.join(home_dir, "AppData\Roaming\.minecraft\saves")
+#         directory = QFileDialog.getExistingDirectory(self, "Select Directory", wd)
+#         if directory:
+#             print(directory)
+#
+#             self.selected_directory = directory
+
+
+class MinecraftPopup(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        home_dir = os.path.expanduser("~")
+        wd = os.path.join(home_dir, "AppData\Roaming\.minecraft\saves")
+        good_dir = False
+        while not good_dir:
+            save_path = QFileDialog.getExistingDirectory(self, "Select Directory", wd)
+            # check if save_path has structure .minecraft/saves/<save_name>
+            if save_path:
+                if os.path.basename(os.path.dirname(save_path)) == "saves":
+                    good_dir = True
+                else:
+                    QMessageBox.warning(self, "Invalid directory", "Please select a valid Minecraft save directory.")
+
+        directory_path = os.path.join(save_path, "datapacks/mcPDB/data/protein/functions")
+
+        if not os.path.exists(directory_path):
+            os.makedirs(directory_path)
+
+        # check for pack.mcmeta in the /datapacks/mcPDB folder and if not copy it from the python directory
+        if not os.path.isfile(os.path.join(save_path, "datapacks/mcPDB/pack.mcmeta")):
+            copyfile("pack.mcmeta", os.path.join(save_path, "datapacks/mcPDB/pack.mcmeta"))
+
+        if save_path:
+            print(save_path)
+            self.selected_directory = save_path
+
 
 class CustomWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.user_pdb_file = None
+        self.user_minecraft_save = None
         self.setWindowTitle("Custom Window")
         self.resize(607, 411)
         # Set style to Fusion
@@ -348,9 +505,11 @@ class CustomWindow(QMainWindow):
         self.otherColorLabel = QtWidgets.QLabel(parent=self.centralwidget)
         self.otherColorLabel.setGeometry(QtCore.QRect(110, 160, 121, 21))
         self.otherColorLabel.setObjectName("otherColorLabel")
-        self.oColorBox = QtWidgets.QComboBox(parent=self.centralwidget)
-        self.oColorBox.setGeometry(QtCore.QRect(240, 40, 165, 22))
+        #self.oColorBox = QtWidgets.QComboBox(parent=self.centralwidget)
+        self.oColorBox = MyComboBox(self.centralwidget)
+        self.oColorBox.setGeometry(QtCore.QRect(240, 40, 175, 22))
         self.oColorBox.setObjectName("oColorBox")
+        self.oColorBox.setEditable(True)
 
         self.oColorBox.addItem(icon2, "red_concrete")
         self.oColorBox.addItem(icon3, "orange_concrete")
@@ -416,10 +575,31 @@ class CustomWindow(QMainWindow):
         self.oColorBox.addItem(icon62, "gray_wool")
         self.oColorBox.addItem(icon63, "light_gray_wool")
         self.oColorBox.addItem(icon64, "white_wool")
+        self.oColorBox.addItem(icon2, "red_stained_glass")
+        self.oColorBox.addItem(icon3, "orange_stained_glass")
+        self.oColorBox.addItem(icon4, "yellow_stained_glass")
+        self.oColorBox.addItem(icon5, "lime_stained_glass")
+        self.oColorBox.addItem(icon6, "green_stained_glass")
+        self.oColorBox.addItem(icon7, "cyan_stained_glass")
+        self.oColorBox.addItem(icon8, "light_blue_stained_glass")
+        self.oColorBox.addItem(icon9, "blue_stained_glass")
+        self.oColorBox.addItem(icon10, "purple_stained_glass")
+        self.oColorBox.addItem(icon11, "magenta_stained_glass")
+        self.oColorBox.addItem(icon12, "pink_stained_glass")
+        self.oColorBox.addItem(icon13, "brown_stained_glass")
+        self.oColorBox.addItem(icon1, "black_stained_glass")
+        self.oColorBox.addItem(icon14, "gray_stained_glass")
+        self.oColorBox.addItem(icon15, "light_stained_glass")
+        self.oColorBox.addItem(icon16, "white_stained_glass")
+        self.oColorBox.insertSeparator(16)
+        self.oColorBox.insertSeparator(33)
+        self.oColorBox.insertSeparator(50)
+        self.oColorBox.insertSeparator(67)
 
-        self.nColorBox = QtWidgets.QComboBox(parent=self.centralwidget)
-        self.nColorBox.setGeometry(QtCore.QRect(240, 70, 165, 22))
+        self.nColorBox = MyComboBox(self.centralwidget)
+        self.nColorBox.setGeometry(QtCore.QRect(240, 70, 175, 22))
         self.nColorBox.setObjectName("nColorBox")
+        self.nColorBox.setEditable(True)
 
         self.nColorBox.addItem(icon9, "blue_concrete")
         self.nColorBox.addItem(icon2, "red_concrete")
@@ -485,10 +665,31 @@ class CustomWindow(QMainWindow):
         self.nColorBox.addItem(icon62, "gray_wool")
         self.nColorBox.addItem(icon63, "light_gray_wool")
         self.nColorBox.addItem(icon64, "white_wool")
+        self.nColorBox.addItem(icon2, "red_stained_glass")
+        self.nColorBox.addItem(icon3, "orange_stained_glass")
+        self.nColorBox.addItem(icon4, "yellow_stained_glass")
+        self.nColorBox.addItem(icon5, "lime_stained_glass")
+        self.nColorBox.addItem(icon6, "green_stained_glass")
+        self.nColorBox.addItem(icon7, "cyan_stained_glass")
+        self.nColorBox.addItem(icon8, "light_blue_stained_glass")
+        self.nColorBox.addItem(icon9, "blue_stained_glass")
+        self.nColorBox.addItem(icon10, "purple_stained_glass")
+        self.nColorBox.addItem(icon11, "magenta_stained_glass")
+        self.nColorBox.addItem(icon12, "pink_stained_glass")
+        self.nColorBox.addItem(icon13, "brown_stained_glass")
+        self.nColorBox.addItem(icon1, "black_stained_glass")
+        self.nColorBox.addItem(icon14, "gray_stained_glass")
+        self.nColorBox.addItem(icon15, "light_stained_glass")
+        self.nColorBox.addItem(icon16, "white_stained_glass")
+        self.nColorBox.insertSeparator(16)
+        self.nColorBox.insertSeparator(33)
+        self.nColorBox.insertSeparator(50)
+        self.nColorBox.insertSeparator(67)
 
-        self.pColorBox = QtWidgets.QComboBox(parent=self.centralwidget)
-        self.pColorBox.setGeometry(QtCore.QRect(240, 130, 165, 22))
+        self.pColorBox = MyComboBox(self.centralwidget)
+        self.pColorBox.setGeometry(QtCore.QRect(240, 130, 175, 22))
         self.pColorBox.setObjectName("pColorBox")
+        self.pColorBox.setEditable(True)
 
         self.pColorBox.addItem(icon6, "green_concrete")
         self.pColorBox.addItem(icon2, "red_concrete")
@@ -554,10 +755,31 @@ class CustomWindow(QMainWindow):
         self.pColorBox.addItem(icon62, "gray_wool")
         self.pColorBox.addItem(icon63, "light_gray_wool")
         self.pColorBox.addItem(icon64, "white_wool")
+        self.pColorBox.addItem(icon2, "red_stained_glass")
+        self.pColorBox.addItem(icon3, "orange_stained_glass")
+        self.pColorBox.addItem(icon4, "yellow_stained_glass")
+        self.pColorBox.addItem(icon5, "lime_stained_glass")
+        self.pColorBox.addItem(icon6, "green_stained_glass")
+        self.pColorBox.addItem(icon7, "cyan_stained_glass")
+        self.pColorBox.addItem(icon8, "light_blue_stained_glass")
+        self.pColorBox.addItem(icon9, "blue_stained_glass")
+        self.pColorBox.addItem(icon10, "purple_stained_glass")
+        self.pColorBox.addItem(icon11, "magenta_stained_glass")
+        self.pColorBox.addItem(icon12, "pink_stained_glass")
+        self.pColorBox.addItem(icon13, "brown_stained_glass")
+        self.pColorBox.addItem(icon1, "black_stained_glass")
+        self.pColorBox.addItem(icon14, "gray_stained_glass")
+        self.pColorBox.addItem(icon15, "light_stained_glass")
+        self.pColorBox.addItem(icon16, "white_stained_glass")
+        self.pColorBox.insertSeparator(16)
+        self.pColorBox.insertSeparator(33)
+        self.pColorBox.insertSeparator(50)
+        self.pColorBox.insertSeparator(67)
 
-        self.otherColorBox = QtWidgets.QComboBox(parent=self.centralwidget)
-        self.otherColorBox.setGeometry(QtCore.QRect(240, 160, 165, 22))
+        self.otherColorBox = MyComboBox(self.centralwidget)
+        self.otherColorBox.setGeometry(QtCore.QRect(240, 160, 175, 22))
         self.otherColorBox.setObjectName("otherColorBox")
+        self.otherColorBox.setEditable(True)
 
         self.otherColorBox.addItem(icon12, "pink_concrete")
         self.otherColorBox.addItem(icon2, "red_concrete")
@@ -623,10 +845,31 @@ class CustomWindow(QMainWindow):
         self.otherColorBox.addItem(icon62, "gray_wool")
         self.otherColorBox.addItem(icon63, "light_gray_wool")
         self.otherColorBox.addItem(icon64, "white_wool")
+        self.otherColorBox.addItem(icon2, "red_stained_glass")
+        self.otherColorBox.addItem(icon3, "orange_stained_glass")
+        self.otherColorBox.addItem(icon4, "yellow_stained_glass")
+        self.otherColorBox.addItem(icon5, "lime_stained_glass")
+        self.otherColorBox.addItem(icon6, "green_stained_glass")
+        self.otherColorBox.addItem(icon7, "cyan_stained_glass")
+        self.otherColorBox.addItem(icon8, "light_blue_stained_glass")
+        self.otherColorBox.addItem(icon9, "blue_stained_glass")
+        self.otherColorBox.addItem(icon10, "purple_stained_glass")
+        self.otherColorBox.addItem(icon11, "magenta_stained_glass")
+        self.otherColorBox.addItem(icon12, "pink_stained_glass")
+        self.otherColorBox.addItem(icon13, "brown_stained_glass")
+        self.otherColorBox.addItem(icon1, "black_stained_glass")
+        self.otherColorBox.addItem(icon14, "gray_stained_glass")
+        self.otherColorBox.addItem(icon15, "light_stained_glass")
+        self.otherColorBox.addItem(icon16, "white_stained_glass")
+        self.otherColorBox.insertSeparator(16)
+        self.otherColorBox.insertSeparator(33)
+        self.otherColorBox.insertSeparator(50)
+        self.otherColorBox.insertSeparator(67)
 
-        self.sColorBox = QtWidgets.QComboBox(parent=self.centralwidget)
-        self.sColorBox.setGeometry(QtCore.QRect(240, 100, 165, 22))
+        self.sColorBox = MyComboBox(self.centralwidget)
+        self.sColorBox.setGeometry(QtCore.QRect(240, 100, 175, 22))
         self.sColorBox.setObjectName("sColorBox")
+        self.sColorBox.setEditable(True)
 
         self.sColorBox.addItem(icon4, "yellow_concrete")
         self.sColorBox.addItem(icon2, "red_concrete")
@@ -692,11 +935,31 @@ class CustomWindow(QMainWindow):
         self.sColorBox.addItem(icon62, "gray_wool")
         self.sColorBox.addItem(icon63, "light_gray_wool")
         self.sColorBox.addItem(icon64, "white_wool")
+        self.sColorBox.addItem(icon2, "red_stained_glass")
+        self.sColorBox.addItem(icon3, "orange_stained_glass")
+        self.sColorBox.addItem(icon4, "yellow_stained_glass")
+        self.sColorBox.addItem(icon5, "lime_stained_glass")
+        self.sColorBox.addItem(icon6, "green_stained_glass")
+        self.sColorBox.addItem(icon7, "cyan_stained_glass")
+        self.sColorBox.addItem(icon8, "light_blue_stained_glass")
+        self.sColorBox.addItem(icon9, "blue_stained_glass")
+        self.sColorBox.addItem(icon10, "purple_stained_glass")
+        self.sColorBox.addItem(icon11, "magenta_stained_glass")
+        self.sColorBox.addItem(icon12, "pink_stained_glass")
+        self.sColorBox.addItem(icon13, "brown_stained_glass")
+        self.sColorBox.addItem(icon1, "black_stained_glass")
+        self.sColorBox.addItem(icon14, "gray_stained_glass")
+        self.sColorBox.addItem(icon15, "light_stained_glass")
+        self.sColorBox.addItem(icon16, "white_stained_glass")
+        self.sColorBox.insertSeparator(16)
+        self.sColorBox.insertSeparator(33)
+        self.sColorBox.insertSeparator(50)
+        self.sColorBox.insertSeparator(67)
 
-
-        self.cColorBox = QtWidgets.QComboBox(parent=self.centralwidget)
-        self.cColorBox.setGeometry(QtCore.QRect(240, 10, 165, 22))
+        self.cColorBox = MyComboBox(self.centralwidget)
+        self.cColorBox.setGeometry(QtCore.QRect(240, 10, 175, 22))
         self.cColorBox.setObjectName("cColorBox")
+        self.cColorBox.setEditable(True)
 
         self.cColorBox.addItem(icon1, "black_concrete")
         self.cColorBox.addItem(icon2, "red_concrete")
@@ -762,10 +1025,31 @@ class CustomWindow(QMainWindow):
         self.cColorBox.addItem(icon62, "gray_wool")
         self.cColorBox.addItem(icon63, "light_gray_wool")
         self.cColorBox.addItem(icon64, "white_wool")
+        self.cColorBox.addItem(icon2, "red_stained_glass")
+        self.cColorBox.addItem(icon3, "orange_stained_glass")
+        self.cColorBox.addItem(icon4, "yellow_stained_glass")
+        self.cColorBox.addItem(icon5, "lime_stained_glass")
+        self.cColorBox.addItem(icon6, "green_stained_glass")
+        self.cColorBox.addItem(icon7, "cyan_stained_glass")
+        self.cColorBox.addItem(icon8, "light_blue_stained_glass")
+        self.cColorBox.addItem(icon9, "blue_stained_glass")
+        self.cColorBox.addItem(icon10, "purple_stained_glass")
+        self.cColorBox.addItem(icon11, "magenta_stained_glass")
+        self.cColorBox.addItem(icon12, "pink_stained_glass")
+        self.cColorBox.addItem(icon13, "brown_stained_glass")
+        self.cColorBox.addItem(icon1, "black_stained_glass")
+        self.cColorBox.addItem(icon14, "gray_stained_glass")
+        self.cColorBox.addItem(icon15, "light_stained_glass")
+        self.cColorBox.addItem(icon16, "white_stained_glass")
+        self.cColorBox.insertSeparator(16)
+        self.cColorBox.insertSeparator(33)
+        self.cColorBox.insertSeparator(50)
+        self.cColorBox.insertSeparator(67)
 
-        self.backboneColorBox = QtWidgets.QComboBox(parent=self.centralwidget)
-        self.backboneColorBox.setGeometry(QtCore.QRect(240, 240, 165, 22))
+        self.backboneColorBox = MyComboBox(self.centralwidget)
+        self.backboneColorBox.setGeometry(QtCore.QRect(240, 240, 175, 22))
         self.backboneColorBox.setObjectName("backboneColorBox")
+        self.backboneColorBox.setEditable(True)
 
         self.backboneColorBox.addItem(icon14, "gray_concrete")
         self.backboneColorBox.addItem(icon2, "red_concrete")
@@ -831,10 +1115,31 @@ class CustomWindow(QMainWindow):
         self.backboneColorBox.addItem(icon62, "gray_wool")
         self.backboneColorBox.addItem(icon63, "light_gray_wool")
         self.backboneColorBox.addItem(icon64, "white_wool")
+        self.backboneColorBox.addItem(icon2, "red_stained_glass")
+        self.backboneColorBox.addItem(icon3, "orange_stained_glass")
+        self.backboneColorBox.addItem(icon4, "yellow_stained_glass")
+        self.backboneColorBox.addItem(icon5, "lime_stained_glass")
+        self.backboneColorBox.addItem(icon6, "green_stained_glass")
+        self.backboneColorBox.addItem(icon7, "cyan_stained_glass")
+        self.backboneColorBox.addItem(icon8, "light_blue_stained_glass")
+        self.backboneColorBox.addItem(icon9, "blue_stained_glass")
+        self.backboneColorBox.addItem(icon10, "purple_stained_glass")
+        self.backboneColorBox.addItem(icon11, "magenta_stained_glass")
+        self.backboneColorBox.addItem(icon12, "pink_stained_glass")
+        self.backboneColorBox.addItem(icon13, "brown_stained_glass")
+        self.backboneColorBox.addItem(icon1, "black_stained_glass")
+        self.backboneColorBox.addItem(icon14, "gray_stained_glass")
+        self.backboneColorBox.addItem(icon15, "light_stained_glass")
+        self.backboneColorBox.addItem(icon16, "white_stained_glass")
+        self.backboneColorBox.insertSeparator(16)
+        self.backboneColorBox.insertSeparator(33)
+        self.backboneColorBox.insertSeparator(50)
+        self.backboneColorBox.insertSeparator(67)
 
-        self.sidechainColorBox = QtWidgets.QComboBox(parent=self.centralwidget)
-        self.sidechainColorBox.setGeometry(QtCore.QRect(240, 210, 165, 22))
+        self.sidechainColorBox = MyComboBox(self.centralwidget)
+        self.sidechainColorBox.setGeometry(QtCore.QRect(240, 210, 175, 22))
         self.sidechainColorBox.setObjectName("sidechainColorBox")
+        self.sidechainColorBox.setEditable(True)
 
         self.sidechainColorBox.addItem(icon14, "gray_concrete")
         self.sidechainColorBox.addItem(icon2, "red_concrete")
@@ -900,26 +1205,46 @@ class CustomWindow(QMainWindow):
         self.sidechainColorBox.addItem(icon62, "gray_wool")
         self.sidechainColorBox.addItem(icon63, "light_gray_wool")
         self.sidechainColorBox.addItem(icon64, "white_wool")
+        self.sidechainColorBox.addItem(icon2, "red_stained_glass")
+        self.sidechainColorBox.addItem(icon3, "orange_stained_glass")
+        self.sidechainColorBox.addItem(icon4, "yellow_stained_glass")
+        self.sidechainColorBox.addItem(icon5, "lime_stained_glass")
+        self.sidechainColorBox.addItem(icon6, "green_stained_glass")
+        self.sidechainColorBox.addItem(icon7, "cyan_stained_glass")
+        self.sidechainColorBox.addItem(icon8, "light_blue_stained_glass")
+        self.sidechainColorBox.addItem(icon9, "blue_stained_glass")
+        self.sidechainColorBox.addItem(icon10, "purple_stained_glass")
+        self.sidechainColorBox.addItem(icon11, "magenta_stained_glass")
+        self.sidechainColorBox.addItem(icon12, "pink_stained_glass")
+        self.sidechainColorBox.addItem(icon13, "brown_stained_glass")
+        self.sidechainColorBox.addItem(icon1, "black_stained_glass")
+        self.sidechainColorBox.addItem(icon14, "gray_stained_glass")
+        self.sidechainColorBox.addItem(icon15, "light_stained_glass")
+        self.sidechainColorBox.addItem(icon16, "white_stained_glass")
+        self.sidechainColorBox.insertSeparator(16)
+        self.sidechainColorBox.insertSeparator(33)
+        self.sidechainColorBox.insertSeparator(50)
+        self.sidechainColorBox.insertSeparator(67)
 
         self.aScaleLabel = QtWidgets.QLabel(parent=self.centralwidget)
-        self.aScaleLabel.setGeometry(QtCore.QRect(420, 100, 61, 21))
+        self.aScaleLabel.setGeometry(QtCore.QRect(440, 100, 61, 21))
         self.aScaleLabel.setObjectName("aScaleLabel")
         self.showAtomsCheck = QtWidgets.QCheckBox(parent=self.centralwidget)
-        self.showAtomsCheck.setGeometry(QtCore.QRect(420, 10, 121, 17))
+        self.showAtomsCheck.setGeometry(QtCore.QRect(440, 10, 121, 17))
         self.showAtomsCheck.setChecked(True)
         self.showAtomsCheck.setObjectName("showAtomsCheck")
         self.showAtomsCheck.setToolTip("Show the atoms of the main models.")
         self.otherMoleculeCheck = QtWidgets.QCheckBox(parent=self.centralwidget)
-        self.otherMoleculeCheck.setGeometry(QtCore.QRect(420, 40, 131, 17))
+        self.otherMoleculeCheck.setGeometry(QtCore.QRect(440, 40, 131, 17))
         self.otherMoleculeCheck.setChecked(True)
         self.otherMoleculeCheck.setObjectName("otherMoleculeCheck")
         self.otherMoleculeCheck.setToolTip("Check to show other non-protein, DNA, or RNA molecules.")
         self.meshCheck = QtWidgets.QCheckBox(parent=self.centralwidget)
-        self.meshCheck.setGeometry(QtCore.QRect(420, 70, 151, 17))
+        self.meshCheck.setGeometry(QtCore.QRect(440, 70, 151, 17))
         self.meshCheck.setObjectName("meshCheck")
         self.meshCheck.setToolTip("Check to show mesh-style atoms: many fewer blocks")
         self.aScaleSpinBox = QtWidgets.QDoubleSpinBox(parent=self.centralwidget)
-        self.aScaleSpinBox.setGeometry(QtCore.QRect(510, 100, 62, 22))
+        self.aScaleSpinBox.setGeometry(QtCore.QRect(530, 100, 62, 22))
         self.aScaleSpinBox.setDecimals(1)
         self.aScaleSpinBox.setMinimum(1.0)
         self.aScaleSpinBox.setMaximum(50.0)
@@ -928,12 +1253,12 @@ class CustomWindow(QMainWindow):
         self.aScaleSpinBox.setObjectName("aScaleSpinBox")
         self.aScaleSpinBox.setToolTip("Change the diameter (rounded up) of each atom.")
         self.showBackboneCheck = QtWidgets.QCheckBox(parent=self.centralwidget)
-        self.showBackboneCheck.setGeometry(QtCore.QRect(420, 240, 121, 17))
+        self.showBackboneCheck.setGeometry(QtCore.QRect(440, 240, 121, 17))
         self.showBackboneCheck.setChecked(True)
         self.showBackboneCheck.setObjectName("showBackboneCheck")
         self.showBackboneCheck.setToolTip("Show the N-C-C backbone of the main models.")
         self.showSidechainCheck = QtWidgets.QCheckBox(parent=self.centralwidget)
-        self.showSidechainCheck.setGeometry(QtCore.QRect(420, 210, 121, 17))
+        self.showSidechainCheck.setGeometry(QtCore.QRect(440, 210, 121, 17))
         self.showSidechainCheck.setChecked(True)
         self.showSidechainCheck.setObjectName("showSidechainCheck")
         self.showSidechainCheck.setToolTip("Show amino acid R-groups")
@@ -943,10 +1268,10 @@ class CustomWindow(QMainWindow):
         self.colorByBackboneCheck.setObjectName("colorByBackboneCheck")
         self.colorByBackboneCheck.setToolTip("Color the backbones of the main models by the molecule number.")
         self.pScaleLabel = QtWidgets.QLabel(parent=self.centralwidget)
-        self.pScaleLabel.setGeometry(QtCore.QRect(420, 130, 71, 21))
+        self.pScaleLabel.setGeometry(QtCore.QRect(440, 130, 71, 21))
         self.pScaleLabel.setObjectName("pScaleLabel")
         self.pScaleSpinBox = QtWidgets.QDoubleSpinBox(parent=self.centralwidget)
-        self.pScaleSpinBox.setGeometry(QtCore.QRect(510, 130, 62, 22))
+        self.pScaleSpinBox.setGeometry(QtCore.QRect(530, 130, 62, 22))
         self.pScaleSpinBox.setDecimals(1)
         self.pScaleSpinBox.setMinimum(1.0)
         self.pScaleSpinBox.setMaximum(50.0)
@@ -954,10 +1279,10 @@ class CustomWindow(QMainWindow):
         self.pScaleSpinBox.setObjectName("pScaleSpinBox")
         self.pScaleSpinBox.setToolTip("Scale the entire model by this factor.")
         self.bScaleLabel = QtWidgets.QLabel(parent=self.centralwidget)
-        self.bScaleLabel.setGeometry(QtCore.QRect(420, 270, 111, 21))
+        self.bScaleLabel.setGeometry(QtCore.QRect(440, 270, 111, 21))
         self.bScaleLabel.setObjectName("bScaleLabel")
         self.backboneScaleSpinBox = QtWidgets.QDoubleSpinBox(parent=self.centralwidget)
-        self.backboneScaleSpinBox.setGeometry(QtCore.QRect(510, 270, 62, 22))
+        self.backboneScaleSpinBox.setGeometry(QtCore.QRect(530, 270, 62, 22))
         self.backboneScaleSpinBox.setDecimals(1)
         self.backboneScaleSpinBox.setMinimum(1.0)
         self.backboneScaleSpinBox.setMaximum(50.0)
@@ -1071,8 +1396,85 @@ class CustomWindow(QMainWindow):
         self.SpaceFillingMode.clicked.connect(self.handle_space_filling_mode)
         self.AminoAcidMode.clicked.connect(self.handle_amino_acid_mode)
         self.RibbonMode.clicked.connect(self.handle_ribbon_mode)
+        self.selectIncludedPDBButton.clicked.connect(self.handle_included_pdb_button)
+        self.selectPDBFileButton.clicked.connect(self.handle_select_pdb_file_button)
+        self.selectMinecraftSaveButton.clicked.connect(self.handle_select_minecraft_button)
+        self.createFunctionsButton.clicked.connect(self.handle_make_function_button)
+
+        #self.oColorBox.focusOut.connect(self.check_input)
+        self.oColorBox.focusOut.connect(lambda: self.check_input(self.oColorBox, decorative_blocks))
+
+    def check_input(self, combobox, valid_options):
+        text = combobox.currentText()
+        #ensure that text is lowercase
+        text = text.lower()
+        #replace any space characters with '_'
+        text = text.replace(' ', '_')
+        if text not in decorative_blocks:
+            QMessageBox.warning(self, "Invalid Input", f"{text} is not a valid option.")
+            combobox.setCurrentIndex(0)
+        else:
+            combobox.setCurrentText(text)
 
     # Slot methods to handle QPushButton clicks
+    def handle_select_pdb_file_button(self):
+        print("Selecting PDB file")
+        self.selectPDB = FileExplorerPopup()
+        self.user_pdb_file = self.selectPDB.selected_file
+        print(f"The user has this file: {self.user_pdb_file}")
+
+    def handle_select_minecraft_button(self):
+        print("minecraft world")
+        self.selectMinecraft = MinecraftPopup()
+        self.user_minecraft_save = self.selectMinecraft.selected_directory
+    def handle_included_pdb_button(self):
+        print("Included PDB button clicked")
+        self.includedPDB = IncludedPDBPopup()
+        self.includedPDB.show()
+        self.includedPDB.selected.connect(self.save_selected_text)
+
+    def save_selected_text(self, text):
+        self.selected_text = text
+        print(f"This is what was selectd: {text}")
+        #make global variable for pdb file
+        self.user_pdb_file = f"presets/{text}.pdb"
+        print(f"The user has this file: {self.user_pdb_file}")
+
+    def handle_make_function_button(self):
+        # Create a dictionary to store the user options
+        user_options = {}
+
+        # Add the current text of each combobox to the dictionary
+        user_options['oColorBox'] = self.oColorBox.currentText()
+        user_options['nColorBox'] = self.nColorBox.currentText()
+        user_options['pColorBox'] = self.pColorBox.currentText()
+        user_options['otherColorBox'] = self.otherColorBox.currentText()
+        user_options['sColorBox'] = self.sColorBox.currentText()
+        user_options['cColorBox'] = self.cColorBox.currentText()
+        user_options['backboneColorBox'] = self.backboneColorBox.currentText()
+        user_options['sidechainColorBox'] = self.sidechainColorBox.currentText()
+
+        # Add the checked state of each checkbox to the dictionary
+        user_options['showAtomsCheck'] = self.showAtomsCheck.isChecked()
+        user_options['otherMoleculeCheck'] = self.otherMoleculeCheck.isChecked()
+        user_options['meshCheck'] = self.meshCheck.isChecked()
+        user_options['showBackboneCheck'] = self.showBackboneCheck.isChecked()
+        user_options['showSidechainCheck'] = self.showSidechainCheck.isChecked()
+        user_options['colorByBackboneCheck'] = self.colorByBackboneCheck.isChecked()
+        user_options['simpleOutputCheck'] = self.simpleOutputCheck.isChecked()
+
+        # Add the current paths of the files and directories to the dictionary
+        # Replace 'file_path' and 'save_path' with the actual paths
+        if self.user_pdb_file is None:
+            QMessageBox.critical(None, "Error", "Please select a PDB file.")
+        elif self.user_minecraft_save is None:
+            QMessageBox.critical(None, "Error", "Please select a Minecraft save.")
+        else:
+            user_options['file_path'] = self.user_pdb_file
+            user_options['save_path'] = self.user_minecraft_save
+
+            print(user_options)
+
     def handle_github_button(self):
         print("Github button clicked")
         QDesktopServices.openUrl(QtCore.QUrl("https://github.com/markus-nevil/mcpdb"))
