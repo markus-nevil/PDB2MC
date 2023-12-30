@@ -31,7 +31,7 @@ decorative_blocks = [
     'light_blue_terracotta', 'yellow_terracotta', 'lime_terracotta',
     'pink_terracotta', 'gray_terracotta', 'light_gray_terracotta', 'cyan_terracotta', 'purple_terracotta',
     'blue_terracotta', 'brown_terracotta', 'green_terracotta', 'red_terracotta', 'black_terracotta',
-    'wool', 'white_wool', 'orange_wool', 'magenta_wool',
+    'wool', 'orange_wool', 'magenta_wool',
     'light_blue_wool', 'yellow_wool', 'lime_wool',
     'pink_wool', 'gray_wool', 'light_gray_wool', 'cyan_wool', 'purple_wool',
     'blue_wool', 'brown_wool', 'green_wool', 'red_wool', 'black_wool'

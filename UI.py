@@ -5,8 +5,11 @@ from PyQt6.QtGui import QMovie, QPalette, QBrush, QPixmap, QDesktopServices
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from PyQt6 import QtCore, QtGui, QtWidgets
 from variables import decorative_blocks
+import pandas as pd
 
 import pdb_manipulation as pdbm
+import minecraft_functions as mcf
+import custom
 
 class MyComboBox(QtWidgets.QComboBox):
     focusOut = pyqtSignal()
@@ -108,6 +111,11 @@ class FileExplorerPopup(QMainWindow):
     #fileSelected = pyqtSignal(str)
     def __init__(self):
         super().__init__()
+        message_box = QMessageBox()
+        message_box.setWindowTitle("Please wait")
+        message_box.setText("Calculating model size...")
+        message_box.setStandardButtons(QMessageBox.StandardButton.NoButton)  # No buttons
+        message_box.show()
         file_name, _ = QFileDialog.getOpenFileName(self, "QFileDialog.getOpenFileName()", "",
                                                   "Protein Databank files (*.pdb)")
         if file_name:
@@ -116,11 +124,13 @@ class FileExplorerPopup(QMainWindow):
             #print(preset_file)
             # check if the model is small enough for minecraft
             if not pdbm.check_model_size(file_name, world_max=320):
+                message_box.close()
                 QMessageBox.warning(self, "Too large", f"Model may be too large for Minecraft.")
             else:
                 # Calculate the maximum protein scale factor
                 size_factor = pdbm.check_max_size(file_name, world_max=320)
                 size_factor = str(round(size_factor, 2))
+                message_box.close()
                 QMessageBox.information(self, "Maximum scale", f"The maximum protein scale is: {size_factor}x")
             self.selected_file = file_name
 
@@ -574,7 +584,7 @@ class CustomWindow(QMainWindow):
         self.oColorBox.addItem(icon61, "black_wool")
         self.oColorBox.addItem(icon62, "gray_wool")
         self.oColorBox.addItem(icon63, "light_gray_wool")
-        self.oColorBox.addItem(icon64, "white_wool")
+        self.oColorBox.addItem(icon64, "wool")
         self.oColorBox.addItem(icon2, "red_stained_glass")
         self.oColorBox.addItem(icon3, "orange_stained_glass")
         self.oColorBox.addItem(icon4, "yellow_stained_glass")
@@ -664,7 +674,7 @@ class CustomWindow(QMainWindow):
         self.nColorBox.addItem(icon61, "black_wool")
         self.nColorBox.addItem(icon62, "gray_wool")
         self.nColorBox.addItem(icon63, "light_gray_wool")
-        self.nColorBox.addItem(icon64, "white_wool")
+        self.nColorBox.addItem(icon64, "wool")
         self.nColorBox.addItem(icon2, "red_stained_glass")
         self.nColorBox.addItem(icon3, "orange_stained_glass")
         self.nColorBox.addItem(icon4, "yellow_stained_glass")
@@ -754,7 +764,7 @@ class CustomWindow(QMainWindow):
         self.pColorBox.addItem(icon61, "black_wool")
         self.pColorBox.addItem(icon62, "gray_wool")
         self.pColorBox.addItem(icon63, "light_gray_wool")
-        self.pColorBox.addItem(icon64, "white_wool")
+        self.pColorBox.addItem(icon64, "wool")
         self.pColorBox.addItem(icon2, "red_stained_glass")
         self.pColorBox.addItem(icon3, "orange_stained_glass")
         self.pColorBox.addItem(icon4, "yellow_stained_glass")
@@ -844,7 +854,7 @@ class CustomWindow(QMainWindow):
         self.otherColorBox.addItem(icon61, "black_wool")
         self.otherColorBox.addItem(icon62, "gray_wool")
         self.otherColorBox.addItem(icon63, "light_gray_wool")
-        self.otherColorBox.addItem(icon64, "white_wool")
+        self.otherColorBox.addItem(icon64, "wool")
         self.otherColorBox.addItem(icon2, "red_stained_glass")
         self.otherColorBox.addItem(icon3, "orange_stained_glass")
         self.otherColorBox.addItem(icon4, "yellow_stained_glass")
@@ -934,7 +944,7 @@ class CustomWindow(QMainWindow):
         self.sColorBox.addItem(icon61, "black_wool")
         self.sColorBox.addItem(icon62, "gray_wool")
         self.sColorBox.addItem(icon63, "light_gray_wool")
-        self.sColorBox.addItem(icon64, "white_wool")
+        self.sColorBox.addItem(icon64, "wool")
         self.sColorBox.addItem(icon2, "red_stained_glass")
         self.sColorBox.addItem(icon3, "orange_stained_glass")
         self.sColorBox.addItem(icon4, "yellow_stained_glass")
@@ -1024,7 +1034,7 @@ class CustomWindow(QMainWindow):
         self.cColorBox.addItem(icon61, "black_wool")
         self.cColorBox.addItem(icon62, "gray_wool")
         self.cColorBox.addItem(icon63, "light_gray_wool")
-        self.cColorBox.addItem(icon64, "white_wool")
+        self.cColorBox.addItem(icon64, "wool")
         self.cColorBox.addItem(icon2, "red_stained_glass")
         self.cColorBox.addItem(icon3, "orange_stained_glass")
         self.cColorBox.addItem(icon4, "yellow_stained_glass")
@@ -1114,7 +1124,7 @@ class CustomWindow(QMainWindow):
         self.backboneColorBox.addItem(icon61, "black_wool")
         self.backboneColorBox.addItem(icon62, "gray_wool")
         self.backboneColorBox.addItem(icon63, "light_gray_wool")
-        self.backboneColorBox.addItem(icon64, "white_wool")
+        self.backboneColorBox.addItem(icon64, "wool")
         self.backboneColorBox.addItem(icon2, "red_stained_glass")
         self.backboneColorBox.addItem(icon3, "orange_stained_glass")
         self.backboneColorBox.addItem(icon4, "yellow_stained_glass")
@@ -1204,7 +1214,7 @@ class CustomWindow(QMainWindow):
         self.sidechainColorBox.addItem(icon61, "black_wool")
         self.sidechainColorBox.addItem(icon62, "gray_wool")
         self.sidechainColorBox.addItem(icon63, "light_gray_wool")
-        self.sidechainColorBox.addItem(icon64, "white_wool")
+        self.sidechainColorBox.addItem(icon64, "wool")
         self.sidechainColorBox.addItem(icon2, "red_stained_glass")
         self.sidechainColorBox.addItem(icon3, "orange_stained_glass")
         self.sidechainColorBox.addItem(icon4, "yellow_stained_glass")
@@ -1403,6 +1413,14 @@ class CustomWindow(QMainWindow):
 
         #self.oColorBox.focusOut.connect(self.check_input)
         self.oColorBox.focusOut.connect(lambda: self.check_input(self.oColorBox, decorative_blocks))
+        self.cColorBox.focusOut.connect(lambda: self.check_input(self.cColorBox, decorative_blocks))
+        self.sColorBox.focusOut.connect(lambda: self.check_input(self.sColorBox, decorative_blocks))
+        self.pColorBox.focusOut.connect(lambda: self.check_input(self.pColorBox, decorative_blocks))
+        self.nColorBox.focusOut.connect(lambda: self.check_input(self.nColorBox, decorative_blocks))
+        self.otherColorBox.focusOut.connect(lambda: self.check_input(self.otherColorBox, decorative_blocks))
+        self.backboneColorBox.focusOut.connect(lambda: self.check_input(self.backboneColorBox, decorative_blocks))
+        self.sidechainColorBox.focusOut.connect(lambda: self.check_input(self.sidechainColorBox, decorative_blocks))
+
 
     def check_input(self, combobox, valid_options):
         text = combobox.currentText()
@@ -1442,26 +1460,32 @@ class CustomWindow(QMainWindow):
 
     def handle_make_function_button(self):
         # Create a dictionary to store the user options
-        user_options = {}
+        config_data = {}
+        config_data['atoms'] = {}
 
         # Add the current text of each combobox to the dictionary
-        user_options['oColorBox'] = self.oColorBox.currentText()
-        user_options['nColorBox'] = self.nColorBox.currentText()
-        user_options['pColorBox'] = self.pColorBox.currentText()
-        user_options['otherColorBox'] = self.otherColorBox.currentText()
-        user_options['sColorBox'] = self.sColorBox.currentText()
-        user_options['cColorBox'] = self.cColorBox.currentText()
-        user_options['backboneColorBox'] = self.backboneColorBox.currentText()
-        user_options['sidechainColorBox'] = self.sidechainColorBox.currentText()
+        config_data['atoms']['O'] = self.oColorBox.currentText()
+        config_data['atoms']['N'] = self.nColorBox.currentText()
+        config_data['atoms']['P'] = self.pColorBox.currentText()
+        config_data['atoms']['S'] = self.sColorBox.currentText()
+        config_data['atoms']['C'] = self.cColorBox.currentText()
+        config_data['atoms']['FE'] = 'iron_block'
+        config_data['atoms']['other_atom'] = self.otherColorBox.currentText()
+        config_data['atoms']['backbone_atom'] = self.backboneColorBox.currentText()
+        config_data['atoms']['sidechain_atom'] = self.sidechainColorBox.currentText()
+
+        config_data['backbone_size'] = self.backboneScaleSpinBox.value()
+        config_data['atom_size'] = self.aScaleSpinBox.value()
+        config_data['scale'] = self.pScaleSpinBox.value()
 
         # Add the checked state of each checkbox to the dictionary
-        user_options['showAtomsCheck'] = self.showAtomsCheck.isChecked()
-        user_options['otherMoleculeCheck'] = self.otherMoleculeCheck.isChecked()
-        user_options['meshCheck'] = self.meshCheck.isChecked()
-        user_options['showBackboneCheck'] = self.showBackboneCheck.isChecked()
-        user_options['showSidechainCheck'] = self.showSidechainCheck.isChecked()
-        user_options['colorByBackboneCheck'] = self.colorByBackboneCheck.isChecked()
-        user_options['simpleOutputCheck'] = self.simpleOutputCheck.isChecked()
+        config_data['show_atoms'] = self.showAtomsCheck.isChecked()
+        config_data['show_hetatm'] = self.otherMoleculeCheck.isChecked()
+        config_data['mesh'] = self.meshCheck.isChecked()
+        config_data['backbone'] = self.showBackboneCheck.isChecked()
+        config_data['sidechain'] = self.showSidechainCheck.isChecked()
+        config_data['by_chain'] = self.colorByBackboneCheck.isChecked()
+        config_data['simple'] = self.simpleOutputCheck.isChecked()
 
         # Add the current paths of the files and directories to the dictionary
         # Replace 'file_path' and 'save_path' with the actual paths
@@ -1470,10 +1494,74 @@ class CustomWindow(QMainWindow):
         elif self.user_minecraft_save is None:
             QMessageBox.critical(None, "Error", "Please select a Minecraft save.")
         else:
-            user_options['file_path'] = self.user_pdb_file
-            user_options['save_path'] = self.user_minecraft_save
+            config_data['pdb_file'] = self.user_pdb_file
+            config_data['save_path'] = self.user_minecraft_save
 
-            print(user_options)
+            #print(config_data)
+
+            # Read in the PDB file and process it
+            pdb_file = config_data['pdb_file']
+            #print(pdb_file)
+            pdb_df = pdbm.read_pdb(pdb_file)
+            pdb_name = pdbm.get_pdb_code(pdb_file)
+            scalar = config_data['scale']
+            scaled = pdbm.scale_coordinates(pdb_df, scalar)
+            moved = pdbm.move_coordinates(scaled)
+            moved = pdbm.rotate_to_y(moved)
+            rounded = pdbm.round_df(moved)
+
+            print("Here!")
+            hetatom_df = pd.DataFrame()
+            hetatm_bonds = pd.DataFrame()
+
+            # Check if the user wants het-atoms, if so, process them
+            if config_data["show_hetatm"] == True:
+                print("Hetatm TRUE")
+                # check if the first column of rounded contains any "HETATM" values
+
+                if "HETATM" in rounded.iloc[:, 0].values:
+                    hetatm_bonds = pdbm.process_hetatom(rounded, pdb_file)
+                    hetatom_df = pdbm.filter_type_atom(rounded, remove_type="ATOM", remove_atom="H")
+                    # hetatom_df = pdbm.filter_type_atom(rounded, remove_type="ATOM")
+                else:
+                    hetatm_bonds = None
+                    hetatom_df = None
+                    config_data["show_hetatm"] = False
+
+            atom_df = pdbm.filter_type_atom(rounded, remove_type="HETATM", remove_atom="H")
+
+            # Delete the old mcfunctions if they match the current one
+            mc_dir = config_data['save_path']
+            mcf.delete_mcfunctions(mc_dir, "z" + pdb_name.lower())
+            print(config_data)
+            print(mc_dir)
+            print(pdb_name)
+            print(pdb_file)
+            print(rounded.head())
+            print(mc_dir)
+            print(atom_df.head())
+            print(hetatom_df.head())
+            print(hetatm_bonds.head())
+            try:
+                custom.run_mode(config_data, pdb_name, pdb_file, rounded, mc_dir, atom_df, hetatom_df, hetatm_bonds)
+            except Exception as e:
+                print(f"Error: {e}")
+
+            mcfiles = mcf.find_mcfunctions(mc_dir, pdb_name.lower())
+            print(mcfiles)
+
+            if config_data["simple"]:
+                mcf.create_simple_function(pdb_name, mc_dir)
+                mcf.create_clear_function(mc_dir, pdb_name)
+                mcf.delete_mcfunctions(mc_dir, "z" + pdb_name.lower())
+            else:
+                mcf.create_master_function(mcfiles, pdb_name, mc_dir)
+                mcf.create_clear_function(mc_dir, pdb_name)
+
+            lower = pdb_name.lower()
+
+            QMessageBox.information(None, "Model generated", f"Finished!\nRemember to /reload in your world and /function protein:build_{lower}")
+
 
     def handle_github_button(self):
         print("Github button clicked")
@@ -1605,7 +1693,7 @@ class CustomWindow(QMainWindow):
         # self.cColorBox.setItemText(60, _translate("CustomWindow", "black_wool"))
         # self.cColorBox.setItemText(61, _translate("CustomWindow", "gray_wool"))
         # self.cColorBox.setItemText(62, _translate("CustomWindow", "light_gray_wool"))
-        # self.cColorBox.setItemText(63, _translate("CustomWindow", "white_wool"))
+        # self.cColorBox.setItemText(63, _translate("CustomWindow", "wool"))
         #
         # self.backboneColorBox.setItemText(0, _translate("CustomWindow", "gray_concrete"))
         # self.sidechainColorBox.setItemText(0, _translate("CustomWindow", "gray_concrete"))
@@ -1640,7 +1728,13 @@ class MainWindow(QMainWindow):
         font.setPointSize(10)
         self.label.setFont(font)
         self.label.setText("")
-        self.label.setPixmap(QtGui.QPixmap("images/bg.png"))
+        #old code for static image
+        #self.label.setPixmap(QtGui.QPixmap("images/bg.png"))
+        #new code for gif background
+        movie = QtGui.QMovie("images/bg.gif")
+        self.label.setMovie(movie)
+        movie.start()
+
         self.label.setScaledContents(True)
         self.label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         self.label.setObjectName("label")

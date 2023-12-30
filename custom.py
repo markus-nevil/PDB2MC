@@ -4,13 +4,21 @@ import pandas as pd
 
 
 def run_mode(config_data, pdb_name, pdb_file, rounded, mc_dir, atom_df, hetatom_df, hetatm_bonds):
+
+    print("running custom mode")
+
     # Deal with the backbone
     if config_data["backbone"]:
+        print('making backbone')
+        print(rounded.head())
+        print(rounded.tail())
         pdb_backbone = pdb_name + "_backbone"
         backbone = pdbm.atom_subset(rounded, ['C', 'N', 'CA', 'P', "O5'", "C5'", "C4'", "C3'", "O3'"],
                                     include=True)
+        print(backbone.head())
 
         if config_data["by_chain"]:
+            print("by chain??")
             by_chain_df = pd.DataFrame(columns=['X', 'Y', 'Z', 'atom'])
             chain_values = backbone["chain"].unique()
 
@@ -35,14 +43,15 @@ def run_mode(config_data, pdb_name, pdb_file, rounded, mc_dir, atom_df, hetatom_
             intermediate = pdbm.find_intermediate_points(backbone)
             #intermediate = pdbm.interpolate_dataframe(intermediate, 5000)
 
-        if config_data["mode"] == "X-ray":
-            mcf.create_minecraft_functions(intermediate, pdb_backbone, False, mc_dir, config_data['atoms'],
-                                           replace=True)
-        else:
+        # if config_data["mode"] == "X-ray":
+        #     mcf.create_minecraft_functions(intermediate, pdb_backbone, False, mc_dir, config_data['atoms'],
+        #                                    replace=True)
+        # else:
             mcf.create_minecraft_functions(intermediate, pdb_backbone, False, mc_dir, config_data['atoms'],
                                            replace=False)
 
     if config_data["sidechain"]:
+        print('making sidechain')
 
         branches = pdbm.sidechain(rounded)
 
@@ -51,37 +60,39 @@ def run_mode(config_data, pdb_name, pdb_file, rounded, mc_dir, atom_df, hetatom_
 
         pdb_sidechain = pdb_name + "_sidechain"
 
-        if config_data["mode"] == "X-ray":
-            mcf.create_minecraft_functions(branches, pdb_sidechain, False, mc_dir, config_data['atoms'],
-                                           replace=True)
-        else:
-            mcf.create_minecraft_functions(branches, pdb_sidechain, False, mc_dir, config_data['atoms'],
+        # if config_data["mode"] == "X-ray":
+        #     mcf.create_minecraft_functions(branches, pdb_sidechain, False, mc_dir, config_data['atoms'],
+        #                                    replace=True)
+        # else:
+        mcf.create_minecraft_functions(branches, pdb_sidechain, False, mc_dir, config_data['atoms'],
                                            replace=False)
 
     if config_data["show_atoms"]:
+        print("making atoms")
         pdb_atoms = pdb_name + "_atoms"
         coord = pdbm.rasterized_sphere(config_data['atom_scale'])
         center = pdbm.sphere_center(config_data['atom_scale'])
         shortened = pdbm.shorten_atom_names(atom_df)
         spheres = pdbm.add_sphere_coordinates(coord, center, shortened, mesh=config_data['mesh'])
 
-        if config_data["mode"] == "X-ray":
-            mcf.create_minecraft_functions(spheres, pdb_atoms, False, mc_dir, config_data['atoms'],
-                                           replace=False)
-        else:
-            mcf.create_minecraft_functions(spheres, pdb_atoms, False, mc_dir, config_data['atoms'],
+        # if config_data["mode"] == "X-ray":
+        #     mcf.create_minecraft_functions(spheres, pdb_atoms, False, mc_dir, config_data['atoms'],
+        #                                    replace=False)
+        # else:
+        mcf.create_minecraft_functions(spheres, pdb_atoms, False, mc_dir, config_data['atoms'],
                                            replace=True)
     if config_data["show_hetatm"]:
+        print("making hetatm")
         pdb_hetatm = pdb_name + "_hetatm"
         coord = pdbm.rasterized_sphere(config_data['atom_scale'])
         center = pdbm.sphere_center(config_data['atom_scale'])
         shortened = pdbm.shorten_atom_names(hetatom_df)
         spheres = pdbm.add_sphere_coordinates(coord, center, shortened, mesh=config_data['mesh'])
-        if config_data["mode"] == "X-ray":
-            mcf.create_minecraft_functions(spheres, pdb_hetatm, False, mc_dir, config_data['atoms'],
-                                           replace=False)
-        else:
-            mcf.create_minecraft_functions(spheres, pdb_hetatm, False, mc_dir, config_data['atoms'],
+        # if config_data["mode"] == "X-ray":
+        #     mcf.create_minecraft_functions(spheres, pdb_hetatm, False, mc_dir, config_data['atoms'],
+        #                                    replace=False)
+        # else:
+        mcf.create_minecraft_functions(spheres, pdb_hetatm, False, mc_dir, config_data['atoms'],
                                            replace=True)
         pdb_hetatm_bonds = pdb_name + "_hetatm_bonds"
         mcf.create_minecraft_functions(hetatm_bonds, pdb_hetatm_bonds, False, mc_dir, config_data['atoms'])
