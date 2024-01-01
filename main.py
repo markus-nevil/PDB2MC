@@ -185,7 +185,6 @@ if __name__ == '__main__':
             home_dir = os.path.expanduser("~")
             appdata_dir = os.path.join(home_dir, "AppData\Roaming\.minecraft\saves")
             good_dir = False
-
             save_path = ""
             while not good_dir:
                 save_path = sg.popup_get_folder("Select your Minecraft save file", initial_folder=appdata_dir)
@@ -277,6 +276,7 @@ if __name__ == '__main__':
 
                 # Read in the PDB file and process it
                 pdb_file = config_data['pdb_file']
+                print(pdb_file)
                 pdb_df = pdbm.read_pdb(pdb_file)
                 pdb_name = pdbm.get_pdb_code(pdb_file)
                 scalar = config_data['scale']
