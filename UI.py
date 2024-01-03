@@ -4,6 +4,8 @@ from PyQt6.QtWidgets import QFileDialog, QHBoxLayout, QApplication, QListWidget,
 from PyQt6.QtGui import QMovie, QPalette, QBrush, QPixmap, QDesktopServices
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from PyQt6 import QtCore, QtGui, QtWidgets
+
+import skeletonWindow
 from variables import decorative_blocks
 import pandas as pd
 
@@ -11,169 +13,8 @@ import pdb_manipulation as pdbm
 import minecraft_functions as mcf
 import custom
 
-class MyComboBox(QtWidgets.QComboBox):
-    focusOut = pyqtSignal()
-
-    def focusOutEvent(self, event):
-        super().focusOutEvent(event)
-        self.focusOut.emit()
-
-class SkeletonWindow(QMainWindow):
-    def __init__(self):
-        super().__init__()
-        self.setWindowTitle("Skeleton Window")
-        self.resize(580, 411)
-
-#Quick dialog window that says "Nothing selected!"
-class NothingSelected(QMainWindow):
-    def __init__(self):
-        super().__init__()
-        self.setWindowTitle("Nothing Selected")
-        self.resize(150, 75)
-        self.label = QLabel(self)
-        self.label.setText("Nothing selected!")
-        self.label.move(25, 10)
-        self.label.adjustSize()
-        self.okayButton = QPushButton("Okay", self)
-        self.okayButton.move(25, 30)
-        self.okayButton.clicked.connect(self.close)
-
-#A new popup menu that will show several text options in a list. It has two buttons: "Okay" and "Cancel"
-class IncludedPDBPopup(QMainWindow):
-    selected = pyqtSignal(str)
-    def ListAvailableModels(self):
-        available = os.listdir("C:/Users/Duronio Lab/PycharmProjects/mcpdb/presets/")
-        listOutput = ['-none-']
-        for file in available:
-            if file.endswith(".pdb"):
-                # remove the .pdb
-                file = file[:-4]
-                listOutput.append(file)
-        return listOutput
-    def __init__(self):
-        super().__init__()
-        self.setWindowTitle("Select one included PDB model")
-        self.resize(350, 200)
-
-        #Create a selectable list where user can select one item
-        self.listWidget = QListWidget(self)
-        self.listWidget.setGeometry(QtCore.QRect(50, 10, 250, 130))
-        self.listWidget.setObjectName("listWidget")
-
-        elementsList = self.ListAvailableModels()
-        #populate the listWidget with elements of elementsList
-        self.listWidget.addItems(elementsList)
-
-        #set default selection to "NA"
-        self.listWidget.setCurrentRow(0)
-        #change font size of list
-        font = QtGui.QFont()
-        font.setPointSize(11)
-        self.listWidget.setFont(font)
-
-        #Create button named "okay"
-        self.okayButton = QPushButton("Okay", self)
-        self.okayButton.move(60, 150)
-
-        #Create button named "Cancel"
-        self.cancelButton = QPushButton("Cancel", self)
-        self.cancelButton.move(185, 150)
-
-        self.okayButton.clicked.connect(self.getSelected)
-        self.cancelButton.clicked.connect(self.cancelSelected)
-
-    #save the output of the selected item
-    def getSelected(self):
-        selected_text = self.listWidget.currentItem().text()
-
-        if selected_text == '-none-':
-            self.nothing = NothingSelected()
-            self.nothing.show()
-        else:
-            preset_file = os.path.join("presets", selected_text + ".pdb")
-            # check if the model is small enough for minecraft
-            if not pdbm.check_model_size(preset_file, world_max=320):
-                QMessageBox.warning(self, "Too large", f"Model may be too large for Minecraft.")
-            else:
-                # Calculate the maximum protein scale factor
-                size_factor = pdbm.check_max_size(preset_file, world_max=320)
-                size_factor = str(round(size_factor, 2))
-                QMessageBox.information(self, "Maximum scale", f"The maximum protein scale is: {size_factor}x")
-            self.selected.emit(selected_text)
-            self.close()
-            return selected_text
-    def cancelSelected(self):
-        print('close window')
-        self.close()
-
-#A new popup that will show the system file explorer starting from a specific path
-class FileExplorerPopup(QMainWindow):
-    #fileSelected = pyqtSignal(str)
-    def __init__(self):
-        super().__init__()
-        message_box = QMessageBox()
-        message_box.setWindowTitle("Please wait")
-        message_box.setText("Calculating model size...")
-        message_box.setStandardButtons(QMessageBox.StandardButton.NoButton)  # No buttons
-        message_box.show()
-        file_name, _ = QFileDialog.getOpenFileName(self, "QFileDialog.getOpenFileName()", "",
-                                                  "Protein Databank files (*.pdb)")
-        if file_name:
-            print(file_name)
-            #preset_file = os.path(file_name)
-            #print(preset_file)
-            # check if the model is small enough for minecraft
-            if not pdbm.check_model_size(file_name, world_max=320):
-                message_box.close()
-                QMessageBox.warning(self, "Too large", f"Model may be too large for Minecraft.")
-            else:
-                # Calculate the maximum protein scale factor
-                size_factor = pdbm.check_max_size(file_name, world_max=320)
-                size_factor = str(round(size_factor, 2))
-                message_box.close()
-                QMessageBox.information(self, "Maximum scale", f"The maximum protein scale is: {size_factor}x")
-            self.selected_file = file_name
-
-
-# class MinecraftPopup(QMainWindow):
-#     def __init__(self):
-#         super().__init__()
-#         home_dir = os.path.expanduser("~")
-#         wd = os.path.join(home_dir, "AppData\Roaming\.minecraft\saves")
-#         directory = QFileDialog.getExistingDirectory(self, "Select Directory", wd)
-#         if directory:
-#             print(directory)
-#
-#             self.selected_directory = directory
-
-
-class MinecraftPopup(QMainWindow):
-    def __init__(self):
-        super().__init__()
-        home_dir = os.path.expanduser("~")
-        wd = os.path.join(home_dir, "AppData\Roaming\.minecraft\saves")
-        good_dir = False
-        while not good_dir:
-            save_path = QFileDialog.getExistingDirectory(self, "Select Directory", wd)
-            # check if save_path has structure .minecraft/saves/<save_name>
-            if save_path:
-                if os.path.basename(os.path.dirname(save_path)) == "saves":
-                    good_dir = True
-                else:
-                    QMessageBox.warning(self, "Invalid directory", "Please select a valid Minecraft save directory.")
-
-        directory_path = os.path.join(save_path, "datapacks/mcPDB/data/protein/functions")
-
-        if not os.path.exists(directory_path):
-            os.makedirs(directory_path)
-
-        # check for pack.mcmeta in the /datapacks/mcPDB folder and if not copy it from the python directory
-        if not os.path.isfile(os.path.join(save_path, "datapacks/mcPDB/pack.mcmeta")):
-            copyfile("pack.mcmeta", os.path.join(save_path, "datapacks/mcPDB/pack.mcmeta"))
-
-        if save_path:
-            print(save_path)
-            self.selected_directory = save_path
+#from skeletonWindow import SkeletonWindow
+from utilUI import IncludedPDBPopup, NothingSelected, MyComboBox, MinecraftPopup, FileExplorerPopup
 
 
 class CustomWindow(QMainWindow):
@@ -181,7 +22,7 @@ class CustomWindow(QMainWindow):
         super().__init__()
         self.user_pdb_file = None
         self.user_minecraft_save = None
-        self.setWindowTitle("Custom Window")
+        self.setWindowTitle("Custom mode")
         self.resize(607, 411)
         # Set style to Fusion
         #self.setStyle("Fusion")
@@ -1475,7 +1316,7 @@ class CustomWindow(QMainWindow):
         config_data['atoms']['sidechain_atom'] = self.sidechainColorBox.currentText()
 
         config_data['backbone_size'] = self.backboneScaleSpinBox.value()
-        config_data['atom_size'] = self.aScaleSpinBox.value()
+        config_data['atom_scale'] = self.aScaleSpinBox.value()
         config_data['scale'] = self.pScaleSpinBox.value()
 
         # Add the checked state of each checkbox to the dictionary
@@ -1580,7 +1421,7 @@ class CustomWindow(QMainWindow):
 
     def handle_skeleton_mode(self):
         print("Skeleton mode button clicked")
-        self.Skeleton = SkeletonWindow()
+        self.Skeleton = skeletonWindow.SkeletonWindow()
         self.Skeleton.show()
         #Turn off main window
         self.hide()
@@ -1785,13 +1626,17 @@ class MainWindow(QMainWindow):
             self.custom_window.show()
             #Turn off main window
             self.hide()
+        if text == "Skeleton":
+            self.skeleton_window = skeletonWindow.SkeletonWindow()
+            self.skeleton_window.show()
+            self.hide()
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
         self.comboBox.setItemText(1, _translate("MainWindow", "Custom"))
-        self.comboBox.setItemText(2, _translate("MainWindow", "X-Ray"))
-        self.comboBox.setItemText(3, _translate("MainWindow", "Skeleton"))
+        #self.comboBox.setItemText(2, _translate("MainWindow", "X-Ray"))
+        #self.comboBox.setItemText(3, _translate("MainWindow", "Skeleton"))
         self.comboBox.setItemText(4, _translate("MainWindow", "Space Filling"))
         self.comboBox.setItemText(5, _translate("MainWindow", "Ribbon"))
         self.comboBox.setItemText(6, _translate("MainWindow", "Amino Acid"))

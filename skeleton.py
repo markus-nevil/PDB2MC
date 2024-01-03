@@ -59,6 +59,7 @@ def run_mode(config_data, pdb_name, pdb_file, rounded, mc_dir, atom_df, hetatom_
             else:
                 pdb_sidechain = pdb_name + "_sidechain"
                 branches = pdbm.sidechain(rounded)
+                branches['atom'] = 'sidechain_atom'
                 mcf.create_minecraft_functions(branches, pdb_sidechain, False, mc_dir, config_data['atoms'],
                                                replace=False)
 
@@ -68,7 +69,7 @@ def run_mode(config_data, pdb_name, pdb_file, rounded, mc_dir, atom_df, hetatom_
                 coord = pdbm.rasterized_sphere(config_data['atom_scale'])
                 center = pdbm.sphere_center(config_data['atom_scale'])
                 shortened = pdbm.shorten_atom_names(hetatom_df)
-                spheres = pdbm.add_sphere_coordinates(coord, center, shortened, mesh=config_data['mesh'])
+                spheres = pdbm.add_sphere_coordinates(coord, center, shortened, mesh=False)
                 if config_data["mode"] == "X-ray":
                     mcf.create_minecraft_functions(spheres, pdb_hetatm, False, mc_dir, config_data['atoms'],
                                                    replace=False)
