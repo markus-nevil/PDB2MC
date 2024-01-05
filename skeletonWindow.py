@@ -6,13 +6,14 @@ from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from PyQt6 import QtCore, QtGui, QtWidgets
 
 import UI
+import xrayWindow
+import space_fillingWindow
 from variables import decorative_blocks
 import pandas as pd
 
 import pdb_manipulation as pdbm
 import minecraft_functions as mcf
 import skeleton
-#from UI import CustomWindow
 from utilUI import MyComboBox, NothingSelected, IncludedPDBPopup, MinecraftPopup, FileExplorerPopup
 
 class SkeletonWindow(QMainWindow):
@@ -21,7 +22,7 @@ class SkeletonWindow(QMainWindow):
         self.user_pdb_file = None
         self.user_minecraft_save = None
         self.setWindowTitle("Skeleton Mode")
-        self.setWindowIcon(QIcon('images/icons/test_icon.png'))
+        self.setWindowIcon(QIcon('images/icons/logo.png'))
 
         self.resize(450, 411)
         # Set style to Fusion
@@ -1007,9 +1008,15 @@ class SkeletonWindow(QMainWindow):
 
     def handle_xray_mode(self):
         print("X-Ray mode button clicked")
+        self.Xray = xrayWindow.XrayWindow()
+        self.Xray.show()
+        self.hide()
 
     def handle_space_filling_mode(self):
         print("Space Filling mode button clicked")
+        self.SpaceFilling = space_fillingWindow.spWindow()
+        self.SpaceFilling.show()
+        self.hide()
 
     def handle_amino_acid_mode(self):
         print("Amino Acid mode button clicked")

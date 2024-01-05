@@ -37,7 +37,7 @@ def run_mode(config_data, pdb_name, pdb_file, rounded, mc_dir, atom_df, hetatom_
 
     if config_data["sidechain"]:
         branches = pdbm.sidechain(rounded)
-
+        branches['atom'] = 'sidechain_atom'
         if config_data["by_chain"]:
             branches = branches.drop("atom", axis=1)
 
