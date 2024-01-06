@@ -1463,7 +1463,7 @@ class CustomWindow(QMainWindow):
         self.github.setText(_translate("CustomWindow", "Github"))
         self.help.setText(_translate("CustomWindow", "Help"))
         self.rcsbButton.setText(_translate("CustomWindow", "RCSB.org"))
-        self.mc2pdbLabel.setText(_translate("CustomWindow", "MC2PDB"))
+        self.mc2pdbLabel.setText(_translate("CustomWindow", "PDB2MC"))
         self.pdbDatabaseLabel.setText(_translate("CustomWindow", "PDB Database"))
         self.cColorLabel.setText(_translate("CustomWindow", "Select C atom color:"))
         self.oColorLabel.setText(_translate("CustomWindow", "Select O atom color:"))

@@ -768,7 +768,7 @@ class XrayWindow(QMainWindow):
         self.github.setText(_translate("XrayWindow", "Github"))
         self.help.setText(_translate("XrayWindow", "Help"))
         self.rcsbButton.setText(_translate("XrayWindow", "RCSB.org"))
-        self.mc2pdbLabel.setText(_translate("XrayWindow", "MC2PDB"))
+        self.mc2pdbLabel.setText(_translate("XrayWindow", "PDB2MC"))
         self.pdbDatabaseLabel.setText(_translate("XrayWindow", "PDB Database"))
         self.cColorLabel.setText(_translate("XrayWindow", "Select C atom color:"))
         self.oColorLabel.setText(_translate("XrayWindow", "Select O atom color:"))

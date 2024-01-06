@@ -13,18 +13,19 @@ import pandas as pd
 
 import pdb_manipulation as pdbm
 import minecraft_functions as mcf
-import skeleton
+import ribbon
 from utilUI import MyComboBox, NothingSelected, IncludedPDBPopup, MinecraftPopup, FileExplorerPopup
 
-class SkeletonWindow(QMainWindow):
+class RibbonWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.user_pdb_file = None
         self.user_minecraft_save = None
-        self.setWindowTitle("Skeleton Mode")
+        self.setWindowTitle("Ribbon Diagram Mode")
         self.setWindowIcon(QIcon('images/icons/logo.png'))
 
-        self.resize(450, 411)
+        self.setFixedSize(430, 405)
+        #self.resize(450, 411)
         # Set style to Fusion
         #self.setStyle("Fusion")
         self.centralwidget = QtWidgets.QWidget(parent=self)
@@ -332,19 +333,18 @@ class SkeletonWindow(QMainWindow):
         icon64 = QtGui.QIcon()
         icon64.addPixmap(QtGui.QPixmap("images/icons/white_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
 
+        self.ribbonColorLabel = QtWidgets.QLabel(parent=self.centralwidget)
+        self.ribbonColorLabel.setObjectName("ribbonColorLabel")
+
         self.backboneColorLabel = QtWidgets.QLabel(parent=self.centralwidget)
-
-
         self.backboneColorLabel.setObjectName("backboneColorLabel")
+
         self.sidechainColorLabel = QtWidgets.QLabel(parent=self.centralwidget)
-
         self.sidechainColorLabel.setObjectName("sidechainColorLabel")
+
         self.otherColorLabel = QtWidgets.QLabel(parent=self.centralwidget)
-
         self.otherColorLabel.setObjectName("otherColorLabel")
-
         self.otherColorBox = MyComboBox(self.centralwidget)
-
         self.otherColorBox.setObjectName("otherColorBox")
         self.otherColorBox.setEditable(True)
 
@@ -433,8 +433,97 @@ class SkeletonWindow(QMainWindow):
         self.otherColorBox.insertSeparator(50)
         self.otherColorBox.insertSeparator(67)
 
-        self.backboneColorBox = MyComboBox(self.centralwidget)
+        self.ribbonColorBox = MyComboBox(self.centralwidget)
+        self.ribbonColorBox.setObjectName("ribbonColorBox")
+        self.ribbonColorBox.setEditable(True)
 
+        self.ribbonColorBox.addItem(icon2, "red_concrete")
+        self.ribbonColorBox.addItem(icon3, "orange_concrete")
+        self.ribbonColorBox.addItem(icon4, "yellow_concrete")
+        self.ribbonColorBox.addItem(icon5, "lime_concrete")
+        self.ribbonColorBox.addItem(icon6, "green_concrete")
+        self.ribbonColorBox.addItem(icon7, "cyan_concrete")
+        self.ribbonColorBox.addItem(icon8, "light_blue_concrete")
+        self.ribbonColorBox.addItem(icon9, "blue_concrete")
+        self.ribbonColorBox.addItem(icon10, "purple_concrete")
+        self.ribbonColorBox.addItem(icon11, "magenta_concrete")
+        self.ribbonColorBox.addItem(icon12, "pink_concrete")
+        self.ribbonColorBox.addItem(icon13, "brown_concrete")
+        self.ribbonColorBox.addItem(icon1, "black_concrete")
+        self.ribbonColorBox.addItem(icon14, "gray_concrete")
+        self.ribbonColorBox.addItem(icon15, "light_gray_concrete")
+        self.ribbonColorBox.addItem(icon16, "white_concrete")
+        self.ribbonColorBox.addItem(icon17, "red_glazed_terracotta")
+        self.ribbonColorBox.addItem(icon18, "orange_glazed_terracotta")
+        self.ribbonColorBox.addItem(icon19, "yellow_glazed_terracotta")
+        self.ribbonColorBox.addItem(icon20, "lime_glazed_terracotta")
+        self.ribbonColorBox.addItem(icon21, "green_glazed_terracotta")
+        self.ribbonColorBox.addItem(icon22, "cyan_glazed_terracotta")
+        self.ribbonColorBox.addItem(icon23, "light_blue_glazed_terracotta")
+        self.ribbonColorBox.addItem(icon24, "blue_glazed_terracotta")
+        self.ribbonColorBox.addItem(icon25, "purple_glazed_terracotta")
+        self.ribbonColorBox.addItem(icon26, "magenta_glazed_terracotta")
+        self.ribbonColorBox.addItem(icon27, "pink_glazed_terracotta")
+        self.ribbonColorBox.addItem(icon28, "brown_glazed_terracotta")
+        self.ribbonColorBox.addItem(icon29, "black_glazed_terracotta")
+        self.ribbonColorBox.addItem(icon30, "gray_glazed_terracotta")
+        self.ribbonColorBox.addItem(icon31, "light_gray_glazed_terracotta")
+        self.ribbonColorBox.addItem(icon32, "white_glazed_terracotta")
+        self.ribbonColorBox.addItem(icon33, "red_terracotta")
+        self.ribbonColorBox.addItem(icon34, "orange_terracotta")
+        self.ribbonColorBox.addItem(icon35, "yellow_terracotta")
+        self.ribbonColorBox.addItem(icon36, "lime_terracotta")
+        self.ribbonColorBox.addItem(icon37, "green_terracotta")
+        self.ribbonColorBox.addItem(icon38, "cyan_terracotta")
+        self.ribbonColorBox.addItem(icon39, "light_blue_terracotta")
+        self.ribbonColorBox.addItem(icon40, "blue_terracotta")
+        self.ribbonColorBox.addItem(icon41, "purple_terracotta")
+        self.ribbonColorBox.addItem(icon42, "magenta_terracotta")
+        self.ribbonColorBox.addItem(icon43, "pink_terracotta")
+        self.ribbonColorBox.addItem(icon44, "brown_terracotta")
+        self.ribbonColorBox.addItem(icon45, "black_terracotta")
+        self.ribbonColorBox.addItem(icon46, "gray_terracotta")
+        self.ribbonColorBox.addItem(icon47, "light_gray_terracotta")
+        self.ribbonColorBox.addItem(icon48, "white_terracotta")
+        self.ribbonColorBox.addItem(icon49, "red_wool")
+        self.ribbonColorBox.addItem(icon50, "orange_wool")
+        self.ribbonColorBox.addItem(icon51, "yellow_wool")
+        self.ribbonColorBox.addItem(icon52, "lime_wool")
+        self.ribbonColorBox.addItem(icon53, "green_wool")
+        self.ribbonColorBox.addItem(icon54, "cyan_wool")
+        self.ribbonColorBox.addItem(icon55, "light_blue_wool")
+        self.ribbonColorBox.addItem(icon56, "blue_wool")
+        self.ribbonColorBox.addItem(icon57, "purple_wool")
+        self.ribbonColorBox.addItem(icon58, "magenta_wool")
+        self.ribbonColorBox.addItem(icon59, "pink_wool")
+        self.ribbonColorBox.addItem(icon60, "brown_wool")
+        self.ribbonColorBox.addItem(icon61, "black_wool")
+        self.ribbonColorBox.addItem(icon62, "gray_wool")
+        self.ribbonColorBox.addItem(icon63, "light_gray_wool")
+        self.ribbonColorBox.addItem(icon64, "wool")
+        self.ribbonColorBox.addItem(icon2, "red_stained_glass")
+        self.ribbonColorBox.addItem(icon3, "orange_stained_glass")
+        self.ribbonColorBox.addItem(icon4, "yellow_stained_glass")
+        self.ribbonColorBox.addItem(icon5, "lime_stained_glass")
+        self.ribbonColorBox.addItem(icon6, "green_stained_glass")
+        self.ribbonColorBox.addItem(icon7, "cyan_stained_glass")
+        self.ribbonColorBox.addItem(icon8, "light_blue_stained_glass")
+        self.ribbonColorBox.addItem(icon9, "blue_stained_glass")
+        self.ribbonColorBox.addItem(icon10, "purple_stained_glass")
+        self.ribbonColorBox.addItem(icon11, "magenta_stained_glass")
+        self.ribbonColorBox.addItem(icon12, "pink_stained_glass")
+        self.ribbonColorBox.addItem(icon13, "brown_stained_glass")
+        self.ribbonColorBox.addItem(icon1, "black_stained_glass")
+        self.ribbonColorBox.addItem(icon14, "gray_stained_glass")
+        self.ribbonColorBox.addItem(icon15, "light_stained_glass")
+        self.ribbonColorBox.addItem(icon16, "white_stained_glass")
+        self.ribbonColorBox.insertSeparator(16)
+        self.ribbonColorBox.insertSeparator(33)
+        self.ribbonColorBox.insertSeparator(50)
+        self.ribbonColorBox.insertSeparator(67)
+
+
+        self.backboneColorBox = MyComboBox(self.centralwidget)
         self.backboneColorBox.setObjectName("backboneColorBox")
         self.backboneColorBox.setEditable(True)
 
@@ -524,7 +613,6 @@ class SkeletonWindow(QMainWindow):
         self.backboneColorBox.insertSeparator(67)
 
         self.sidechainColorBox = MyComboBox(self.centralwidget)
-
         self.sidechainColorBox.setObjectName("sidechainColorBox")
         self.sidechainColorBox.setEditable(True)
 
@@ -616,20 +704,10 @@ class SkeletonWindow(QMainWindow):
         self.aScaleLabel = QtWidgets.QLabel(parent=self.centralwidget)
 
         self.aScaleLabel.setObjectName("aScaleLabel")
-        # self.showAtomsCheck = QtWidgets.QCheckBox(parent=self.centralwidget)
-        # self.showAtomsCheck.setGeometry(QtCore.QRect(440, 10, 121, 17))
-        # self.showAtomsCheck.setChecked(True)
-        # self.showAtomsCheck.setObjectName("showAtomsCheck")
-        # self.showAtomsCheck.setToolTip("Show the atoms of the main models.")
         self.otherMoleculeCheck = QtWidgets.QCheckBox(parent=self.centralwidget)
-
         self.otherMoleculeCheck.setChecked(True)
         self.otherMoleculeCheck.setObjectName("otherMoleculeCheck")
         self.otherMoleculeCheck.setToolTip("Check to show other non-protein, DNA, or RNA molecules.")
-        #self.meshCheck = QtWidgets.QCheckBox(parent=self.centralwidget)
-        #self.meshCheck.setGeometry(QtCore.QRect(440, 70, 151, 17))
-        #self.meshCheck.setObjectName("meshCheck")
-        #self.meshCheck.setToolTip("Check to show mesh-style atoms: many fewer blocks")
         self.aScaleSpinBox = QtWidgets.QDoubleSpinBox(parent=self.centralwidget)
 
         self.aScaleSpinBox.setDecimals(1)
@@ -639,43 +717,42 @@ class SkeletonWindow(QMainWindow):
         self.aScaleSpinBox.setProperty("value", 1.5)
         self.aScaleSpinBox.setObjectName("aScaleSpinBox")
         self.aScaleSpinBox.setToolTip("Change the diameter (rounded up) of each atom.")
-        self.showBackboneCheck = QtWidgets.QCheckBox(parent=self.centralwidget)
 
+        self.showBackboneCheck = QtWidgets.QCheckBox(parent=self.centralwidget)
         self.showBackboneCheck.setChecked(True)
         self.showBackboneCheck.setObjectName("showBackboneCheck")
         self.showBackboneCheck.setToolTip("Show the N-C-C backbone of the main models.")
-        self.showSidechainCheck = QtWidgets.QCheckBox(parent=self.centralwidget)
 
-        self.showSidechainCheck.setChecked(True)
+        self.showSidechainCheck = QtWidgets.QCheckBox(parent=self.centralwidget)
+        self.showSidechainCheck.setChecked(False)
         self.showSidechainCheck.setObjectName("showSidechainCheck")
         self.showSidechainCheck.setToolTip("Show amino acid R-groups")
-        self.colorByBackboneCheck = QtWidgets.QCheckBox(parent=self.centralwidget)
 
-        self.colorByBackboneCheck.setChecked(False)
+        self.colorByBackboneCheck = QtWidgets.QCheckBox(parent=self.centralwidget)
+        self.colorByBackboneCheck.setChecked(True)
         self.colorByBackboneCheck.setObjectName("colorByBackboneCheck")
         self.colorByBackboneCheck.setToolTip("Color the backbones of the main models by the molecule number.")
-        self.pScaleLabel = QtWidgets.QLabel(parent=self.centralwidget)
 
+        self.pScaleLabel = QtWidgets.QLabel(parent=self.centralwidget)
         self.pScaleLabel.setObjectName("pScaleLabel")
         self.pScaleSpinBox = QtWidgets.QDoubleSpinBox(parent=self.centralwidget)
-
         self.pScaleSpinBox.setDecimals(1)
         self.pScaleSpinBox.setMinimum(1.0)
         self.pScaleSpinBox.setMaximum(50.0)
         self.pScaleSpinBox.setSingleStep(0.5)
         self.pScaleSpinBox.setObjectName("pScaleSpinBox")
         self.pScaleSpinBox.setToolTip("Scale the entire model by this factor.")
-        self.bScaleLabel = QtWidgets.QLabel(parent=self.centralwidget)
-
-        self.bScaleLabel.setObjectName("bScaleLabel")
-        self.backboneScaleSpinBox = QtWidgets.QDoubleSpinBox(parent=self.centralwidget)
-
-        self.backboneScaleSpinBox.setDecimals(1)
-        self.backboneScaleSpinBox.setMinimum(1.0)
-        self.backboneScaleSpinBox.setMaximum(50.0)
-        self.backboneScaleSpinBox.setSingleStep(0.5)
-        self.backboneScaleSpinBox.setObjectName("backboneScaleSpinBox")
-        self.backboneScaleSpinBox.setToolTip("Scale the width of the backbone by this factor.")
+        # self.bScaleLabel = QtWidgets.QLabel(parent=self.centralwidget)
+        #
+        # self.bScaleLabel.setObjectName("bScaleLabel")
+        # self.backboneScaleSpinBox = QtWidgets.QDoubleSpinBox(parent=self.centralwidget)
+        #
+        # self.backboneScaleSpinBox.setDecimals(1)
+        # self.backboneScaleSpinBox.setMinimum(1.0)
+        # self.backboneScaleSpinBox.setMaximum(50.0)
+        # self.backboneScaleSpinBox.setSingleStep(0.5)
+        # self.backboneScaleSpinBox.setObjectName("backboneScaleSpinBox")
+        # self.backboneScaleSpinBox.setToolTip("Scale the width of the backbone by this factor.")
         self.selectIncludedPDBButton = QtWidgets.QPushButton(parent=self.centralwidget)
 
         self.selectIncludedPDBButton.setObjectName("selectIncludedPDBButton")
@@ -738,24 +815,32 @@ class SkeletonWindow(QMainWindow):
 
         self.vSepLine.setGeometry(QtCore.QRect(90, 0, 20, 431))
 
-        self.backboneColorLabel.setGeometry(QtCore.QRect(110, 10, 120, 21))
-        self.backboneColorBox.setGeometry(QtCore.QRect(240, 10, 175, 22))
-        self.showBackboneCheck.setGeometry(QtCore.QRect(240, 37, 121, 17))
-        self.colorByBackboneCheck.setGeometry(QtCore.QRect(240, 53, 155, 21))
-        self.bScaleLabel.setGeometry(QtCore.QRect(110, 75, 111, 21))
-        self.backboneScaleSpinBox.setGeometry(QtCore.QRect(240, 75, 62, 22))
-        self.pScaleLabel.setGeometry(QtCore.QRect(110, 100, 71, 21))
-        self.pScaleSpinBox.setGeometry(QtCore.QRect(240, 100, 62, 22))
+        self.ribbonColorLabel.setGeometry(QtCore.QRect(110, 10, 120, 21))
+        self.ribbonColorBox.setGeometry(QtCore.QRect(240, 10, 175, 22))
+        self.colorByBackboneCheck.setGeometry(QtCore.QRect(240, 35, 155, 21))
 
-        self.sidechainColorLabel.setGeometry(QtCore.QRect(110, 140, 120, 21))
-        self.sidechainColorBox.setGeometry(QtCore.QRect(240, 140, 175, 22))
-        self.showSidechainCheck.setGeometry(QtCore.QRect(240, 165, 121, 17))
+        self.backboneColorLabel.setGeometry(QtCore.QRect(110, 65, 120, 21))
+        self.backboneColorBox.setGeometry(QtCore.QRect(240, 65, 175, 22))
+        self.showBackboneCheck.setGeometry(QtCore.QRect(240, 90, 121, 17))
 
-        self.otherColorLabel.setGeometry(QtCore.QRect(110, 200, 121, 21))
-        self.otherColorBox.setGeometry(QtCore.QRect(240, 200, 175, 22))
-        self.otherMoleculeCheck.setGeometry(QtCore.QRect(240, 228, 131, 17))
-        self.aScaleLabel.setGeometry(QtCore.QRect(110, 250, 61, 21))
-        self.aScaleSpinBox.setGeometry(QtCore.QRect(240, 250, 62, 22))
+        self.sidechainColorLabel.setGeometry(QtCore.QRect(110, 120, 120, 21))
+        self.sidechainColorBox.setGeometry(QtCore.QRect(240, 120, 175, 22))
+        self.showSidechainCheck.setGeometry(QtCore.QRect(240, 145, 121, 17))
+
+
+        #self.bScaleLabel.setGeometry(QtCore.QRect(110, 150, 111, 21))
+        #self.backboneScaleSpinBox.setGeometry(QtCore.QRect(240, 150, 62, 22))
+
+
+
+        self.otherColorLabel.setGeometry(QtCore.QRect(110, 175, 121, 21))
+        self.otherColorBox.setGeometry(QtCore.QRect(240, 175, 175, 22))
+        self.aScaleLabel.setGeometry(QtCore.QRect(110, 201, 61, 21))
+        self.aScaleSpinBox.setGeometry(QtCore.QRect(240, 201, 62, 22))
+        self.otherMoleculeCheck.setGeometry(QtCore.QRect(240, 225, 131, 17))
+
+        self.pScaleLabel.setGeometry(QtCore.QRect(110, 255, 71, 21))
+        self.pScaleSpinBox.setGeometry(QtCore.QRect(240, 255, 62, 22))
 
         self.selectPDBFileButton.setGeometry(QtCore.QRect(110, 290, 91, 23))
         self.orText.setGeometry(QtCore.QRect(210, 290, 31, 21))
@@ -766,6 +851,7 @@ class SkeletonWindow(QMainWindow):
 
         self.simpleOutputCheck.setGeometry(QtCore.QRect(110, 360, 100, 31))
         self.createFunctionsButton.setGeometry(QtCore.QRect(230, 360, 181, 31))
+
 
         self.bg.raise_()
         self.switchModeLabel.raise_()
@@ -791,6 +877,8 @@ class SkeletonWindow(QMainWindow):
         self.backboneColorLabel.raise_()
         self.sidechainColorLabel.raise_()
         self.otherColorLabel.raise_()
+        self.ribbonColorLabel.raise_()
+        self.ribbonColorBox.raise_()
         # self.oColorBox.raise_()
         # self.nColorBox.raise_()
         # self.pColorBox.raise_()
@@ -809,8 +897,8 @@ class SkeletonWindow(QMainWindow):
         self.colorByBackboneCheck.raise_()
         self.pScaleLabel.raise_()
         self.pScaleSpinBox.raise_()
-        self.bScaleLabel.raise_()
-        self.backboneScaleSpinBox.raise_()
+        #self.bScaleLabel.raise_()
+        #self.backboneScaleSpinBox.raise_()
         self.selectIncludedPDBButton.raise_()
         self.selectMinecraftSaveButton.raise_()
         self.simpleOutputCheck.raise_()
@@ -841,7 +929,7 @@ class SkeletonWindow(QMainWindow):
         self.otherColorBox.focusOut.connect(lambda: self.check_input(self.otherColorBox, decorative_blocks))
         self.backboneColorBox.focusOut.connect(lambda: self.check_input(self.backboneColorBox, decorative_blocks))
         self.sidechainColorBox.focusOut.connect(lambda: self.check_input(self.sidechainColorBox, decorative_blocks))
-
+        self.ribbonColorBox.focusOut.connect(lambda: self.check_input(self.ribbonColorBox, decorative_blocks))
 
     def check_input(self, combobox, valid_options):
         text = combobox.currentText()
@@ -884,6 +972,7 @@ class SkeletonWindow(QMainWindow):
         config_data = {'atoms': {}}
 
         # Add the current text of each combobox to the dictionary
+        config_data['atoms']['ribbon_atom'] = self.ribbonColorBox.currentText()
         config_data['atoms']['O'] = 'red_wool'
         config_data['atoms']['N'] = 'blue_wool'
         config_data['atoms']['P'] = 'lime_wool'
@@ -893,7 +982,7 @@ class SkeletonWindow(QMainWindow):
         config_data['atoms']['other_atom'] = self.otherColorBox.currentText()
         config_data['atoms']['backbone_atom'] = self.backboneColorBox.currentText()
         config_data['atoms']['sidechain_atom'] = self.sidechainColorBox.currentText()
-        config_data['backbone_size'] = self.backboneScaleSpinBox.value()
+        config_data['backbone_size'] = 1.0
         config_data['atom_scale'] = self.aScaleSpinBox.value()
         config_data['scale'] = self.pScaleSpinBox.value()
 
@@ -961,7 +1050,7 @@ class SkeletonWindow(QMainWindow):
             print(hetatm_bonds.head())
             try:
                 print("fix")
-                skeleton.run_mode(config_data, pdb_name, pdb_file, rounded, mc_dir, atom_df, hetatom_df, hetatm_bonds)
+                ribbon.run_mode(pdb_name, pdb_file, rounded, mc_dir, config_data, hetatom_df, hetatm_bonds)
             except Exception as e:
                 print(f"Error: {e}")
 
@@ -1001,7 +1090,7 @@ class SkeletonWindow(QMainWindow):
 
     def handle_skeleton_mode(self):
         print("Skeleton mode button clicked")
-        self.Skeleton = SkeletonWindow()
+        self.Skeleton = RibbonWindow()
         self.Skeleton.show()
         #Turn off main window
         self.hide()
@@ -1025,48 +1114,49 @@ class SkeletonWindow(QMainWindow):
         print("Ribbon mode button clicked")
 
 
-    def retranslateUi(self, SkeletonWindow):
+    def retranslateUi(self, RibbonWindow):
         _translate = QtCore.QCoreApplication.translate
-        #SkeletonWindow.setWindowTitle(_translate("SkeletonWindow", "MainWindow"))
-        self.switchModeLabel.setText(_translate("SkeletonWindow", "Switch Mode"))
-        self.CustomMode.setText(_translate("SkeletonWindow", "Custom"))
-        self.SkeletonMode.setText(_translate("SkeletonWindow", "Skeleton"))
-        self.XRayMode.setText(_translate("SkeletonWindow", "X-Ray"))
-        self.SpaceFillingMode.setText(_translate("SkeletonWindow", "Space Filling"))
-        self.AminoAcidMode.setText(_translate("SkeletonWindow", "Amino Acids"))
-        self.RibbonMode.setText(_translate("SkeletonWindow", "Ribbon"))
-        self.github.setText(_translate("SkeletonWindow", "Github"))
-        self.help.setText(_translate("SkeletonWindow", "Help"))
-        self.rcsbButton.setText(_translate("SkeletonWindow", "RCSB.org"))
-        self.mc2pdbLabel.setText(_translate("SkeletonWindow", "PDB2MC"))
-        self.pdbDatabaseLabel.setText(_translate("SkeletonWindow", "PDB Database"))
-        # self.cColorLabel.setText(_translate("SkeletonWindow", "Select C atom color:"))
-        # self.oColorLabel.setText(_translate("SkeletonWindow", "Select O atom color:"))
-        # self.nColorLabel.setText(_translate("SkeletonWindow", "Select N atom color:"))
-        # self.sColorLabel.setText(_translate("SkeletonWindow", "Select S atom color:"))
-        # self.pColorLabel.setText(_translate("SkeletonWindow", "Select P atom color:"))
-        self.backboneColorLabel.setText(_translate("SkeletonWindow", "Select backbone color:"))
-        self.sidechainColorLabel.setText(_translate("SkeletonWindow", "Select sidechain color:"))
-        self.otherColorLabel.setText(_translate("SkeletonWindow", "Select other color:"))
-        self.aScaleLabel.setText(_translate("SkeletonWindow", "Atom scale:"))
-        # self.showAtomsCheck.setText(_translate("SkeletonWindow", "Show model atoms"))
-        self.otherMoleculeCheck.setText(_translate("SkeletonWindow", "Show other molecules"))
-        #self.meshCheck.setText(_translate("SkeletonWindow", "Use \"mesh-style\" atoms"))
-        self.showBackboneCheck.setText(_translate("SkeletonWindow", "Show backbone"))
-        self.showSidechainCheck.setText(_translate("SkeletonWindow", "Show sidechain"))
-        self.colorByBackboneCheck.setText(_translate("SkeletonWindow", "Color backbone by chain"))
-        self.pScaleLabel.setText(_translate("SkeletonWindow", "Protein scale:"))
-        self.bScaleLabel.setText(_translate("SkeletonWindow", "Backbone scale:"))
-        self.selectIncludedPDBButton.setText(_translate("SkeletonWindow", "Select Included PDB File"))
-        self.selectMinecraftSaveButton.setText(_translate("SkeletonWindow", "Select Minecraft Save"))
-        self.simpleOutputCheck.setText(_translate("SkeletonWindow", "Simple output"))
-        self.selectPDBFileButton.setText(_translate("SkeletonWindow", "Select PDB File"))
-        self.createFunctionsButton.setText(_translate("SkeletonWindow", "Create Minecraft Functions"))
-        self.orText.setText(_translate("SkeletonWindow", "or"))
-        self.andText.setText(_translate("SkeletonWindow", "and"))
+        #RibbonWindow.setWindowTitle(_translate("RibbonWindow", "MainWindow"))
+        self.switchModeLabel.setText(_translate("RibbonWindow", "Switch Mode"))
+        self.CustomMode.setText(_translate("RibbonWindow", "Custom"))
+        self.SkeletonMode.setText(_translate("RibbonWindow", "Skeleton"))
+        self.XRayMode.setText(_translate("RibbonWindow", "X-Ray"))
+        self.SpaceFillingMode.setText(_translate("RibbonWindow", "Space Filling"))
+        self.AminoAcidMode.setText(_translate("RibbonWindow", "Amino Acids"))
+        self.RibbonMode.setText(_translate("RibbonWindow", "Ribbon"))
+        self.github.setText(_translate("RibbonWindow", "Github"))
+        self.help.setText(_translate("RibbonWindow", "Help"))
+        self.rcsbButton.setText(_translate("RibbonWindow", "RCSB.org"))
+        self.mc2pdbLabel.setText(_translate("RibbonWindow", "PDB2MC"))
+        self.pdbDatabaseLabel.setText(_translate("RibbonWindow", "PDB Database"))
+        # self.cColorLabel.setText(_translate("RibbonWindow", "Select C atom color:"))
+        # self.oColorLabel.setText(_translate("RibbonWindow", "Select O atom color:"))
+        # self.nColorLabel.setText(_translate("RibbonWindow", "Select N atom color:"))
+        # self.sColorLabel.setText(_translate("RibbonWindow", "Select S atom color:"))
+        # self.pColorLabel.setText(_translate("RibbonWindow", "Select P atom color:"))
+        self.ribbonColorLabel.setText(_translate("RibbonWindow", "Select ribbon color:"))
+        self.backboneColorLabel.setText(_translate("RibbonWindow", "Select backbone color:"))
+        self.sidechainColorLabel.setText(_translate("RibbonWindow", "Select sidechain color:"))
+        self.otherColorLabel.setText(_translate("RibbonWindow", "Select other color:"))
+        self.aScaleLabel.setText(_translate("RibbonWindow", "Atom scale:"))
+        # self.showAtomsCheck.setText(_translate("RibbonWindow", "Show model atoms"))
+        self.otherMoleculeCheck.setText(_translate("RibbonWindow", "Show other molecules"))
+        #self.meshCheck.setText(_translate("RibbonWindow", "Use \"mesh-style\" atoms"))
+        self.showBackboneCheck.setText(_translate("RibbonWindow", "Show backbone"))
+        self.showSidechainCheck.setText(_translate("RibbonWindow", "Show sidechain"))
+        self.colorByBackboneCheck.setText(_translate("RibbonWindow", "Color backbone by chain"))
+        self.pScaleLabel.setText(_translate("RibbonWindow", "Protein scale:"))
+        #self.bScaleLabel.setText(_translate("RibbonWindow", "Backbone scale:"))
+        self.selectIncludedPDBButton.setText(_translate("RibbonWindow", "Select Included PDB File"))
+        self.selectMinecraftSaveButton.setText(_translate("RibbonWindow", "Select Minecraft Save"))
+        self.simpleOutputCheck.setText(_translate("RibbonWindow", "Simple output"))
+        self.selectPDBFileButton.setText(_translate("RibbonWindow", "Select PDB File"))
+        self.createFunctionsButton.setText(_translate("RibbonWindow", "Create Minecraft Functions"))
+        self.orText.setText(_translate("RibbonWindow", "or"))
+        self.andText.setText(_translate("RibbonWindow", "and"))
 
 if __name__ == "__main__":
     app = QApplication([])
-    main_window = SkeletonWindow()
+    main_window = RibbonWindow()
     main_window.show()
     app.exec()

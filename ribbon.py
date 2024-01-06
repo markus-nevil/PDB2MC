@@ -37,7 +37,13 @@ def run_mode(pdb_name, pdb_file, rounded, mc_dir, config_data, hetatom_df, hetat
             branch_ribbon_df = ribbon_df[ribbon_df["atom"].isin(ribose_list + base_list)]
             flanked_df = pdbm.sidechain(branch_ribbon_df)
 
-        flanked_df['atom'] = num
+        #print(flanked_df.tail())
+        #print(flanked_df.head())
+        if config_data["by_chain"] == False:
+            flanked_df['atom'] = "ribbon_atom"
+        else:
+            flanked_df['atom'] = num
+        print(flanked_df.head())
         mcf.create_minecraft_functions(flanked_df, pdb_ribbon, False, mc_dir, config_data['atoms'], replace=True)
 
         # Deal with the backbone
@@ -67,7 +73,11 @@ def run_mode(pdb_name, pdb_file, rounded, mc_dir, config_data, hetatom_df, hetat
         intermediate = intermediate.astype(int)
 
         #Add a column to intermediate called 'atom' with values of num, if 'atom' exists, then add the values of num to the column
-        intermediate['atom'] = num
+        if config_data["by_chain"] == False:
+            intermediate['atom'] = "backbone_atom"
+        else:
+            intermediate['atom'] = num
+
         mcf.create_minecraft_functions(intermediate, pdb_backbone, False, mc_dir, config_data['atoms'], replace=False)
 
     if config_data["show_hetatm"] == True:
