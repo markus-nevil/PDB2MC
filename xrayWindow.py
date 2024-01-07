@@ -5,15 +5,17 @@ from PyQt6.QtGui import QMovie, QPalette, QBrush, QPixmap, QDesktopServices, QIc
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from PyQt6 import QtCore, QtGui, QtWidgets
 
-import UI
 import skeletonWindow
 import space_fillingWindow
+import ribbonWindow
+import amino_acidsWindow
+import customWindow
+
 from variables import decorative_blocks
 import pandas as pd
 
 import pdb_manipulation as pdbm
 import minecraft_functions as mcf
-import skeleton
 import xray
 from utilUI import MyComboBox, NothingSelected, IncludedPDBPopup, MinecraftPopup, FileExplorerPopup
 
@@ -570,6 +572,38 @@ class XrayWindow(QMainWindow):
         self.backboneColorBox.focusOut.connect(lambda: self.check_input(self.backboneColorBox, decorative_blocks))
         self.sidechainColorBox.focusOut.connect(lambda: self.check_input(self.sidechainColorBox, decorative_blocks))
 
+        self.showAtomsCheck.stateChanged.connect(self.on_showAtomsAndMoleculesCheck_changed)
+        self.otherMoleculeCheck.stateChanged.connect(self.on_showAtomsAndMoleculesCheck_changed)
+
+        self.showBackboneCheck.stateChanged.connect(self.on_showBackboneCheck_changed)
+        self.showSidechainCheck.stateChanged.connect(self.on_showSidechainCheck_changed)
+
+    def on_showAtomsAndMoleculesCheck_changed(self, state):
+        if self.showAtomsCheck.isChecked() or self.otherMoleculeCheck.isChecked():
+            self.cColorBox.setEnabled(True)
+            self.oColorBox.setEnabled(True)
+            self.nColorBox.setEnabled(True)
+            self.sColorBox.setEnabled(True)
+            self.pColorBox.setEnabled(True)
+            self.otherColorBox.setEnabled(True)
+        else:
+            self.cColorBox.setEnabled(False)
+            self.oColorBox.setEnabled(False)
+            self.nColorBox.setEnabled(False)
+            self.sColorBox.setEnabled(False)
+            self.pColorBox.setEnabled(False)
+            self.otherColorBox.setEnabled(False)
+
+    def on_showBackboneCheck_changed(self, state):
+
+        self.backboneColorBox.setEnabled(state != 0)
+
+        self.backboneScaleSpinBox.setEnabled(state !=0)
+
+    def on_showSidechainCheck_changed(self, state):
+
+        self.sidechainColorBox.setEnabled(state != 0)
+
 
     def check_input(self, combobox, valid_options):
         text = combobox.currentText()
@@ -727,7 +761,7 @@ class XrayWindow(QMainWindow):
 
     def handle_custom_mode(self):
         print("Custom mode button clicked")
-        self.Custom = UI.CustomWindow()
+        self.Custom = customWindow.CustomWindow()
         self.Custom.show()
         self.hide()
 
@@ -750,9 +784,15 @@ class XrayWindow(QMainWindow):
 
     def handle_amino_acid_mode(self):
         print("Amino Acid mode button clicked")
+        self.AminoAcid = amino_acidsWindow.AAWindow()
+        self.AminoAcid.show()
+        self.hide()
 
     def handle_ribbon_mode(self):
         print("Ribbon mode button clicked")
+        self.Ribbon = ribbonWindow.RibbonWindow()
+        self.Ribbon.show()
+        self.hide()
 
 
     def retranslateUi(self, XrayWindow):

@@ -83,6 +83,7 @@ class IncludedPDBPopup(QMainWindow):
     def getSelected(self):
         selected_text = self.listWidget.currentItem().text()
 
+
         if selected_text == '-none-':
             self.nothing = NothingSelected()
             self.nothing.show()

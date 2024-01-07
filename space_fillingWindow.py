@@ -8,6 +8,10 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 import UI
 import skeletonWindow
 import xrayWindow
+import amino_acidsWindow
+import customWindow
+import ribbonWindow
+
 from variables import decorative_blocks
 import pandas as pd
 
@@ -1241,9 +1245,17 @@ class spWindow(QMainWindow):
         self.pColorBox.focusOut.connect(lambda: self.check_input(self.pColorBox, decorative_blocks))
         self.nColorBox.focusOut.connect(lambda: self.check_input(self.nColorBox, decorative_blocks))
         self.otherColorBox.focusOut.connect(lambda: self.check_input(self.otherColorBox, decorative_blocks))
-        # self.backboneColorBox.focusOut.connect(lambda: self.check_input(self.backboneColorBox, decorative_blocks))
-        # self.sidechainColorBox.focusOut.connect(lambda: self.check_input(self.sidechainColorBox, decorative_blocks))
 
+        self.colorByBackboneCheck.stateChanged.connect(self.on_colorByBackboneCheck_changed)
+
+    def on_colorByBackboneCheck_changed(self, state):
+
+        self.cColorBox.setEnabled(state == 0)
+        self.nColorBox.setEnabled(state == 0)
+        self.oColorBox.setEnabled(state == 0)
+        self.pColorBox.setEnabled(state == 0)
+        self.sColorBox.setEnabled(state == 0)
+        self.otherColorBox.setEnabled(state == 0)
 
     def check_input(self, combobox, valid_options):
         text = combobox.currentText()
@@ -1320,7 +1332,7 @@ class spWindow(QMainWindow):
             config_data['pdb_file'] = self.user_pdb_file
             config_data['save_path'] = self.user_minecraft_save
 
-            QMessageBox.information(None, "Please wait", "This process will take a long time, please wait.")
+            #QMessageBox.information(None, "Please wait", "This process will take a long time, please wait.")
 
             # Read in the PDB file and process it
             pdb_file = config_data['pdb_file']
@@ -1372,6 +1384,8 @@ class spWindow(QMainWindow):
                 mcf.create_master_function(mcfiles, pdb_name, mc_dir)
                 mcf.create_clear_function(mc_dir, pdb_name)
 
+            mcf.check_y_coords(mc_dir, pdb_name)
+
             lower = pdb_name.lower()
 
             QMessageBox.information(None, "Model generated", f"Finished!\nRemember to /reload in your world and /function protein:build_{lower}")
@@ -1391,7 +1405,7 @@ class spWindow(QMainWindow):
 
     def handle_custom_mode(self):
         print("Custom mode button clicked")
-        self.Custom = UI.CustomWindow()
+        self.Custom = customWindow.CustomWindow()
         self.Custom.show()
         self.hide()
 
@@ -1411,12 +1425,17 @@ class spWindow(QMainWindow):
     def handle_space_filling_mode(self):
         print("Space Filling mode button clicked")
 
-
     def handle_amino_acid_mode(self):
         print("Amino Acid mode button clicked")
+        self.AminoAcid = amino_acidsWindow.AAWindow()
+        self.AminoAcid.show()
+        self.hide()
 
     def handle_ribbon_mode(self):
         print("Ribbon mode button clicked")
+        self.Ribbon = ribbonWindow.RibbonWindow()
+        self.Ribbon.show()
+        self.hide()
 
 
     def retranslateUi(self, sfWindow):

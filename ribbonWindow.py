@@ -8,6 +8,10 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 import UI
 import xrayWindow
 import space_fillingWindow
+import amino_acidsWindow
+import customWindow
+import skeletonWindow
+
 from variables import decorative_blocks
 import pandas as pd
 
@@ -1090,7 +1094,7 @@ class RibbonWindow(QMainWindow):
 
     def handle_custom_mode(self):
         print("Custom mode button clicked")
-        self.Custom = UI.CustomWindow()
+        self.Custom = customWindow.CustomWindow()
         self.Custom.show()
         self.hide()
 
@@ -1115,9 +1119,13 @@ class RibbonWindow(QMainWindow):
 
     def handle_amino_acid_mode(self):
         print("Amino Acid mode button clicked")
+        self.AminoAcid = amino_acidsWindow.AAWindow()
+        self.AminoAcid.show()
+        self.hide()
 
     def handle_ribbon_mode(self):
         print("Ribbon mode button clicked")
+
 
 
     def retranslateUi(self, RibbonWindow):

@@ -6,8 +6,12 @@ from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from PyQt6 import QtCore, QtGui, QtWidgets
 
 import UI
+import skeletonWindow
 import xrayWindow
 import space_fillingWindow
+import ribbonWindow
+import amino_acidsWindow
+import customWindow
 from variables import decorative_blocks
 import pandas as pd
 
@@ -25,8 +29,6 @@ class AAWindow(QMainWindow):
         self.setWindowIcon(QIcon('images/icons/logo.png'))
 
         self.resize(695, 411)
-        # Set style to Fusion
-        #self.setStyle("Fusion")
         self.centralwidget = QtWidgets.QWidget(parent=self)
         self.centralwidget.setObjectName("centralwidget")
         self.switchModeLabel = QtWidgets.QLabel(parent=self.centralwidget)
@@ -1072,13 +1074,13 @@ class AAWindow(QMainWindow):
 
     def handle_custom_mode(self):
         print("Custom mode button clicked")
-        self.Custom = UI.CustomWindow()
+        self.Custom = customWindow.CustomWindow()
         self.Custom.show()
         self.hide()
 
     def handle_skeleton_mode(self):
         print("Skeleton mode button clicked")
-        self.Skeleton = AAWindow()
+        self.Skeleton = skeletonWindow.SkeletonWindow()
         self.Skeleton.show()
         #Turn off main window
         self.hide()
@@ -1100,6 +1102,9 @@ class AAWindow(QMainWindow):
 
     def handle_ribbon_mode(self):
         print("Ribbon mode button clicked")
+        self.Ribbon = ribbonWindow.RibbonWindow()
+        self.Ribbon.show()
+        self.hide()
 
 
     def retranslateUi(self, AAWindow):
