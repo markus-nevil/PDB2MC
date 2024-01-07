@@ -815,32 +815,29 @@ class RibbonWindow(QMainWindow):
 
         self.vSepLine.setGeometry(QtCore.QRect(90, 0, 20, 431))
 
-        self.ribbonColorLabel.setGeometry(QtCore.QRect(110, 10, 120, 21))
-        self.ribbonColorBox.setGeometry(QtCore.QRect(240, 10, 175, 22))
+        self.pScaleLabel.setGeometry(QtCore.QRect(110, 10, 71, 21))
+        self.pScaleSpinBox.setGeometry(QtCore.QRect(240, 10, 62, 22))
+
+        self.ribbonColorLabel.setGeometry(QtCore.QRect(110, 60, 120, 21))
+        self.ribbonColorBox.setGeometry(QtCore.QRect(240, 60, 175, 22))
         self.colorByBackboneCheck.setGeometry(QtCore.QRect(240, 35, 155, 21))
 
-        self.backboneColorLabel.setGeometry(QtCore.QRect(110, 65, 120, 21))
-        self.backboneColorBox.setGeometry(QtCore.QRect(240, 65, 175, 22))
-        self.showBackboneCheck.setGeometry(QtCore.QRect(240, 90, 121, 17))
+        self.backboneColorLabel.setGeometry(QtCore.QRect(110, 115, 120, 21))
+        self.backboneColorBox.setGeometry(QtCore.QRect(240, 115, 175, 22))
+        self.showBackboneCheck.setGeometry(QtCore.QRect(240, 93, 121, 17))
 
-        self.sidechainColorLabel.setGeometry(QtCore.QRect(110, 120, 120, 21))
-        self.sidechainColorBox.setGeometry(QtCore.QRect(240, 120, 175, 22))
-        self.showSidechainCheck.setGeometry(QtCore.QRect(240, 145, 121, 17))
+        self.sidechainColorLabel.setGeometry(QtCore.QRect(110, 170, 120, 21))
+        self.sidechainColorBox.setGeometry(QtCore.QRect(240, 170, 175, 22))
+        self.showSidechainCheck.setGeometry(QtCore.QRect(240, 148, 121, 17))
 
+        self.otherMoleculeCheck.setGeometry(QtCore.QRect(240, 208, 131, 17))
+        self.otherColorLabel.setGeometry(QtCore.QRect(110, 230, 121, 21))
+        self.otherColorBox.setGeometry(QtCore.QRect(240, 230, 175, 22))
+        self.aScaleLabel.setGeometry(QtCore.QRect(110, 255, 61, 21))
+        self.aScaleSpinBox.setGeometry(QtCore.QRect(240, 255, 62, 22))
 
-        #self.bScaleLabel.setGeometry(QtCore.QRect(110, 150, 111, 21))
-        #self.backboneScaleSpinBox.setGeometry(QtCore.QRect(240, 150, 62, 22))
-
-
-
-        self.otherColorLabel.setGeometry(QtCore.QRect(110, 175, 121, 21))
-        self.otherColorBox.setGeometry(QtCore.QRect(240, 175, 175, 22))
-        self.aScaleLabel.setGeometry(QtCore.QRect(110, 201, 61, 21))
-        self.aScaleSpinBox.setGeometry(QtCore.QRect(240, 201, 62, 22))
-        self.otherMoleculeCheck.setGeometry(QtCore.QRect(240, 225, 131, 17))
-
-        self.pScaleLabel.setGeometry(QtCore.QRect(110, 255, 71, 21))
-        self.pScaleSpinBox.setGeometry(QtCore.QRect(240, 255, 62, 22))
+        #self.pScaleLabel.setGeometry(QtCore.QRect(110, 255, 71, 21))
+        #self.pScaleSpinBox.setGeometry(QtCore.QRect(240, 255, 62, 22))
 
         self.selectPDBFileButton.setGeometry(QtCore.QRect(110, 290, 91, 23))
         self.orText.setGeometry(QtCore.QRect(210, 290, 31, 21))
@@ -930,6 +927,26 @@ class RibbonWindow(QMainWindow):
         self.backboneColorBox.focusOut.connect(lambda: self.check_input(self.backboneColorBox, decorative_blocks))
         self.sidechainColorBox.focusOut.connect(lambda: self.check_input(self.sidechainColorBox, decorative_blocks))
         self.ribbonColorBox.focusOut.connect(lambda: self.check_input(self.ribbonColorBox, decorative_blocks))
+        self.colorByBackboneCheck.stateChanged.connect(self.on_colorByBackboneCheck_changed)
+        self.otherMoleculeCheck.stateChanged.connect(self.on_otherMoleculeCheck_changed)
+
+        #Start out with ribbon items greyed out
+        self.ribbonColorBox.setEnabled(False)
+        self.backboneColorBox.setEnabled(False)
+        #self.showBackboneCheck.setEnabled(False)
+        self.sidechainColorBox.setEnabled(False)
+        #self.showSidechainCheck.setEnabled(False)
+
+    def on_colorByBackboneCheck_changed(self, state):
+        self.ribbonColorBox.setEnabled(state == 0)
+        self.backboneColorBox.setEnabled(state == 0)
+        #self.showBackboneCheck.setEnabled(state == 0)
+        self.sidechainColorBox.setEnabled(state == 0)
+        #self.showSidechainCheck.setEnabled(state == 0)
+
+    def on_otherMoleculeCheck_changed(self, state):
+        self.otherColorBox.setEnabled(state != 0)
+        self.aScaleSpinBox.setEnabled(state != 0)
 
     def check_input(self, combobox, valid_options):
         text = combobox.currentText()
@@ -1003,11 +1020,8 @@ class RibbonWindow(QMainWindow):
             config_data['pdb_file'] = self.user_pdb_file
             config_data['save_path'] = self.user_minecraft_save
 
-            #print(config_data)
-
             # Read in the PDB file and process it
             pdb_file = config_data['pdb_file']
-            #print(pdb_file)
             pdb_df = pdbm.read_pdb(pdb_file)
             pdb_name = pdbm.get_pdb_code(pdb_file)
             scalar = config_data['scale']
@@ -1016,7 +1030,7 @@ class RibbonWindow(QMainWindow):
             moved = pdbm.rotate_to_y(moved)
             rounded = pdbm.round_df(moved)
 
-            print("Here!")
+
             hetatom_df = pd.DataFrame()
             hetatm_bonds = pd.DataFrame()
 
@@ -1039,15 +1053,7 @@ class RibbonWindow(QMainWindow):
             # Delete the old mcfunctions if they match the current one
             mc_dir = config_data['save_path']
             mcf.delete_mcfunctions(mc_dir, "z" + pdb_name.lower())
-            print(config_data)
-            print(mc_dir)
-            print(pdb_name)
-            print(pdb_file)
-            print(rounded.head())
-            print(mc_dir)
-            print(atom_df.head())
-            print(hetatom_df.head())
-            print(hetatm_bonds.head())
+
             try:
                 print("fix")
                 ribbon.run_mode(pdb_name, pdb_file, rounded, mc_dir, config_data, hetatom_df, hetatm_bonds)
@@ -1055,7 +1061,6 @@ class RibbonWindow(QMainWindow):
                 print(f"Error: {e}")
 
             mcfiles = mcf.find_mcfunctions(mc_dir, pdb_name.lower())
-            #print(mcfiles)
 
             if config_data["simple"]:
                 mcf.create_simple_function(pdb_name, mc_dir)
@@ -1066,6 +1071,7 @@ class RibbonWindow(QMainWindow):
                 mcf.create_clear_function(mc_dir, pdb_name)
 
             lower = pdb_name.lower()
+
 
             QMessageBox.information(None, "Model generated", f"Finished!\nRemember to /reload in your world and /function protein:build_{lower}")
 
@@ -1159,4 +1165,7 @@ if __name__ == "__main__":
     app = QApplication([])
     main_window = RibbonWindow()
     main_window.show()
-    app.exec()
+    try:
+        app.exec()
+    except KeyboardInterrupt:
+        pass

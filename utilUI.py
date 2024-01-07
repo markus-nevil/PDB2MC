@@ -1,7 +1,7 @@
 import os
 from shutil import copyfile
 from PyQt6.QtWidgets import QFileDialog, QHBoxLayout, QApplication, QListWidget, QPushButton, QMainWindow, QMessageBox, QLabel, QVBoxLayout, QWidget, QStylePainter
-from PyQt6.QtGui import QMovie, QPalette, QBrush, QPixmap, QDesktopServices
+from PyQt6.QtGui import QMovie, QPalette, QBrush, QPixmap, QDesktopServices,QIcon
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from PyQt6 import QtCore, QtGui, QtWidgets
 from variables import decorative_blocks
@@ -111,6 +111,7 @@ class FileExplorerPopup(QMainWindow):
         message_box = QMessageBox()
         message_box.setWindowTitle("Please wait")
         message_box.setText("Calculating model size...")
+        self.setWindowIcon(QIcon('images/icons/unknown_icon.png'))
         message_box.setStandardButtons(QMessageBox.StandardButton.NoButton)  # No buttons
         message_box.show()
         file_name, _ = QFileDialog.getOpenFileName(self, "QFileDialog.getOpenFileName()", "",
@@ -130,18 +131,6 @@ class FileExplorerPopup(QMainWindow):
                 message_box.close()
                 QMessageBox.information(self, "Maximum scale", f"The maximum protein scale is: {size_factor}x")
             self.selected_file = file_name
-
-
-# class MinecraftPopup(QMainWindow):
-#     def __init__(self):
-#         super().__init__()
-#         home_dir = os.path.expanduser("~")
-#         wd = os.path.join(home_dir, "AppData\Roaming\.minecraft\saves")
-#         directory = QFileDialog.getExistingDirectory(self, "Select Directory", wd)
-#         if directory:
-#             print(directory)
-#
-#             self.selected_directory = directory
 
 
 class MinecraftPopup(QMainWindow):

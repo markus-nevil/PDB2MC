@@ -1320,7 +1320,7 @@ class spWindow(QMainWindow):
             config_data['pdb_file'] = self.user_pdb_file
             config_data['save_path'] = self.user_minecraft_save
 
-            #print(config_data)
+            QMessageBox.information(None, "Please wait", "This process will take a long time, please wait.")
 
             # Read in the PDB file and process it
             pdb_file = config_data['pdb_file']
