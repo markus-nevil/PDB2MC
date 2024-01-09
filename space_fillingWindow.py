@@ -1277,8 +1277,10 @@ class spWindow(QMainWindow):
         print(f"The user has this file: {self.user_pdb_file}")
 
     def handle_select_minecraft_button(self):
-        print("minecraft world")
         self.selectMinecraft = MinecraftPopup()
+        if self.selectMinecraft.selected_directory is None:
+            QMessageBox.critical(None, "Error", "Remember to select a Minecraft save.")
+            return
         self.user_minecraft_save = self.selectMinecraft.selected_directory
     def handle_included_pdb_button(self):
         print("Included PDB button clicked")
@@ -1383,8 +1385,6 @@ class spWindow(QMainWindow):
             else:
                 mcf.create_master_function(mcfiles, pdb_name, mc_dir)
                 mcf.create_clear_function(mc_dir, pdb_name)
-
-            mcf.check_y_coords(mc_dir, pdb_name)
 
             lower = pdb_name.lower()
 

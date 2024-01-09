@@ -1269,14 +1269,31 @@ class CustomWindow(QMainWindow):
         self.backboneColorBox.focusOut.connect(lambda: self.check_input(self.backboneColorBox, decorative_blocks))
         self.sidechainColorBox.focusOut.connect(lambda: self.check_input(self.sidechainColorBox, decorative_blocks))
 
+        self.showAtomsCheck.stateChanged.connect(self.on_showAtomsAndMoleculesCheck_changed)
+        self.otherMoleculeCheck.stateChanged.connect(self.on_showAtomsAndMoleculesCheck_changed)
+
         self.showBackboneCheck.stateChanged.connect(self.on_showBackboneCheck_changed)
         self.showSidechainCheck.stateChanged.connect(self.on_showSidechainCheck_changed)
         self.colorByBackboneCheck.stateChanged.connect(self.on_colorByBackboneCheck_changed)
 
+    def on_showAtomsAndMoleculesCheck_changed(self, state):
+        if self.showAtomsCheck.isChecked() or self.otherMoleculeCheck.isChecked():
+            self.cColorBox.setEnabled(True)
+            self.oColorBox.setEnabled(True)
+            self.nColorBox.setEnabled(True)
+            self.sColorBox.setEnabled(True)
+            self.pColorBox.setEnabled(True)
+            self.otherColorBox.setEnabled(True)
+        else:
+            self.cColorBox.setEnabled(False)
+            self.oColorBox.setEnabled(False)
+            self.nColorBox.setEnabled(False)
+            self.sColorBox.setEnabled(False)
+            self.pColorBox.setEnabled(False)
+            self.otherColorBox.setEnabled(False)
     def on_showBackboneCheck_changed(self, state):
         if not self.colorByBackboneCheck.isChecked():
             self.backboneColorBox.setEnabled(state != 0)
-
         self.backboneScaleSpinBox.setEnabled(state !=0)
 
     def on_showSidechainCheck_changed(self, state):
@@ -1307,9 +1324,12 @@ class CustomWindow(QMainWindow):
         print(f"The user has this file: {self.user_pdb_file}")
 
     def handle_select_minecraft_button(self):
-        print("minecraft world")
         self.selectMinecraft = MinecraftPopup()
+        if self.selectMinecraft.selected_directory is None:
+            QMessageBox.critical(None, "Error", "Remember to select a Minecraft save.")
+            return
         self.user_minecraft_save = self.selectMinecraft.selected_directory
+
     def handle_included_pdb_button(self):
         print("Included PDB button clicked")
         self.includedPDB = IncludedPDBPopup()

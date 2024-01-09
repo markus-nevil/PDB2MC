@@ -106,7 +106,6 @@ class IncludedPDBPopup(QMainWindow):
 
 #A new popup that will show the system file explorer starting from a specific path
 class FileExplorerPopup(QMainWindow):
-    #fileSelected = pyqtSignal(str)
     def __init__(self):
         super().__init__()
         message_box = QMessageBox()
@@ -118,9 +117,6 @@ class FileExplorerPopup(QMainWindow):
         file_name, _ = QFileDialog.getOpenFileName(self, "QFileDialog.getOpenFileName()", "",
                                                   "Protein Databank files (*.pdb)")
         if file_name:
-            print(file_name)
-            #preset_file = os.path(file_name)
-            #print(preset_file)
             # check if the model is small enough for minecraft
             if not pdbm.check_model_size(file_name, world_max=320):
                 message_box.close()
@@ -131,7 +127,11 @@ class FileExplorerPopup(QMainWindow):
                 size_factor = str(round(size_factor, 2))
                 message_box.close()
                 QMessageBox.information(self, "Maximum scale", f"The maximum protein scale is: {size_factor}x")
-            self.selected_file = file_name
+        else:
+            message_box.close()
+            QMessageBox.warning(self, "No file selected", f"Please select a file.")
+        self.selected_file = file_name
+
 
 
 class MinecraftPopup(QMainWindow):
@@ -140,6 +140,7 @@ class MinecraftPopup(QMainWindow):
         home_dir = os.path.expanduser("~")
         wd = os.path.join(home_dir, "AppData\Roaming\.minecraft\saves")
         good_dir = False
+        self.selected_directory = None
         while not good_dir:
             save_path = QFileDialog.getExistingDirectory(self, "Select Directory", wd)
             # check if save_path has structure .minecraft/saves/<save_name>
@@ -148,7 +149,8 @@ class MinecraftPopup(QMainWindow):
                     good_dir = True
                 else:
                     QMessageBox.warning(self, "Invalid directory", "Please select a valid Minecraft save directory.")
-
+            else:
+                return
         directory_path = os.path.join(save_path, "datapacks/mcPDB/data/protein/functions")
 
         if not os.path.exists(directory_path):
@@ -159,8 +161,5 @@ class MinecraftPopup(QMainWindow):
             copyfile("pack.mcmeta", os.path.join(save_path, "datapacks/mcPDB/pack.mcmeta"))
 
         if directory_path:
-            print(directory_path)
             self.selected_directory = directory_path
-        # if save_path:
-        #     print(save_path)
-        #     self.selected_directory = save_path
+

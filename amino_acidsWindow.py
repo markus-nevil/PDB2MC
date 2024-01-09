@@ -928,8 +928,10 @@ class AAWindow(QMainWindow):
         print(f"The user has this file: {self.user_pdb_file}")
 
     def handle_select_minecraft_button(self):
-        print("minecraft world")
         self.selectMinecraft = MinecraftPopup()
+        if self.selectMinecraft.selected_directory is None:
+            QMessageBox.critical(None, "Error", "Remember to select a Minecraft save.")
+            return
         self.user_minecraft_save = self.selectMinecraft.selected_directory
     def handle_included_pdb_button(self):
         print("Included PDB button clicked")

@@ -140,68 +140,36 @@ def create_simple_function(name, directory):
         f.write(f'setblock ~ ~-1 ~ minecraft:obsidian replace\n')
         f.writelines(functions)
 
-# Function that takes a directory and a pdb name and checks that the Y coordinates are equal to or greater -62, if not then find the difference between the minimum value in all files and -62 and add that value to all Y coordinates in each file
-def check_y_coords(directory, pdb_name, min_y=0):
 
-    change_by = 0
-    file_list = []
-    # find all the files in the directory that start with "z" + pdb_name and check the minimum Y value, if the Y < -62 then add the difference to the variable change_by
-    pdb_name = pdb_name.lower()
+def adjust_y_coords(directory, pdb_name):
+    min_y = None
+    files = []
+
+    print(directory)
+    # Find the minimum Y value
     for filename in os.listdir(directory):
-        print(filename)
-        #find files that start iwth z{pdb_name} and end with .mcfunction OR build_{pdb_name}.mcfunction OR clear_{pdb_name}.mcfunction
-
-        if filename.startswith("z" + pdb_name) and filename.endswith(".mcfunction"):
-            #Add the file to the file_list
-            file_list.append(filename)
-
+        if pdb_name in filename and filename.endswith(".mcfunction"):
+            print(filename)
+            files.append(filename)
             with open(os.path.join(directory, filename), 'r') as f:
                 for line in f:
-                    #skip the setblock ~ ~-1 ~ minecraft:obsidian replace line
-                    if not line.startswith("setblock ~ ~-1 ~ minecraft:obsidian replace"):
-                        if 'setblock' in line:
-                            y = int(float(line.split(' ~')[2]))
-                            if y < min_y:
-                                change_by = min_y - y
-        if filename.startswith("build_" + pdb_name) and filename.endswith(".mcfunction"):
-            #Add the file to the file_list
-            file_list.append(filename)
+                    if not line.startswith("setblock ~ ~-1 ~ minecraft:obsidian replace") and 'setblock' in line:
+                        y = int(float(line.split(' ~')[2]))
+                        if min_y is None or y < min_y:
+                            min_y = y
 
-            with open(os.path.join(directory, filename), 'r') as f:
-                for line in f:
-                    #skip the setblock ~ ~-1 ~ minecraft:obsidian replace line
-                    if not line.startswith("setblock ~ ~-1 ~ minecraft:obsidian replace"):
-                        if 'setblock' in line:
-                            print(line)
-                            y = int(float(line.split(' ~')[2]))
-                            if y < min_y:
-                                change_by = min_y - y
-        if filename.startswith("clear_" + pdb_name) and filename.endswith(".mcfunction"):
-            #Add the file to the file_list
-            file_list.append(filename)
+    # Adjust Y values in the files
+    for filename in files:
+        with open(os.path.join(directory, filename), 'r') as f:
+            lines = f.readlines()
+        with open(os.path.join(directory, filename), 'w') as f:
+            for line in lines:
+                if not line.startswith("setblock ~ ~-1 ~ minecraft:obsidian replace") and 'setblock' in line:
+                    y = int(float(line.split(' ~')[2]))
+                    adjusted_y = y - min_y
 
-            with open(os.path.join(directory, filename), 'r') as f:
-                for line in f:
-                    #skip the setblock ~ ~-1 ~ minecraft:obsidian replace line
-                    if not line.startswith("setblock ~ ~-1 ~ minecraft:obsidian replace"):
-                        if 'setblock' in line:
-                            y = int(float(line.split(' ~')[2]))
-                            if y < min_y:
-                                change_by = min_y - y
-    print(f"Change_by is: {change_by}")
-    print(f"File list is: {file_list}")
+                    ##TODO I think this needs to be split by spaces like line.split(' ')[0:2] to grab the first bit.
+                    #test = tl.split(' ')[0:2].unlist() + " ~" + str(555) + tl.split(' ')[4:5].unlist()
+                    line = line.split(' ~')[0] + ' ~' + str(adjusted_y) + line.split(' ~')[3]
 
-    # if change_by is not 0 then add the difference to all Y values in all files in file_list
-    if change_by != 0:
-        for filename in file_list:
-            with open(os.path.join(directory, filename), 'r') as f:
-                lines = f.readlines()
-            with open(os.path.join(directory, filename), 'w') as f:
-                for line in lines:
-                    if not line.startswith("setblock ~ ~-1 ~ minecraft:obsidian replace"):
-                        if 'setblock' in line:
-                            y = int(float(line.split(' ~')[2]))
-                            line = line.split(' ~')[0] + ' ~' + str(y + change_by) + line.split(' ~')[3]
-                        f.write(line)
-
-
+                f.write(line)
