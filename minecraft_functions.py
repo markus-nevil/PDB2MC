@@ -145,16 +145,14 @@ def adjust_y_coords(directory, pdb_name):
     min_y = None
     files = []
 
-    print(directory)
     # Find the minimum Y value
     for filename in os.listdir(directory):
         if pdb_name in filename and filename.endswith(".mcfunction"):
-            print(filename)
             files.append(filename)
             with open(os.path.join(directory, filename), 'r') as f:
                 for line in f:
                     if not line.startswith("setblock ~ ~-1 ~ minecraft:obsidian replace") and 'setblock' in line:
-                        y = int(float(line.split(' ~')[2]))
+                        y = int(float(line.split(' ')[2].split('~')[1]))
                         if min_y is None or y < min_y:
                             min_y = y
 
@@ -165,11 +163,10 @@ def adjust_y_coords(directory, pdb_name):
         with open(os.path.join(directory, filename), 'w') as f:
             for line in lines:
                 if not line.startswith("setblock ~ ~-1 ~ minecraft:obsidian replace") and 'setblock' in line:
-                    y = int(float(line.split(' ~')[2]))
+                    y = int(float(line.split(' ')[2].split('~')[1]))
                     adjusted_y = y - min_y
-
-                    ##TODO I think this needs to be split by spaces like line.split(' ')[0:2] to grab the first bit.
-                    #test = tl.split(' ')[0:2].unlist() + " ~" + str(555) + tl.split(' ')[4:5].unlist()
-                    line = line.split(' ~')[0] + ' ~' + str(adjusted_y) + line.split(' ~')[3]
-
+                    start = ' '.join(line.split(' ')[0:2])
+                    adj_y = "~" + str(adjusted_y)
+                    end = ' '.join(line.split(' ')[3:10])
+                    line = start + " " + adj_y + " " + end
                 f.write(line)

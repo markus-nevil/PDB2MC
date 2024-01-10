@@ -1387,6 +1387,7 @@ class spWindow(QMainWindow):
                 mcf.create_clear_function(mc_dir, pdb_name)
 
             lower = pdb_name.lower()
+            mcf.adjust_y_coords(mc_dir, lower)
 
             QMessageBox.information(None, "Model generated", f"Finished!\nRemember to /reload in your world and /function protein:build_{lower}")
 

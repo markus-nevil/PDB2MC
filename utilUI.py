@@ -1,21 +1,121 @@
 import os
 from shutil import copyfile
 from PyQt6.QtWidgets import QFileDialog, QHBoxLayout, QApplication, QListWidget, QPushButton, QMainWindow, QMessageBox, QLabel, QVBoxLayout, QWidget, QStylePainter
-from PyQt6.QtGui import QMovie, QPalette, QBrush, QPixmap, QDesktopServices,QIcon
+from PyQt6.QtGui import QFont, QIcon, QPixmap
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from PyQt6 import QtCore, QtGui, QtWidgets
-from variables import decorative_blocks
-import pandas as pd
 
 import pdb_manipulation as pdbm
-import minecraft_functions as mcf
+
 
 class MyComboBox(QtWidgets.QComboBox):
     focusOut = pyqtSignal()
-
     def focusOutEvent(self, event):
         super().focusOutEvent(event)
         self.focusOut.emit()
+
+class InformationBox(QMainWindow):
+    def __init__(self):
+        super().__init__()
+
+        # Set window properties
+        self.setWindowTitle("Custom Popup")
+        self.setWindowIcon(QIcon('images/icons/logo.png'))
+
+        # Set background image
+        self.setStyleSheet("background-image: url(images/MC2PDB bg.png);")
+        self.resize(500, 150)
+
+        labelTitle = QtWidgets.QLabel(self)
+        pixmap = QtGui.QPixmap("images/icons/icon_info.png")
+        pixmap = pixmap.scaled(100, 100)
+        labelTitle.setScaledContents(True)
+        labelTitle.setGeometry(QtCore.QRect(25, 25, 100, 100))
+
+        labelTitle.setPixmap(pixmap)
+        labelTitle.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
+        self.layout().addWidget(labelTitle)
+
+        # Create labels
+        self.label1 = QLabel("test", self)
+        self.label1.setScaledContents(True)
+        self.label1.adjustSize()
+        self.label1.move(250, 20)  # Adjust position as needed
+
+        # Create "Okay" button
+        self.okayButton = QPushButton("Okay", self)
+        self.okayButton.setStyleSheet("background-color: rgba(0, 0, 0, 99);")
+        self.okayButton.move(250, 100)  # Adjust position as needed
+        self.okayButton.clicked.connect(self.close)
+
+
+    def set_text(self, text1):
+        self.label1.setText(text1)
+
+        # Center justify the text
+        self.label1.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        # Create a QFont object
+        font1 = QFont()
+
+        #Calculate the length of the longest part of the text when separated by \n characters
+        longest = 0
+        for i in text1.split("\n"):
+            if len(i) > longest:
+                longest = len(i)
+
+        # Calculate the optimal font size based on the length of the text
+        # and the width of the label (you may need to adjust the formula)
+        font_size1 = min(14, max(8, 600 // longest))
+
+        # Set the font size
+        font1.setPointSize(font_size1)
+
+        # Apply the font to the labels
+        self.label1.setFont(font1)
+        #self.label1.setScaledContents(True)
+        #self.label1.setMaximumSize(350, 100)
+        self.label1.adjustSize()
+
+        # Calculate the desired center position
+        center_x = 300
+        center_y = 50
+
+        # Calculate the top-left position based on the center position and the size of the QLabel
+        top_left_x = int(round(center_x - self.label1.width() / 2))
+        top_left_y = int(round(center_y - self.label1.height() / 2))
+
+        # Set the position of the QLabel
+        self.label1.move(top_left_x, top_left_y)
+
+    # function that changes the icon image between 3 choices: icon_good, icon_bad, icon_info
+    def set_icon(self, icon):
+        labelTitle = QtWidgets.QLabel(self)
+        pixmap = QtGui.QPixmap(icon)
+        pixmap = pixmap.scaled(100, 100)
+        labelTitle.setScaledContents(True)
+        labelTitle.setGeometry(QtCore.QRect(25, 25, 100, 100))
+
+        labelTitle.setPixmap(pixmap)
+        labelTitle.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
+        self.layout().addWidget(labelTitle)
+
+    #Function to change the window title
+    def set_title(self, title):
+        self.setWindowTitle(title)
+
+    # class InformationBox(QMessageBox):
+#     def __init__(self):
+#         super().__init__()
+#         self.setIcon(QMessageBox.Icon.Information)
+#         self.setWindowIcon(QIcon('images/icons/logo.png'))
+#
+#         self.setStyleSheet("QMessageBox {background-image: url(images/MC2PDB bg.png);}")
+
+    # def show_message(self, title, message):
+    #     self.setWindowTitle(title)
+    #     self.setText(message)
+    #     self.exec()
 
 
 #Quick dialog window that says "Nothing selected!"
@@ -163,3 +263,12 @@ class MinecraftPopup(QMainWindow):
         if directory_path:
             self.selected_directory = directory_path
 
+
+
+if __name__ == "__main__":
+    app = QApplication([])
+    main_window = InformationBox()
+    main_window.set_text("Finished! \n Remember to take your stuff out of the\n minecraft yes okay good")
+    main_window.set_icon("images/icons/icon_good.png")
+    main_window.show()
+    #app.exec()

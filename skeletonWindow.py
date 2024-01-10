@@ -6,6 +6,7 @@ from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from PyQt6 import QtCore, QtGui, QtWidgets
 
 import UI
+import utilUI
 import xrayWindow
 import space_fillingWindow
 import ribbonWindow
@@ -1007,8 +1008,16 @@ class SkeletonWindow(QMainWindow):
 
             lower = pdb_name.lower()
 
-            QMessageBox.information(None, "Model generated", f"Finished!\nRemember to /reload in your world and /function protein:build_{lower}")
+            self.show_information_box(title_text = f"Model generated", text = f"Finished! \n Remember to use /reload\n Make your model with: /function protein:build_" + lower, icon_path = "images/icons/icon_good.png")
 
+            #QMessageBox.information(None, "Model generated", f"Finished!\nRemember to /reload in your world and /function protein:build_{lower}")
+
+    def show_information_box(self, title_text, text, icon_path):
+        self.info_box = utilUI.InformationBox()
+        self.info_box.set_text(text)
+        self.info_box.set_title(title_text)
+        self.info_box.set_icon(icon_path)
+        self.info_box.show()
 
     def handle_github_button(self):
         print("Github button clicked")
