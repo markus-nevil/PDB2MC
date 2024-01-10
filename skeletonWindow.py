@@ -878,7 +878,10 @@ class SkeletonWindow(QMainWindow):
         #replace any space characters with '_'
         text = text.replace(' ', '_')
         if text not in decorative_blocks:
-            QMessageBox.warning(self, "Invalid Input", f"{text} is not a valid option.")
+            self.show_information_box(title_text=f"Invalid block input",
+                                      text=f"{text} is not a valid block option.",
+                                      icon_path="images/icons/icon_bad.png")
+            #QMessageBox.warning(self, "Invalid Input", f"{text} is not a valid option.")
             combobox.setCurrentIndex(0)
         else:
             combobox.setCurrentText(text)
@@ -893,7 +896,10 @@ class SkeletonWindow(QMainWindow):
     def handle_select_minecraft_button(self):
         self.selectMinecraft = MinecraftPopup()
         if self.selectMinecraft.selected_directory is None:
-            QMessageBox.critical(None, "Error", "Remember to select a Minecraft save.")
+            self.show_information_box(title_text=f"Error",
+                                      text=f"Remember to select a Minecraft save.",
+                                      icon_path="images/icons/icon_bad.png")
+            #QMessageBox.critical(None, "Error", "Remember to select a Minecraft save.")
             return
         self.user_minecraft_save = self.selectMinecraft.selected_directory
     def handle_included_pdb_button(self):
@@ -937,18 +943,21 @@ class SkeletonWindow(QMainWindow):
         # Add the current paths of the files and directories to the dictionary
         # Replace 'file_path' and 'save_path' with the actual paths
         if self.user_pdb_file is None:
-            QMessageBox.critical(None, "Error", "Please select a PDB file.")
+            self.show_information_box(title_text=f"Error: No PDB file",
+                                      text=f"Please select a PDB file.",
+                                      icon_path="images/icons/icon_bad.png")
+            #QMessageBox.critical(None, "Error", "Please select a PDB file.")
         elif self.user_minecraft_save is None:
-            QMessageBox.critical(None, "Error", "Please select a Minecraft save.")
+            self.show_information_box(title_text=f"Error: No Minecraft save",
+                                      text=f"Please select a Minecraft save.",
+                                      icon_path="images/icons/icon_bad.png")
+            #QMessageBox.critical(None, "Error", "Please select a Minecraft save.")
         else:
             config_data['pdb_file'] = self.user_pdb_file
             config_data['save_path'] = self.user_minecraft_save
 
-            #print(config_data)
-
             # Read in the PDB file and process it
             pdb_file = config_data['pdb_file']
-            #print(pdb_file)
             pdb_df = pdbm.read_pdb(pdb_file)
             pdb_name = pdbm.get_pdb_code(pdb_file)
             scalar = config_data['scale']
@@ -957,13 +966,11 @@ class SkeletonWindow(QMainWindow):
             moved = pdbm.rotate_to_y(moved)
             rounded = pdbm.round_df(moved)
 
-            print("Here!")
             hetatom_df = pd.DataFrame()
             hetatm_bonds = pd.DataFrame()
 
             # Check if the user wants het-atoms, if so, process them
             if config_data["show_hetatm"] == True:
-                print("Hetatm TRUE")
                 # check if the first column of rounded contains any "HETATM" values
 
                 if "HETATM" in rounded.iloc[:, 0].values:
@@ -980,23 +987,16 @@ class SkeletonWindow(QMainWindow):
             # Delete the old mcfunctions if they match the current one
             mc_dir = config_data['save_path']
             mcf.delete_mcfunctions(mc_dir, "z" + pdb_name.lower())
-            print(config_data)
-            print(mc_dir)
-            print(pdb_name)
-            print(pdb_file)
-            print(rounded.head())
-            print(mc_dir)
-            print(atom_df.head())
-            print(hetatom_df.head())
-            print(hetatm_bonds.head())
+
             try:
-                print("fix")
+
                 skeleton.run_mode(config_data, pdb_name, pdb_file, rounded, mc_dir, atom_df, hetatom_df, hetatm_bonds)
             except Exception as e:
-                print(f"Error: {e}")
+                self.show_information_box(title_text=f"Error encountered",
+                                          text=f"Model has not generated! \nError: {e}",
+                                          icon_path="images/icons/icon_bad.png")
 
             mcfiles = mcf.find_mcfunctions(mc_dir, pdb_name.lower())
-            #print(mcfiles)
 
             if config_data["simple"]:
                 mcf.create_simple_function(pdb_name, mc_dir)

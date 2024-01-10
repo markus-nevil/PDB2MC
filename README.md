@@ -1,7 +1,28 @@
-# PDB to Minecraft
-## Author: Markus Nevil
+# PDB2MC: Bridging Biomolecules and Minecraft for accessible, interactive 3D visualization.
+### Author: Markus Nevil, PhD<br>Version: 1.2.0</sup>
 
-The structures of proteins and other biomolecules determined by X-ray crystallography, NMR, and cryo-EM are published at the RCSB Protein Data Bank (rcsb.org). These structures are primarily viewed using free or paid utilites whose learning curve may pose an inaccessible barrier to for educators, students, and the general public. This program's purpose is to make a fun and accessible alternative by generating files that can be loaded by the popular video game Minecraft. This guide includes a quick start, glossary of terms, description of features, and a walk through to generate a model of the included GFP model.
+**Table of Contents**
+ - [Introduction](#introduction)
+ - [Quickstart](#quick-start)
+ - [Prepare a Minecraft world](#prepare-a-new-minecraft-world-for-pdb-models)
+ - [Walkthrough of an example GFP model](#walkthrough-of-an-example-gfp-model)
+   - [(Optional) Download a PDB file from RCSB PDB](#optional-download-a-pdb-file-from-rcsb-pdb)
+   - [Open the PDB2MC program](#open-the-pdb2mc-program)
+   - [Open the Minecraft world](#open-the-minecraft-world)
+ - [Description of Program modes](#description-of-program-modes)
+ - [Description of options](#description-of-options)
+   - [Default atom colors](#default-atom-colors)
+ - [Glossary of terms](#glossary-of-terms)
+
+## Introduction
+The structures of proteins and other biomolecules determined by X-ray crystallography, NMR, and cryo-EM are published at
+the RCSB Protein Data Bank (rcsb.org). These structures are primarily viewed using free or paid program whose learning 
+curve may pose an inaccessible barrier to for educators, students, and the public. The purpose of the `PDB2MC` program is to 
+make a fun and accessible alternative by generating files that can be loaded by the popular video game Minecraft.
+
+The `PDB2MC` program comes with several models, but also can use any PDB file downloaded from RCSB Protein Data Bank.
+
+This guide includes a quick start, glossary of terms, description of features, and a walk through to generate a model of the included GFP model.
 
 ## Quick Start:
 
@@ -9,9 +30,11 @@ The structures of proteins and other biomolecules determined by X-ray crystallog
 2. Extract the contents of the Zip file to a folder
 3. Open the program by double-clicking the `main.exe` file
 
-## Walkthrough of GFP model (included and downloaded from RCSB PDB)
+> [!IMPORTANT]
+> Due to the size of even small models, it is recommended to prepare a special Minecraft world with minimal other blocks to generate models.
+> This will ensure that there is the maximum amount of space to generate models.
 
-### Prepare a new Minecraft world - this must be done at least once for best results
+## Prepare a new Minecraft world for PDB models
 1. Open Minecraft (without any mods) and follow these steps to prepare a `Superflat Creative` world
     1. Select `Single Player`
     2. Select `Create New World`
@@ -26,11 +49,18 @@ The structures of proteins and other biomolecules determined by X-ray crystallog
 4. On the 'World' tab, change the following:
     1. `World Type: Superflat`
     2. `Generate Structures: OFF`
-![MC2.png](images%2FMC2.png)
+   3. Select `Customize`, then `Presets` to create a world with a white floor (not required,but suggsted).
+   
+<img src="images/MC2a.png" width="500">
 
-5. On the `More` tab, select `Game Rules` to change the following
+   4. Change the text of the top box to: `minecraft:bedrock,minecraft:white_concrete`
+
+<img src="images/MC2b.png" width="500">
+
+5. On the `More` tab, select `Game Rules` to change the following:
+
     1. `Spawn phantoms OFF`
-   2. `Max Command Chain Length: 1000000 (or higher)`
+    2. `Max Command Chain Length: 1000000 (or higher)`
     2. `Spawn mobs OFF`
     3. `Spawn pillager patrols OFF`
     4. `Spawn Wandering Traders OFF`
@@ -42,32 +72,51 @@ The structures of proteins and other biomolecules determined by X-ray crystallog
 6. When finished select `Done` and/or `Create New World` to create the world.
     1. Minecraft can be closed until the PDB model is generated, or kept open.
 
+## Walkthrough of an example GFP model
+
 ### (Optional) Download a PDB file from RCSB PDB
 1. Navigate to [https://rcsb.org](https://www.rcsb.org/)
 2. In the Search bar, search for a biomolecule (For this example: "Green fluorescent protein")
-![PDBsearch.png](images%2FPDBsearch.png)
+
+    <img src="images/PDBsearch.png" width="500">
 
 3. Select a structure (For this example: the model named "1GFL")
     1. This is the entry for published structures. It contains 3D previews, sequences, and structure information as well as the original citation.
 ![PDBselect.png](images%2FPDBselect.png)
    
 4. Select `Download Files` and download the `PDB Format` file. Note where this is saved.
-![PDBdownload.png](images%2FPDBdownload.png)
 
-### Open the mcPDB program
-1. Select the desired mode
-    1. For this example, select `Ribbon` and `Switch Layout` to finalize the selection
-2. Press `Select PDB file` to select the downloaded PDB file.
-    1. A dialog box will appear noting the maximum protein scale
-3. *Alternative step:* Press `Select Included PDB` to select the included GFP model
+    <img src="images/PDBdownload.png" width="500">
+
+### Open the PDB2MC program
+0. Select the desired mode
+    1. For this example, select `Ribbon` from the `Select Mode:` dropdown menu
+
+<img src="images/PDB2MC1.png" width="500">
+
+> [!NOTE]
+> Descriptions of the different modes are included in the next section.
+
+<img src="images/PDB2MC2.png" width="400">
+
+1. Change `Protein scale` to 4.0.
+    1. A future step will suggest a maximum size for this scale.
+2. Ensure that `Show Backbone` is checked
+3. Press `Select PDB` and choose the downloaded PDB file from your Downloads folder.
+    1. **Note:** Select any ".pdb" file and press `Ok`, no other file type is accepted.
+    2. *Alternative step:* Press `Select Included PDB` to select the included GFP model
 4. Press `Select Minecraft Save` and choose the Minecraft world
-    1. **Note:** Double-click the name of the world and press `Ok`, no other folder is accepted
-5. Ensure that `Show Backbone` is checked
-6. Change `Protein scale` to `5`
-7. Press `Create Minecraft Functions` and wait for the confirmation dialog box.
+    1. **Note:** Double-click the name of the world and press `Ok`, no other folder is accepted.
+    2. A dialog box will appear with a suggested scaling factor for `Protein scale`.
+5. Ensure that `Simple output` is checked.
+   1. This will create single "build" and "clear" functions. Unselected, functions for individual parts of the model will be created.
+6. Press `Create Minecraft Functions` and wait for the confirmation dialog box.
     1. This indicates that the program has finished creating Minecraft functions that will generate the model.
     2. The program *does not* have to be closed in case changes need to be made and the Minecraft model regenerated.
-![MCPDBexample.png](images%2FMCPDBexample.png)
+
+> [!NOTE]
+> These steps may be taken in any order, and incompatible options will be ignored.
+> Details on the options are described in the next section.
 
 ### Open the Minecraft world
 1. If not already open, start Minecraft and open the world intended to generate the model
@@ -77,12 +126,125 @@ The structures of proteins and other biomolecules determined by X-ray crystallog
     1. The model will be generated *relative to the player* and best results for most models will be created while the player is on the ground.
     2. The Minecraft command `/tp @e ~ ~ ~1000` will send the player 1,000 blocks away from the current location. This is useful to separate multiple models
 5. **To generate the model:**
-    1. Type `/function protein:make_` which will bring up the main command, press `tab` to autocomplete for your model.
+    1. Type `/function protein:build_` which will bring up the main command, press `tab` to autocomplete for your model.
        * **Note:** Each model is generated with its unique PDB number. For the GFP example, it would be "1GFL"
     2. Press `Enter` to start the generation.
     3. Individual parts of the model can be separately generated by using the other functions: `backbone`, `atoms`, `heteroatoms`, `ribbon`, etc.
        * Due to limitations within Minecraft it may be neccessary to call these individual functions if the `make_` function does not create the full model
        * Any time a function is run, stand on the black block that is generated to ensure the model components are placed correctly.
+
+## Description of Program modes
+
+1. Custom
+: This mode allows for the most customization of the visualization of atoms and bonds. Useful if you want to add, remove,
+or modify most elements of the model.
+
+2. Skeleton
+: Makes a simple model of the protein backbone and sidechains. These represent the bond between atoms, without showing the atoms themselves. Useful for visualizing the overall shape of the protein with or without 
+amino acid side chains.
+
+3. X-ray
+: Preset that creates a model that displays both atoms and bond of the PDB file. However, the default setting for the
+visualization of the atoms are set to glass blocks and the bonds are set to opaque blocks, which allows for the visualization of the bonds between atoms.
+
+4. Space Filling 
+: This mode creates a model where the atoms are represented by spheres that are scaled to the size of the atom. This gives
+the general appearance of what a protein would look like if it were scaled up. Bonds are still created by default but only
+visible if the atoms are made of glass. 
+
+> [!WARNING]
+> This mode will take a long time to run and may take Minecraft a long
+time to process.
+
+5. Amino Acid 
+: This mode creates a model where the amino acids are represented by a single sphere. This is no longer a true representation
+however, it is useful for visualizing the overall shape of the protein and the location/identity of the amino acids.
+
+6. Ribbon
+: This is preset creates a cartoon-like representation of the protein. The backbone is presented as a smoothed line. Residues
+that are part of either an alpha-helix or beta-sheet are represented as ribbons. The ribbons are colored based on the peptide
+or DNA/RNA chain to which they belong. This mode is useful for visualizing the secondary and tertiary structure of the protein.
+
+## Description of options
+
+1. Features common to most-or-all modes
+    1. `Scale determination: `Once a PDB file is loaded, the program will determine the size of the model and suggest a
+maximum scale for the model. This is to prevent the model from being too large for Minecraft's limited up-and-down (Y) axis.
+In the current version, this appears as a pop-up.
+    2. `Rotation of model: `Once the user starts generating the model, the model will rotate such that the shortest dimension
+will become the up-and-down (Y) axis. This is to prevent the model from being too large for Minecraft.
+    3. `Removal of Hydrogen and Water: `Due to the nature of X-ray crystallography, hydrogen atoms are often not captured
+in the PDB file. Additionally, water molecules are often present in the crystal and are not part of the protein. If present
+these atoms are removed from the visualization.
+    4. `Removal of ambiguous residues: `Some PDB files contain amino acids that are not fully resolved. This means that the
+exact orientation of amino acid residues are not known. The ambiguous residues are removed from the visualization.
+    5. `Color of chains: `In modes that color the backbone of the protein by default or optionally, the chains will be colored
+based on a preset set of brightly colored blocks. This may be made customizable in the future versions.
+    6. `Minecraft datapack: `When a new Minecraft world first has model functions generated, a "datapack" is required. 
+The program will automatically generate the datapack file structure and place the required pack.mcmeta file in the datapack.
+   
+
+1. Atom Scale
+: This option allows the user to change the size of the atoms by applying a scaling factor to the radius of the spheres 
+that will represent those atoms.
+
+2. Protein Scale
+: This option allows the user to change the size of the protein by applying a scaling factor to the distance between
+each atoms. Thus, the protein will be scaled up or down. This option is useful for visualizing the bonds between each atom
+since `Atom Scale` will not change the distance between atoms and is a separate option. 
+
+3. "Select _____ color"
+: These sets of options allow the user to individually select the Minecraft block that will represent a particular atom,
+group of atoms, or bond. The user may select a block from a curated list from the current version of
+Minecraft. "Other color" refers to atoms which are uncommon to PDB models.
+
+4. "Color backbone by chain"
+: If selected, the backbone or backbone and sidechain will be colored by the "chain" number. Single protein, DNA, or DNA
+molecules are considered chains. this option is useful to view the different subunits that make up a full complex or model.
+
+4. "Backbone _____"
+: References to a protein backbone refer to the atoms that make up the long chain of amino acids. The backbone are the
+N-C-C atoms of each amino acid residue. Several options exist to modify the appearance of these atoms and their bonds.
+
+5. "Sidechain _____"
+: References to a protein sidechain refer to the atoms that make up the variable R group of each amino acid. Several options
+exist to modify the appearance of these atoms and their bonds. 
+ 
+6. "Show other molecules"
+: This option allows the user to visualize the atoms and bonds of other molecules that are present in the PDB file. These 
+are often ligands, co-factors, or substrates that are bound to the protein. These are not part of the protein and are always 
+displayed as a "ball-and-stick" model.
+
+7. "Use "mesh-style" atoms"
+: Selecting this option will reduce the number of blocks to display a "cloud" of blocks rather than a full sphere for each atom.
+This is another method to visualize the interior and bond structures of models without being occluded by the atoms.
+
+8. `Help` button
+: Pressing this button will open a new window with a link to this guide.
+
+9. `Github` button
+: Pressing this button will open a new window with a link to the Github repository for this program.
+
+10. `RCSB.org` button
+: Pressing this button will open a new window with a link to the RCSB PDB website. This is where you can look up and download
+PDB files for your own models.
+
+<a id="default-atom-colors"></a>
+11. Default atom colors
+: Below is a table of the default colors for each atom. These are the colors that will be used if the user does not select
+alternatives.
+
+| Abbreviation | Atom | Color | Currently modifiable? |
+  | ---- | ---- | ----- | ----- |
+  | C | Carbon | Black | Yes |
+  | O | Oxygen | Red | Yes |
+  | N | Nitrogen | Blue | Yes |
+  | S | Sulfur | Yellow | Yes |
+  | P | Phosphorous | White | Yes |
+| H | Hydrogen | White | No |
+| Fe | Iron | Iron block | No |
+  | - | Other | Green | Yes |
+
 
 ## Glossary of terms
 
@@ -141,66 +303,42 @@ the Protein, DNA, and/or RNA atoms are denoted as "atoms", while the atoms that 
 : A bond is the connection between two atoms and within the structure created by the PDB file. This represents the sharing
 of electrons between two atoms (in "covalent bonds"). Hydrogen and ionic bonds are not represented in the PDB file.
 
-## Description of Program modes
+## Generalized Flowchart of Program Procedure
 
-1. Features common to most-or-all modes
-    1. `Scale determination: `Once a PDB file is loaded, the program will determine the size of the model and suggest a
-maximum scale for the model. This is to prevent the model from being too large for Minecraft's limited up-and-down (Y) axis.
-In the current version, this appears as a pop-up.
-    2. `Rotation of model: `Once the user starts generating the model, the model will rotate such that the shortest dimension
-will become the up-and-down (Y) axis. This is to prevent the model from being too large for Minecraft.
-    3. `Removal of Hydrogen and Water: `Due to the nature of X-ray crystallography, hydrogen atoms are often not captured
-in the PDB file. Additionally, water molecules are often present in the crystal and are not part of the protein. If present
-these atoms are removed from the visualization.
-    4. `Removal of ambiguous residues: `Some PDB files contain amino acids that are not fully resolved. This means that the
-exact orientation of amino acid residues are not known. The ambiguous residues are removed from the visualization.
-    5. `Color of chains: `In modes that color the backbone of the protein by default or optionally, the chains will be colored
-based on a preset set of brightly colored blocks. This may be made customizable in the future versions.
-    6. `Minecraft datapack: `When a new Minecraft world first has model functions generated, a "datapack" is required. 
-The program will automatically generate the datapack file structure and place the required pack.mcmeta file in the datapack.
-   
-3. Custom
-: This mode allows for the most customization of the visualization of atoms and bonds. Useful if you want to add, remove,
-or modify most elements of the model.
+A generalized flowchart of the program procedure is shown below. This is a simplified version of the actual program procedure
+and will vary depending on the mode and options selected.
 
-4. Skeleton
-: Makes a simple model of the protein backbone. Useful for visualizing the overall shape of the protein with or without 
-amino acid side chains.
-
-5. X-ray
-: Preset that creates a model that is similar to the default view of the PDB file. However, the default setting for the
-visualization of the atoms are set to glass, which allows for the visualization of the bonds between atoms.
-
-6. Space Filling 
-: This mode creates a model where the atoms are represented by spheres that are scaled to the size of the atom. This gives
-the general appearance of what a protein would look like if it were scaled up. Bonds are still created by default but only
-visible if the atoms are made of glass. **Caution:** This mode may take a long time to run and may take Minecraft a long
-time to process.
-
-7. Amino Acid 
-: This mode creates a model where the amino acids are represented by a single sphere. This is no longer a true representation
-however, it is useful for visualizing the overall shape of the protein and the location/identity of the amino acids.
-
-8. Ribbon
-: This is preset creates a cartoon-like representation of the protein. The backbone is presented as a smoothed line. Residues
-that are part of either an alpha-helix or beta-sheet are represented as ribbons. The ribbons are colored based on the peptide
-or DNA/RNA chain to which they belong. This mode is useful for visualizing the secondary and tertiary structure of the protein.
-
-## Description of options
-
-1. Atom Scale
-: This option allows the user to change the size of the atoms by applying a scaling factor to the radius of the spheres 
-that will represent those atoms.
-
-2. Protein Scale
-: This option allows the user to change the size of the protein by applying a scaling factor to the distance between
-each atoms. Thus, the protein will be scaled up or down. This option is useful for visualizing the bonds between each atom
-since `Atom Scale` will not change the distance between atoms and is a separate option. 
-
-3. "Select _____ atom"
-: These sets of options allow the user to individually select the Minecraft block that will represent a particular atom,
-group of atoms, or bond. The user may select a block from a curated list from the current version of
-Minecraft.
-
-4. Heteroatom
-5. Bonds
+```mermaid
+flowchart TD
+        A[PDB File] -->|Scale coordinates| B(Scaled PDB)
+        B --> |Move and rotate to fit| C(Fit PDB)
+        C --> D(Model Atoms)
+        C --> E(Hetero Atoms)
+        D --> F(Backbone Atoms)
+    
+        F --> |Bresenham Lines| H(Backbone Bonds)
+        F --> |Calculate Spheres| J(Spherical Backbone Atoms)
+        M[Atom Scale] --> |Calculate Spheres| J(Spherical Backbone Atoms)
+    
+        D --> G(Sidechain Atoms)    
+        G --> |Bresenham Lines| I(Sidechain Bonds)
+        G --> |Calculate Spheres| K(Spherical Sidechain Atoms)
+        N[Atom Scale] --> |Calculate Spheres| K(Spherical Sidechain Atoms)
+    
+        E --> |Calculate Spheres| O(Spherical Heteroatoms)
+        E --> |Define Bonds| P(Heteroatom Bonds)
+    
+        H --> |Minecraft conversion| Q(Backbone Bond Commands)
+        I --> |Minecraft conversion| R(Sidechain Bond Commands)
+        J --> |Minecraft conversion| S(Backbone Atom Commands)
+        K --> |Minecraft conversion| T(Sidechain Atom Commands)
+        O --> |Minecraft conversion| U(Heteroatom Commands)
+        P --> |Minecraft conversion| V(Heteroatom Bond Commands)
+    
+        Q --> W(build_model Function)
+        R --> W
+        S --> W
+        T --> W
+        U --> W
+        V --> W
+```

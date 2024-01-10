@@ -151,9 +151,14 @@ class IncludedPDBPopup(QMainWindow):
         super().__init__()
         self.setWindowTitle("Select one included PDB model")
         self.resize(350, 200)
+        self.setWindowIcon(QIcon('images/icons/logo.png'))
+
+        # Set background image
+        self.setStyleSheet("background-image: url(images/MC2PDB bg.png);")
 
         #Create a selectable list where user can select one item
         self.listWidget = QListWidget(self)
+        self.listWidget.setStyleSheet("QListWidget::item { background-color: rgba(255, 255, 255, 150); }")
         self.listWidget.setGeometry(QtCore.QRect(50, 10, 250, 130))
         self.listWidget.setObjectName("listWidget")
 
@@ -171,10 +176,15 @@ class IncludedPDBPopup(QMainWindow):
         #Create button named "okay"
         self.okayButton = QPushButton("Okay", self)
         self.okayButton.move(60, 150)
+        self.okayButton.setStyleSheet("background-color: rgba(255, 255, 255, 255);")
 
         #Create button named "Cancel"
         self.cancelButton = QPushButton("Cancel", self)
         self.cancelButton.move(185, 150)
+        self.cancelButton.setStyleSheet("background-color: rgba(255, 255, 255, 255);")
+
+        self.okayButton.raise_()
+        self.cancelButton.raise_()
 
         self.okayButton.clicked.connect(self.getSelected)
         self.cancelButton.clicked.connect(self.cancelSelected)
@@ -183,7 +193,6 @@ class IncludedPDBPopup(QMainWindow):
     def getSelected(self):
         selected_text = self.listWidget.currentItem().text()
 
-
         if selected_text == '-none-':
             self.nothing = NothingSelected()
             self.nothing.show()
@@ -191,12 +200,23 @@ class IncludedPDBPopup(QMainWindow):
             preset_file = os.path.join("presets", selected_text + ".pdb")
             # check if the model is small enough for minecraft
             if not pdbm.check_model_size(preset_file, world_max=320):
-                QMessageBox.warning(self, "Too large", f"Model may be too large for Minecraft.")
+                self.info_box = InformationBox()
+                self.info_box.set_text(f"The chosen model is too large for Minecraft.")
+                self.info_box.set_title("Model too large!")
+                self.info_box.set_icon("images/icons/icon_bad.png")
+                self.info_box.show()
+                #QMessageBox.warning(self, "Too large", f"Model may be too large for Minecraft.")
             else:
                 # Calculate the maximum protein scale factor
                 size_factor = pdbm.check_max_size(preset_file, world_max=320)
                 size_factor = str(round(size_factor, 2))
-                QMessageBox.information(self, "Maximum scale", f"The maximum protein scale is: {size_factor}x")
+                self.info_box = InformationBox()
+                self.info_box.set_text(f"The suggested maximum protein scale is: {size_factor}x\n\nSet 'Protein Scale' below this for best results.")
+                self.info_box.set_title("Maximum scale")
+                self.info_box.set_icon("images/icons/icon_info.png")
+                self.info_box.show()
+
+                #QMessageBox.information(self, "Maximum scale", f"The maximum protein scale is: {size_factor}x")
             self.selected.emit(selected_text)
             self.close()
             return selected_text

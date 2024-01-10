@@ -1418,22 +1418,13 @@ class CustomWindow(QMainWindow):
             # Delete the old mcfunctions if they match the current one
             mc_dir = config_data['save_path']
             mcf.delete_mcfunctions(mc_dir, "z" + pdb_name.lower())
-            print(config_data)
-            print(mc_dir)
-            print(pdb_name)
-            print(pdb_file)
-            print(rounded.head())
-            print(mc_dir)
-            print(atom_df.head())
-            print(hetatom_df.head())
-            print(hetatm_bonds.head())
+
             try:
                 custom.run_mode(config_data, pdb_name, pdb_file, rounded, mc_dir, atom_df, hetatom_df, hetatm_bonds)
             except Exception as e:
                 print(f"Error: {e}")
 
             mcfiles = mcf.find_mcfunctions(mc_dir, pdb_name.lower())
-            print(mcfiles)
 
             if config_data["simple"]:
                 mcf.create_simple_function(pdb_name, mc_dir)

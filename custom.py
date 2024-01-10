@@ -5,20 +5,12 @@ import pandas as pd
 
 def run_mode(config_data, pdb_name, pdb_file, rounded, mc_dir, atom_df, hetatom_df, hetatm_bonds):
 
-    print("running custom mode")
-
     # Deal with the backbone
     if config_data["backbone"]:
-        print('making backbone')
-        print(rounded.head())
-        print(rounded.tail())
         pdb_backbone = pdb_name + "_backbone"
         backbone = pdbm.atom_subset(rounded, ['C', 'N', 'CA', 'P', "O5'", "C5'", "C4'", "C3'", "O3'"],
                                     include=True)
-        print(backbone.head())
-
         if config_data["by_chain"]:
-            print("by chain??")
             by_chain_df = pd.DataFrame(columns=['X', 'Y', 'Z', 'atom'])
             chain_values = backbone["chain"].unique()
 
@@ -51,7 +43,6 @@ def run_mode(config_data, pdb_name, pdb_file, rounded, mc_dir, atom_df, hetatom_
                                            replace=False)
 
     if config_data["sidechain"]:
-        print('making sidechain')
 
         branches = pdbm.sidechain(rounded)
 
@@ -68,7 +59,7 @@ def run_mode(config_data, pdb_name, pdb_file, rounded, mc_dir, atom_df, hetatom_
                                            replace=False)
 
     if config_data["show_atoms"]:
-        print("making atoms")
+
         pdb_atoms = pdb_name + "_atoms"
         coord = pdbm.rasterized_sphere(config_data['atom_scale'])
         center = pdbm.sphere_center(config_data['atom_scale'])
