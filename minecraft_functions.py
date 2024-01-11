@@ -139,3 +139,34 @@ def create_simple_function(name, directory):
         f.write(f'tp @s ~ ~ ~ facing {first_block[0]} {first_block[1]} {first_block[2]}\n')
         f.write(f'setblock ~ ~-1 ~ minecraft:obsidian replace\n')
         f.writelines(functions)
+
+
+def adjust_y_coords(directory, pdb_name):
+    min_y = None
+    files = []
+
+    # Find the minimum Y value
+    for filename in os.listdir(directory):
+        if pdb_name in filename and filename.endswith(".mcfunction"):
+            files.append(filename)
+            with open(os.path.join(directory, filename), 'r') as f:
+                for line in f:
+                    if not line.startswith("setblock ~ ~-1 ~ minecraft:obsidian replace") and 'setblock' in line:
+                        y = int(float(line.split(' ')[2].split('~')[1]))
+                        if min_y is None or y < min_y:
+                            min_y = y
+
+    # Adjust Y values in the files
+    for filename in files:
+        with open(os.path.join(directory, filename), 'r') as f:
+            lines = f.readlines()
+        with open(os.path.join(directory, filename), 'w') as f:
+            for line in lines:
+                if not line.startswith("setblock ~ ~-1 ~ minecraft:obsidian replace") and 'setblock' in line:
+                    y = int(float(line.split(' ')[2].split('~')[1]))
+                    adjusted_y = y - min_y
+                    start = ' '.join(line.split(' ')[0:2])
+                    adj_y = "~" + str(adjusted_y)
+                    end = ' '.join(line.split(' ')[3:10])
+                    line = start + " " + adj_y + " " + end
+                f.write(line)
