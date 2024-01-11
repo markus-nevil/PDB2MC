@@ -1,5 +1,5 @@
 # PDB2MC: Bridging Biomolecules and Minecraft for accessible, interactive 3D visualization.
-### Author: Markus Nevil, PhD<br>Version: 1.2.0</sup>
+### Author: Markus Nevil, PhD<br>Version: 1.0.0</sup>
 
 **Table of Contents**
  - [Introduction](#introduction)
