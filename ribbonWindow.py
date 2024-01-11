@@ -1,8 +1,5 @@
-import os
-from shutil import copyfile
-from PyQt6.QtWidgets import QFileDialog, QHBoxLayout, QApplication, QListWidget, QPushButton, QMainWindow, QMessageBox, QLabel, QVBoxLayout, QWidget, QStylePainter
-from PyQt6.QtGui import QMovie, QPalette, QBrush, QPixmap, QDesktopServices, QIcon
-from PyQt6.QtCore import Qt, QTimer, pyqtSignal
+from PyQt6.QtWidgets import QApplication, QListWidget, QPushButton, QMainWindow, QMessageBox, QLabel, QVBoxLayout, QWidget, QStylePainter
+from PyQt6.QtGui import QDesktopServices, QIcon
 from PyQt6 import QtCore, QtGui, QtWidgets
 
 import UI
@@ -18,7 +15,7 @@ import pandas as pd
 import pdb_manipulation as pdbm
 import minecraft_functions as mcf
 import ribbon
-from utilUI import MyComboBox, NothingSelected, IncludedPDBPopup, MinecraftPopup, FileExplorerPopup
+from utilUI import InformationBox, MyComboBox, NothingSelected, IncludedPDBPopup, MinecraftPopup, FileExplorerPopup
 
 class RibbonWindow(QMainWindow):
     def __init__(self):
@@ -959,7 +956,10 @@ class RibbonWindow(QMainWindow):
         #replace any space characters with '_'
         text = text.replace(' ', '_')
         if text not in decorative_blocks:
-            QMessageBox.warning(self, "Invalid Input", f"{text} is not a valid option.")
+            self.show_information_box(title_text=f"Invalid block input",
+                                      text=f"{text} is not a valid block option.",
+                                      icon_path="images/icons/icon_bad.png")
+            #QMessageBox.warning(self, "Invalid Input", f"{text} is not a valid option.")
             combobox.setCurrentIndex(0)
         else:
             combobox.setCurrentText(text)
@@ -974,7 +974,10 @@ class RibbonWindow(QMainWindow):
     def handle_select_minecraft_button(self):
         self.selectMinecraft = MinecraftPopup()
         if self.selectMinecraft.selected_directory is None:
-            QMessageBox.critical(None, "Error", "Remember to select a Minecraft save.")
+            self.show_information_box(title_text=f"Error",
+                                      text=f"Remember to select a Minecraft save.",
+                                      icon_path="images/icons/icon_bad.png")
+            #QMessageBox.critical(None, "Error", "Remember to select a Minecraft save.")
             return
         self.user_minecraft_save = self.selectMinecraft.selected_directory
     def handle_included_pdb_button(self):
@@ -1019,9 +1022,15 @@ class RibbonWindow(QMainWindow):
         # Add the current paths of the files and directories to the dictionary
         # Replace 'file_path' and 'save_path' with the actual paths
         if self.user_pdb_file is None:
-            QMessageBox.critical(None, "Error", "Please select a PDB file.")
+            self.show_information_box(title_text=f"Error: No PDB file",
+                                      text=f"Please select a PDB file.",
+                                      icon_path="images/icons/icon_bad.png")
+            #QMessageBox.critical(None, "Error", "Please select a PDB file.")
         elif self.user_minecraft_save is None:
-            QMessageBox.critical(None, "Error", "Please select a Minecraft save.")
+            self.show_information_box(title_text=f"Error: No Minecraft save",
+                                      text=f"Please select a Minecraft save.",
+                                      icon_path="images/icons/icon_bad.png")
+            #QMessageBox.critical(None, "Error", "Please select a Minecraft save.")
         else:
             config_data['pdb_file'] = self.user_pdb_file
             config_data['save_path'] = self.user_minecraft_save
@@ -1042,7 +1051,6 @@ class RibbonWindow(QMainWindow):
 
             # Check if the user wants het-atoms, if so, process them
             if config_data["show_hetatm"] == True:
-                print("Hetatm TRUE")
                 # check if the first column of rounded contains any "HETATM" values
 
                 if "HETATM" in rounded.iloc[:, 0].values:
@@ -1061,10 +1069,11 @@ class RibbonWindow(QMainWindow):
             mcf.delete_mcfunctions(mc_dir, "z" + pdb_name.lower())
 
             try:
-                print("fix")
                 ribbon.run_mode(pdb_name, pdb_file, rounded, mc_dir, config_data, hetatom_df, hetatm_bonds)
             except Exception as e:
-                print(f"Error: {e}")
+                self.show_information_box(title_text=f"Error encountered",
+                                          text=f"Model has not generated! \nError: {e}",
+                                          icon_path="images/icons/icon_bad.png")
 
             mcfiles = mcf.find_mcfunctions(mc_dir, pdb_name.lower())
 
@@ -1078,8 +1087,9 @@ class RibbonWindow(QMainWindow):
 
             lower = pdb_name.lower()
 
+            self.show_information_box(title_text = f"Model generated", text = f"Finished! \n Remember to use /reload\n Make your model with: /function protein:build_" + lower, icon_path = "images/icons/icon_good.png")
 
-            QMessageBox.information(None, "Model generated", f"Finished!\nRemember to /reload in your world and /function protein:build_{lower}")
+            #QMessageBox.information(None, "Model generated", f"Finished!\nRemember to /reload in your world and /function protein:build_{lower}")
 
 
     def handle_github_button(self):
@@ -1128,7 +1138,12 @@ class RibbonWindow(QMainWindow):
     def handle_ribbon_mode(self):
         print("Ribbon mode button clicked")
 
-
+    def show_information_box(self, title_text, text, icon_path):
+        self.info_box = InformationBox()
+        self.info_box.set_text(text)
+        self.info_box.set_title(title_text)
+        self.info_box.set_icon(icon_path)
+        self.info_box.show()
 
     def retranslateUi(self, RibbonWindow):
         _translate = QtCore.QCoreApplication.translate

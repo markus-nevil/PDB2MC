@@ -28,9 +28,9 @@ class InformationBox(QMainWindow):
 
         labelTitle = QtWidgets.QLabel(self)
         pixmap = QtGui.QPixmap("images/icons/icon_info.png")
-        pixmap = pixmap.scaled(100, 100)
+        pixmap = pixmap.scaled(200, 200)
         labelTitle.setScaledContents(True)
-        labelTitle.setGeometry(QtCore.QRect(25, 25, 100, 100))
+        labelTitle.setGeometry(QtCore.QRect(37, 37, 75, 75))
 
         labelTitle.setPixmap(pixmap)
         labelTitle.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
@@ -92,9 +92,9 @@ class InformationBox(QMainWindow):
     def set_icon(self, icon):
         labelTitle = QtWidgets.QLabel(self)
         pixmap = QtGui.QPixmap(icon)
-        pixmap = pixmap.scaled(100, 100)
+        pixmap = pixmap.scaled(200, 200)
         labelTitle.setScaledContents(True)
-        labelTitle.setGeometry(QtCore.QRect(25, 25, 100, 100))
+        labelTitle.setGeometry(QtCore.QRect(37, 37, 75, 75))
 
         labelTitle.setPixmap(pixmap)
         labelTitle.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)

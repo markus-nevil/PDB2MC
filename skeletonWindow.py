@@ -1,25 +1,19 @@
-import os
-from shutil import copyfile
-from PyQt6.QtWidgets import QFileDialog, QHBoxLayout, QApplication, QListWidget, QPushButton, QMainWindow, QMessageBox, QLabel, QVBoxLayout, QWidget, QStylePainter
-from PyQt6.QtGui import QMovie, QPalette, QBrush, QPixmap, QDesktopServices, QIcon
-from PyQt6.QtCore import Qt, QTimer, pyqtSignal
+from PyQt6.QtWidgets import QApplication, QMainWindow
+from PyQt6.QtGui import QDesktopServices, QIcon
 from PyQt6 import QtCore, QtGui, QtWidgets
-
-import UI
 import utilUI
 import xrayWindow
 import space_fillingWindow
 import ribbonWindow
 import amino_acidsWindow
 import customWindow
-
 from variables import decorative_blocks
 import pandas as pd
-
 import pdb_manipulation as pdbm
 import minecraft_functions as mcf
 import skeleton
-from utilUI import MyComboBox, NothingSelected, IncludedPDBPopup, MinecraftPopup, FileExplorerPopup
+from utilUI import MyComboBox,IncludedPDBPopup, MinecraftPopup, FileExplorerPopup
+
 
 class SkeletonWindow(QMainWindow):
     def __init__(self):
@@ -28,10 +22,7 @@ class SkeletonWindow(QMainWindow):
         self.user_minecraft_save = None
         self.setWindowTitle("Skeleton Mode")
         self.setWindowIcon(QIcon('images/icons/logo.png'))
-
         self.resize(450, 411)
-        # Set style to Fusion
-        #self.setStyle("Fusion")
         self.centralwidget = QtWidgets.QWidget(parent=self)
         self.centralwidget.setObjectName("centralwidget")
         self.switchModeLabel = QtWidgets.QLabel(parent=self.centralwidget)
@@ -338,303 +329,131 @@ class SkeletonWindow(QMainWindow):
         icon64.addPixmap(QtGui.QPixmap("images/icons/white_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
 
         self.backboneColorLabel = QtWidgets.QLabel(parent=self.centralwidget)
-
-
         self.backboneColorLabel.setObjectName("backboneColorLabel")
+
         self.sidechainColorLabel = QtWidgets.QLabel(parent=self.centralwidget)
-
         self.sidechainColorLabel.setObjectName("sidechainColorLabel")
-        self.otherColorLabel = QtWidgets.QLabel(parent=self.centralwidget)
 
+        self.otherColorLabel = QtWidgets.QLabel(parent=self.centralwidget)
         self.otherColorLabel.setObjectName("otherColorLabel")
 
         self.otherColorBox = MyComboBox(self.centralwidget)
-
         self.otherColorBox.setObjectName("otherColorBox")
         self.otherColorBox.setEditable(True)
 
-        self.otherColorBox.addItem(icon12, "pink_concrete")
-        self.otherColorBox.addItem(icon2, "red_concrete")
-        self.otherColorBox.addItem(icon3, "orange_concrete")
-        self.otherColorBox.addItem(icon4, "yellow_concrete")
-        self.otherColorBox.addItem(icon5, "lime_concrete")
-        self.otherColorBox.addItem(icon6, "green_concrete")
-        self.otherColorBox.addItem(icon7, "cyan_concrete")
-        self.otherColorBox.addItem(icon8, "light_blue_concrete")
-        self.otherColorBox.addItem(icon9, "blue_concrete")
-        self.otherColorBox.addItem(icon10, "purple_concrete")
-        self.otherColorBox.addItem(icon11, "magenta_concrete")
-        self.otherColorBox.addItem(icon13, "brown_concrete")
-        self.otherColorBox.addItem(icon1, "black_concrete")
-        self.otherColorBox.addItem(icon14, "gray_concrete")
-        self.otherColorBox.addItem(icon15, "light_gray_concrete")
-        self.otherColorBox.addItem(icon16, "white_concrete")
-        self.otherColorBox.addItem(icon17, "red_glazed_terracotta")
-        self.otherColorBox.addItem(icon18, "orange_glazed_terracotta")
-        self.otherColorBox.addItem(icon19, "yellow_glazed_terracotta")
-        self.otherColorBox.addItem(icon20, "lime_glazed_terracotta")
-        self.otherColorBox.addItem(icon21, "green_glazed_terracotta")
-        self.otherColorBox.addItem(icon22, "cyan_glazed_terracotta")
-        self.otherColorBox.addItem(icon23, "light_blue_glazed_terracotta")
-        self.otherColorBox.addItem(icon24, "blue_glazed_terracotta")
-        self.otherColorBox.addItem(icon25, "purple_glazed_terracotta")
-        self.otherColorBox.addItem(icon26, "magenta_glazed_terracotta")
-        self.otherColorBox.addItem(icon27, "pink_glazed_terracotta")
-        self.otherColorBox.addItem(icon28, "brown_glazed_terracotta")
-        self.otherColorBox.addItem(icon29, "black_glazed_terracotta")
-        self.otherColorBox.addItem(icon30, "gray_glazed_terracotta")
-        self.otherColorBox.addItem(icon31, "light_gray_glazed_terracotta")
-        self.otherColorBox.addItem(icon32, "white_glazed_terracotta")
-        self.otherColorBox.addItem(icon33, "red_terracotta")
-        self.otherColorBox.addItem(icon34, "orange_terracotta")
-        self.otherColorBox.addItem(icon35, "yellow_terracotta")
-        self.otherColorBox.addItem(icon36, "lime_terracotta")
-        self.otherColorBox.addItem(icon37, "green_terracotta")
-        self.otherColorBox.addItem(icon38, "cyan_terracotta")
-        self.otherColorBox.addItem(icon39, "light_blue_terracotta")
-        self.otherColorBox.addItem(icon40, "blue_terracotta")
-        self.otherColorBox.addItem(icon41, "purple_terracotta")
-        self.otherColorBox.addItem(icon42, "magenta_terracotta")
-        self.otherColorBox.addItem(icon43, "pink_terracotta")
-        self.otherColorBox.addItem(icon44, "brown_terracotta")
-        self.otherColorBox.addItem(icon45, "black_terracotta")
-        self.otherColorBox.addItem(icon46, "gray_terracotta")
-        self.otherColorBox.addItem(icon47, "light_gray_terracotta")
-        self.otherColorBox.addItem(icon48, "white_terracotta")
-        self.otherColorBox.addItem(icon49, "red_wool")
-        self.otherColorBox.addItem(icon50, "orange_wool")
-        self.otherColorBox.addItem(icon51, "yellow_wool")
-        self.otherColorBox.addItem(icon52, "lime_wool")
-        self.otherColorBox.addItem(icon53, "green_wool")
-        self.otherColorBox.addItem(icon54, "cyan_wool")
-        self.otherColorBox.addItem(icon55, "light_blue_wool")
-        self.otherColorBox.addItem(icon56, "blue_wool")
-        self.otherColorBox.addItem(icon57, "purple_wool")
-        self.otherColorBox.addItem(icon58, "magenta_wool")
-        self.otherColorBox.addItem(icon59, "pink_wool")
-        self.otherColorBox.addItem(icon60, "brown_wool")
-        self.otherColorBox.addItem(icon61, "black_wool")
-        self.otherColorBox.addItem(icon62, "gray_wool")
-        self.otherColorBox.addItem(icon63, "light_gray_wool")
-        self.otherColorBox.addItem(icon64, "wool")
-        self.otherColorBox.addItem(icon2, "red_stained_glass")
-        self.otherColorBox.addItem(icon3, "orange_stained_glass")
-        self.otherColorBox.addItem(icon4, "yellow_stained_glass")
-        self.otherColorBox.addItem(icon5, "lime_stained_glass")
-        self.otherColorBox.addItem(icon6, "green_stained_glass")
-        self.otherColorBox.addItem(icon7, "cyan_stained_glass")
-        self.otherColorBox.addItem(icon8, "light_blue_stained_glass")
-        self.otherColorBox.addItem(icon9, "blue_stained_glass")
-        self.otherColorBox.addItem(icon10, "purple_stained_glass")
-        self.otherColorBox.addItem(icon11, "magenta_stained_glass")
-        self.otherColorBox.addItem(icon12, "pink_stained_glass")
-        self.otherColorBox.addItem(icon13, "brown_stained_glass")
-        self.otherColorBox.addItem(icon1, "black_stained_glass")
-        self.otherColorBox.addItem(icon14, "gray_stained_glass")
-        self.otherColorBox.addItem(icon15, "light_stained_glass")
-        self.otherColorBox.addItem(icon16, "white_stained_glass")
-        self.otherColorBox.insertSeparator(16)
-        self.otherColorBox.insertSeparator(33)
-        self.otherColorBox.insertSeparator(50)
-        self.otherColorBox.insertSeparator(67)
-
         self.backboneColorBox = MyComboBox(self.centralwidget)
-
         self.backboneColorBox.setObjectName("backboneColorBox")
         self.backboneColorBox.setEditable(True)
 
-        self.backboneColorBox.addItem(icon14, "gray_concrete")
-        self.backboneColorBox.addItem(icon2, "red_concrete")
-        self.backboneColorBox.addItem(icon3, "orange_concrete")
-        self.backboneColorBox.addItem(icon4, "yellow_concrete")
-        self.backboneColorBox.addItem(icon5, "lime_concrete")
-        self.backboneColorBox.addItem(icon6, "green_concrete")
-        self.backboneColorBox.addItem(icon7, "cyan_concrete")
-        self.backboneColorBox.addItem(icon8, "light_blue_concrete")
-        self.backboneColorBox.addItem(icon9, "blue_concrete")
-        self.backboneColorBox.addItem(icon10, "purple_concrete")
-        self.backboneColorBox.addItem(icon11, "magenta_concrete")
-        self.backboneColorBox.addItem(icon12, "pink_concrete")
-        self.backboneColorBox.addItem(icon13, "brown_concrete")
-        self.backboneColorBox.addItem(icon1, "black_concrete")
-        self.backboneColorBox.addItem(icon15, "light_gray_concrete")
-        self.backboneColorBox.addItem(icon16, "white_concrete")
-        self.backboneColorBox.addItem(icon17, "red_glazed_terracotta")
-        self.backboneColorBox.addItem(icon18, "orange_glazed_terracotta")
-        self.backboneColorBox.addItem(icon19, "yellow_glazed_terracotta")
-        self.backboneColorBox.addItem(icon20, "lime_glazed_terracotta")
-        self.backboneColorBox.addItem(icon21, "green_glazed_terracotta")
-        self.backboneColorBox.addItem(icon22, "cyan_glazed_terracotta")
-        self.backboneColorBox.addItem(icon23, "light_blue_glazed_terracotta")
-        self.backboneColorBox.addItem(icon24, "blue_glazed_terracotta")
-        self.backboneColorBox.addItem(icon25, "purple_glazed_terracotta")
-        self.backboneColorBox.addItem(icon26, "magenta_glazed_terracotta")
-        self.backboneColorBox.addItem(icon27, "pink_glazed_terracotta")
-        self.backboneColorBox.addItem(icon28, "brown_glazed_terracotta")
-        self.backboneColorBox.addItem(icon29, "black_glazed_terracotta")
-        self.backboneColorBox.addItem(icon30, "gray_glazed_terracotta")
-        self.backboneColorBox.addItem(icon31, "light_gray_glazed_terracotta")
-        self.backboneColorBox.addItem(icon32, "white_glazed_terracotta")
-        self.backboneColorBox.addItem(icon33, "red_terracotta")
-        self.backboneColorBox.addItem(icon34, "orange_terracotta")
-        self.backboneColorBox.addItem(icon35, "yellow_terracotta")
-        self.backboneColorBox.addItem(icon36, "lime_terracotta")
-        self.backboneColorBox.addItem(icon37, "green_terracotta")
-        self.backboneColorBox.addItem(icon38, "cyan_terracotta")
-        self.backboneColorBox.addItem(icon39, "light_blue_terracotta")
-        self.backboneColorBox.addItem(icon40, "blue_terracotta")
-        self.backboneColorBox.addItem(icon41, "purple_terracotta")
-        self.backboneColorBox.addItem(icon42, "magenta_terracotta")
-        self.backboneColorBox.addItem(icon43, "pink_terracotta")
-        self.backboneColorBox.addItem(icon44, "brown_terracotta")
-        self.backboneColorBox.addItem(icon45, "black_terracotta")
-        self.backboneColorBox.addItem(icon46, "gray_terracotta")
-        self.backboneColorBox.addItem(icon47, "light_gray_terracotta")
-        self.backboneColorBox.addItem(icon48, "white_terracotta")
-        self.backboneColorBox.addItem(icon49, "red_wool")
-        self.backboneColorBox.addItem(icon50, "orange_wool")
-        self.backboneColorBox.addItem(icon51, "yellow_wool")
-        self.backboneColorBox.addItem(icon52, "lime_wool")
-        self.backboneColorBox.addItem(icon53, "green_wool")
-        self.backboneColorBox.addItem(icon54, "cyan_wool")
-        self.backboneColorBox.addItem(icon55, "light_blue_wool")
-        self.backboneColorBox.addItem(icon56, "blue_wool")
-        self.backboneColorBox.addItem(icon57, "purple_wool")
-        self.backboneColorBox.addItem(icon58, "magenta_wool")
-        self.backboneColorBox.addItem(icon59, "pink_wool")
-        self.backboneColorBox.addItem(icon60, "brown_wool")
-        self.backboneColorBox.addItem(icon61, "black_wool")
-        self.backboneColorBox.addItem(icon62, "gray_wool")
-        self.backboneColorBox.addItem(icon63, "light_gray_wool")
-        self.backboneColorBox.addItem(icon64, "wool")
-        self.backboneColorBox.addItem(icon2, "red_stained_glass")
-        self.backboneColorBox.addItem(icon3, "orange_stained_glass")
-        self.backboneColorBox.addItem(icon4, "yellow_stained_glass")
-        self.backboneColorBox.addItem(icon5, "lime_stained_glass")
-        self.backboneColorBox.addItem(icon6, "green_stained_glass")
-        self.backboneColorBox.addItem(icon7, "cyan_stained_glass")
-        self.backboneColorBox.addItem(icon8, "light_blue_stained_glass")
-        self.backboneColorBox.addItem(icon9, "blue_stained_glass")
-        self.backboneColorBox.addItem(icon10, "purple_stained_glass")
-        self.backboneColorBox.addItem(icon11, "magenta_stained_glass")
-        self.backboneColorBox.addItem(icon12, "pink_stained_glass")
-        self.backboneColorBox.addItem(icon13, "brown_stained_glass")
-        self.backboneColorBox.addItem(icon1, "black_stained_glass")
-        self.backboneColorBox.addItem(icon14, "gray_stained_glass")
-        self.backboneColorBox.addItem(icon15, "light_stained_glass")
-        self.backboneColorBox.addItem(icon16, "white_stained_glass")
-        self.backboneColorBox.insertSeparator(16)
-        self.backboneColorBox.insertSeparator(33)
-        self.backboneColorBox.insertSeparator(50)
-        self.backboneColorBox.insertSeparator(67)
-
         self.sidechainColorBox = MyComboBox(self.centralwidget)
-
         self.sidechainColorBox.setObjectName("sidechainColorBox")
         self.sidechainColorBox.setEditable(True)
 
-        self.sidechainColorBox.addItem(icon14, "gray_concrete")
-        self.sidechainColorBox.addItem(icon2, "red_concrete")
-        self.sidechainColorBox.addItem(icon3, "orange_concrete")
-        self.sidechainColorBox.addItem(icon4, "yellow_concrete")
-        self.sidechainColorBox.addItem(icon5, "lime_concrete")
-        self.sidechainColorBox.addItem(icon6, "green_concrete")
-        self.sidechainColorBox.addItem(icon7, "cyan_concrete")
-        self.sidechainColorBox.addItem(icon8, "light_blue_concrete")
-        self.sidechainColorBox.addItem(icon9, "blue_concrete")
-        self.sidechainColorBox.addItem(icon10, "purple_concrete")
-        self.sidechainColorBox.addItem(icon11, "magenta_concrete")
-        self.sidechainColorBox.addItem(icon12, "pink_concrete")
-        self.sidechainColorBox.addItem(icon13, "brown_concrete")
-        self.sidechainColorBox.addItem(icon1, "black_concrete")
-        self.sidechainColorBox.addItem(icon15, "light_gray_concrete")
-        self.sidechainColorBox.addItem(icon16, "white_concrete")
-        self.sidechainColorBox.addItem(icon17, "red_glazed_terracotta")
-        self.sidechainColorBox.addItem(icon18, "orange_glazed_terracotta")
-        self.sidechainColorBox.addItem(icon19, "yellow_glazed_terracotta")
-        self.sidechainColorBox.addItem(icon20, "lime_glazed_terracotta")
-        self.sidechainColorBox.addItem(icon21, "green_glazed_terracotta")
-        self.sidechainColorBox.addItem(icon22, "cyan_glazed_terracotta")
-        self.sidechainColorBox.addItem(icon23, "light_blue_glazed_terracotta")
-        self.sidechainColorBox.addItem(icon24, "blue_glazed_terracotta")
-        self.sidechainColorBox.addItem(icon25, "purple_glazed_terracotta")
-        self.sidechainColorBox.addItem(icon26, "magenta_glazed_terracotta")
-        self.sidechainColorBox.addItem(icon27, "pink_glazed_terracotta")
-        self.sidechainColorBox.addItem(icon28, "brown_glazed_terracotta")
-        self.sidechainColorBox.addItem(icon29, "black_glazed_terracotta")
-        self.sidechainColorBox.addItem(icon30, "gray_glazed_terracotta")
-        self.sidechainColorBox.addItem(icon31, "light_gray_glazed_terracotta")
-        self.sidechainColorBox.addItem(icon32, "white_glazed_terracotta")
-        self.sidechainColorBox.addItem(icon33, "red_terracotta")
-        self.sidechainColorBox.addItem(icon34, "orange_terracotta")
-        self.sidechainColorBox.addItem(icon35, "yellow_terracotta")
-        self.sidechainColorBox.addItem(icon36, "lime_terracotta")
-        self.sidechainColorBox.addItem(icon37, "green_terracotta")
-        self.sidechainColorBox.addItem(icon38, "cyan_terracotta")
-        self.sidechainColorBox.addItem(icon39, "light_blue_terracotta")
-        self.sidechainColorBox.addItem(icon40, "blue_terracotta")
-        self.sidechainColorBox.addItem(icon41, "purple_terracotta")
-        self.sidechainColorBox.addItem(icon42, "magenta_terracotta")
-        self.sidechainColorBox.addItem(icon43, "pink_terracotta")
-        self.sidechainColorBox.addItem(icon44, "brown_terracotta")
-        self.sidechainColorBox.addItem(icon45, "black_terracotta")
-        self.sidechainColorBox.addItem(icon46, "gray_terracotta")
-        self.sidechainColorBox.addItem(icon47, "light_gray_terracotta")
-        self.sidechainColorBox.addItem(icon48, "white_terracotta")
-        self.sidechainColorBox.addItem(icon49, "red_wool")
-        self.sidechainColorBox.addItem(icon50, "orange_wool")
-        self.sidechainColorBox.addItem(icon51, "yellow_wool")
-        self.sidechainColorBox.addItem(icon52, "lime_wool")
-        self.sidechainColorBox.addItem(icon53, "green_wool")
-        self.sidechainColorBox.addItem(icon54, "cyan_wool")
-        self.sidechainColorBox.addItem(icon55, "light_blue_wool")
-        self.sidechainColorBox.addItem(icon56, "blue_wool")
-        self.sidechainColorBox.addItem(icon57, "purple_wool")
-        self.sidechainColorBox.addItem(icon58, "magenta_wool")
-        self.sidechainColorBox.addItem(icon59, "pink_wool")
-        self.sidechainColorBox.addItem(icon60, "brown_wool")
-        self.sidechainColorBox.addItem(icon61, "black_wool")
-        self.sidechainColorBox.addItem(icon62, "gray_wool")
-        self.sidechainColorBox.addItem(icon63, "light_gray_wool")
-        self.sidechainColorBox.addItem(icon64, "wool")
-        self.sidechainColorBox.addItem(icon2, "red_stained_glass")
-        self.sidechainColorBox.addItem(icon3, "orange_stained_glass")
-        self.sidechainColorBox.addItem(icon4, "yellow_stained_glass")
-        self.sidechainColorBox.addItem(icon5, "lime_stained_glass")
-        self.sidechainColorBox.addItem(icon6, "green_stained_glass")
-        self.sidechainColorBox.addItem(icon7, "cyan_stained_glass")
-        self.sidechainColorBox.addItem(icon8, "light_blue_stained_glass")
-        self.sidechainColorBox.addItem(icon9, "blue_stained_glass")
-        self.sidechainColorBox.addItem(icon10, "purple_stained_glass")
-        self.sidechainColorBox.addItem(icon11, "magenta_stained_glass")
-        self.sidechainColorBox.addItem(icon12, "pink_stained_glass")
-        self.sidechainColorBox.addItem(icon13, "brown_stained_glass")
-        self.sidechainColorBox.addItem(icon1, "black_stained_glass")
-        self.sidechainColorBox.addItem(icon14, "gray_stained_glass")
-        self.sidechainColorBox.addItem(icon15, "light_stained_glass")
-        self.sidechainColorBox.addItem(icon16, "white_stained_glass")
-        self.sidechainColorBox.insertSeparator(16)
-        self.sidechainColorBox.insertSeparator(33)
-        self.sidechainColorBox.insertSeparator(50)
-        self.sidechainColorBox.insertSeparator(67)
+        icon_dict = {
+            "red_concrete": "icon2",
+            "orange_concrete": "icon3",
+            "yellow_concrete": "icon4",
+            "lime_concrete": "icon5",
+            "green_concrete": "icon6",
+            "cyan_concrete": "icon7",
+            "light_blue_concrete": "icon8",
+            "blue_concrete": "icon9",
+            "purple_concrete": "icon10",
+            "magenta_concrete": "icon11",
+            "pink_concrete": "icon12",
+            "brown_concrete": "icon13",
+            "black_concrete": "icon1",
+            "gray_concrete": "icon14",
+            "light_gray_concrete": "icon15",
+            "white_concrete": "icon16",
+            "red_glazed_terracotta": "icon17",
+            "orange_glazed_terracotta": "icon18",
+            "yellow_glazed_terracotta": "icon19",
+            "lime_glazed_terracotta": "icon20",
+            "green_glazed_terracotta": "icon21",
+            "cyan_glazed_terracotta": "icon22",
+            "light_blue_glazed_terracotta": "icon23",
+            "blue_glazed_terracotta": "icon24",
+            "purple_glazed_terracotta": "icon25",
+            "magenta_glazed_terracotta": "icon26",
+            "pink_glazed_terracotta": "icon27",
+            "brown_glazed_terracotta": "icon28",
+            "black_glazed_terracotta": "icon29",
+            "gray_glazed_terracotta": "icon30",
+            "light_gray_glazed_terracotta": "icon31",
+            "white_glazed_terracotta": "icon32",
+            "red_terracotta": "icon33",
+            "orange_terracotta": "icon34",
+            "yellow_terracotta": "icon35",
+            "lime_terracotta": "icon36",
+            "green_terracotta": "icon37",
+            "cyan_terracotta": "icon38",
+            "light_blue_terracotta": "icon39",
+            "blue_terracotta": "icon40",
+            "purple_terracotta": "icon41",
+            "magenta_terracotta": "icon42",
+            "pink_terracotta": "icon43",
+            "brown_terracotta": "icon44",
+            "black_terracotta": "icon45",
+            "gray_terracotta": "icon46",
+            "light_gray_terracotta": "icon47",
+            "white_terracotta": "icon48",
+            "red_wool": "icon49",
+            "orange_wool": "icon50",
+            "yellow_wool": "icon51",
+            "lime_wool": "icon52",
+            "green_wool": "icon53",
+            "cyan_wool": "icon54",
+            "light_blue_wool": "icon55",
+            "blue_wool": "icon56",
+            "purple_wool": "icon57",
+            "magenta_wool": "icon58",
+            "pink_wool": "icon59",
+            "brown_wool": "icon60",
+            "black_wool": "icon61",
+            "gray_wool": "icon62",
+            "light_gray_wool": "icon63",
+            "wool": "icon64",
+            "red_stained_glass": "icon2",
+            "orange_stained_glass": "icon3",
+            "yellow_stained_glass": "icon4",
+            "lime_stained_glass": "icon5",
+            "green_stained_glass": "icon6",
+            "cyan_stained_glass": "icon7",
+            "light_blue_stained_glass": "icon8",
+            "blue_stained_glass": "icon9",
+            "purple_stained_glass": "icon10",
+            "magenta_stained_glass": "icon11",
+            "pink_stained_glass": "icon12",
+            "brown_stained_glass": "icon13",
+            "black_stained_glass": "icon1",
+            "gray_stained_glass": "icon14",
+            "light_stained_glass": "icon15",
+            "white_stained_glass": "icon16"
+        }
+
+        color_boxes = [self.otherColorBox, self.sidechainColorBox, self.backboneColorBox]
+
+        for color_box in color_boxes:
+            for value, icon in icon_dict.items():
+                color_box.addItem(eval(icon), value)
+            color_box.insertSeparator(16)
+            color_box.insertSeparator(33)
+            color_box.insertSeparator(50)
+            color_box.insertSeparator(67)
+
+        self.otherColorBox.setCurrentIndex(10)
+        self.sidechainColorBox.setCurrentIndex(13)
+        self.backboneColorBox.setCurrentIndex(13)
 
         self.aScaleLabel = QtWidgets.QLabel(parent=self.centralwidget)
 
         self.aScaleLabel.setObjectName("aScaleLabel")
-        # self.showAtomsCheck = QtWidgets.QCheckBox(parent=self.centralwidget)
-        # self.showAtomsCheck.setGeometry(QtCore.QRect(440, 10, 121, 17))
-        # self.showAtomsCheck.setChecked(True)
-        # self.showAtomsCheck.setObjectName("showAtomsCheck")
-        # self.showAtomsCheck.setToolTip("Show the atoms of the main models.")
         self.otherMoleculeCheck = QtWidgets.QCheckBox(parent=self.centralwidget)
 
         self.otherMoleculeCheck.setChecked(True)
         self.otherMoleculeCheck.setObjectName("otherMoleculeCheck")
         self.otherMoleculeCheck.setToolTip("Check to show other non-protein, DNA, or RNA molecules.")
-        #self.meshCheck = QtWidgets.QCheckBox(parent=self.centralwidget)
-        #self.meshCheck.setGeometry(QtCore.QRect(440, 70, 151, 17))
-        #self.meshCheck.setObjectName("meshCheck")
-        #self.meshCheck.setToolTip("Check to show mesh-style atoms: many fewer blocks")
         self.aScaleSpinBox = QtWidgets.QDoubleSpinBox(parent=self.centralwidget)
 
         self.aScaleSpinBox.setDecimals(1)
@@ -788,26 +607,14 @@ class SkeletonWindow(QMainWindow):
         self.pdbDatabaseLabel.raise_()
         self.modeInfoHLine.raise_()
         self.infoDatabaseHLine.raise_()
-        # self.cColorLabel.raise_()
-        # self.oColorLabel.raise_()
-        # self.nColorLabel.raise_()
-        # self.sColorLabel.raise_()
-        # self.pColorLabel.raise_()
         self.backboneColorLabel.raise_()
         self.sidechainColorLabel.raise_()
         self.otherColorLabel.raise_()
-        # self.oColorBox.raise_()
-        # self.nColorBox.raise_()
-        # self.pColorBox.raise_()
         self.otherColorBox.raise_()
-        # self.sColorBox.raise_()
-        # self.cColorBox.raise_()
         self.backboneColorBox.raise_()
         self.sidechainColorBox.raise_()
         self.aScaleLabel.raise_()
-        # self.showAtomsCheck.raise_()
         self.otherMoleculeCheck.raise_()
-        #self.meshCheck.raise_()
         self.aScaleSpinBox.raise_()
         self.showBackboneCheck.raise_()
         self.showSidechainCheck.raise_()
@@ -888,10 +695,8 @@ class SkeletonWindow(QMainWindow):
 
     # Slot methods to handle QPushButton clicks
     def handle_select_pdb_file_button(self):
-        print("Selecting PDB file")
         self.selectPDB = FileExplorerPopup()
         self.user_pdb_file = self.selectPDB.selected_file
-        print(f"The user has this file: {self.user_pdb_file}")
 
     def handle_select_minecraft_button(self):
         self.selectMinecraft = MinecraftPopup()
@@ -903,17 +708,13 @@ class SkeletonWindow(QMainWindow):
             return
         self.user_minecraft_save = self.selectMinecraft.selected_directory
     def handle_included_pdb_button(self):
-        print("Included PDB button clicked")
         self.includedPDB = IncludedPDBPopup()
         self.includedPDB.show()
         self.includedPDB.selected.connect(self.save_selected_text)
 
     def save_selected_text(self, text):
-        self.selected_text = text
-        print(f"This is what was selectd: {text}")
-        #make global variable for pdb file
+        self.selected_text = text        #make global variable for pdb file
         self.user_pdb_file = f"presets/{text}.pdb"
-        print(f"The user has this file: {self.user_pdb_file}")
 
     def handle_make_function_button(self):
         # Create a dictionary to store the user options
@@ -1020,55 +821,44 @@ class SkeletonWindow(QMainWindow):
         self.info_box.show()
 
     def handle_github_button(self):
-        print("Github button clicked")
         QDesktopServices.openUrl(QtCore.QUrl("https://github.com/markus-nevil/mcpdb"))
 
     def handle_help_button(self):
-        print("Help button clicked")
         QDesktopServices.openUrl(QtCore.QUrl("https://github.com/markus-nevil/mcpdb/blob/main/README.md"))
 
     def handle_rscb_button(self):
-        print("RSCB button clicked")
         QDesktopServices.openUrl(QtCore.QUrl("https://www.rcsb.org/"))
 
     def handle_custom_mode(self):
-        print("Custom mode button clicked")
         self.Custom = customWindow.CustomWindow()
         self.Custom.show()
         self.hide()
 
     def handle_skeleton_mode(self):
-        print("Skeleton mode button clicked")
-
+        pass
 
     def handle_xray_mode(self):
-        print("X-Ray mode button clicked")
         self.Xray = xrayWindow.XrayWindow()
         self.Xray.show()
         self.hide()
 
     def handle_space_filling_mode(self):
-        print("Space Filling mode button clicked")
         self.SpaceFilling = space_fillingWindow.spWindow()
         self.SpaceFilling.show()
         self.hide()
 
     def handle_amino_acid_mode(self):
-        print("Amino Acid mode button clicked")
         self.AminoAcid = amino_acidsWindow.AAWindow()
         self.AminoAcid.show()
         self.hide()
 
     def handle_ribbon_mode(self):
-        print("Ribbon mode button clicked")
         self.Ribbon = ribbonWindow.RibbonWindow()
         self.Ribbon.show()
         self.hide()
 
-
     def retranslateUi(self, SkeletonWindow):
         _translate = QtCore.QCoreApplication.translate
-        #SkeletonWindow.setWindowTitle(_translate("SkeletonWindow", "MainWindow"))
         self.switchModeLabel.setText(_translate("SkeletonWindow", "Switch Mode"))
         self.CustomMode.setText(_translate("SkeletonWindow", "Custom"))
         self.SkeletonMode.setText(_translate("SkeletonWindow", "Skeleton"))
@@ -1081,18 +871,11 @@ class SkeletonWindow(QMainWindow):
         self.rcsbButton.setText(_translate("SkeletonWindow", "RCSB.org"))
         self.mc2pdbLabel.setText(_translate("SkeletonWindow", "PDB2MC"))
         self.pdbDatabaseLabel.setText(_translate("SkeletonWindow", "PDB Database"))
-        # self.cColorLabel.setText(_translate("SkeletonWindow", "Select C atom color:"))
-        # self.oColorLabel.setText(_translate("SkeletonWindow", "Select O atom color:"))
-        # self.nColorLabel.setText(_translate("SkeletonWindow", "Select N atom color:"))
-        # self.sColorLabel.setText(_translate("SkeletonWindow", "Select S atom color:"))
-        # self.pColorLabel.setText(_translate("SkeletonWindow", "Select P atom color:"))
         self.backboneColorLabel.setText(_translate("SkeletonWindow", "Select backbone color:"))
         self.sidechainColorLabel.setText(_translate("SkeletonWindow", "Select sidechain color:"))
         self.otherColorLabel.setText(_translate("SkeletonWindow", "Select other color:"))
         self.aScaleLabel.setText(_translate("SkeletonWindow", "Atom scale:"))
-        # self.showAtomsCheck.setText(_translate("SkeletonWindow", "Show model atoms"))
         self.otherMoleculeCheck.setText(_translate("SkeletonWindow", "Show other molecules"))
-        #self.meshCheck.setText(_translate("SkeletonWindow", "Use \"mesh-style\" atoms"))
         self.showBackboneCheck.setText(_translate("SkeletonWindow", "Show backbone"))
         self.showSidechainCheck.setText(_translate("SkeletonWindow", "Show sidechain"))
         self.colorByBackboneCheck.setText(_translate("SkeletonWindow", "Color backbone by chain"))

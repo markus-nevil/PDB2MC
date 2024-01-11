@@ -8,7 +8,7 @@ import space_fillingWindow
 import ribbonWindow
 import amino_acidsWindow
 import customWindow
-
+import utilityWindow
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -54,6 +54,7 @@ class MainWindow(QMainWindow):
         self.comboBox.addItem("Space Filling")
         self.comboBox.addItem("Ribbon")
         self.comboBox.addItem("Amino Acids")
+        self.comboBox.addItem("Utilities")
 
         labelTitle = QtWidgets.QLabel(self)
         pixmap = QtGui.QPixmap("images/title.png")
@@ -123,6 +124,10 @@ class MainWindow(QMainWindow):
         if text == "Amino Acids":
             self.amino_acid_window = amino_acidsWindow.AAWindow()
             self.amino_acid_window.show()
+            self.hide()
+        if text == "Utilities":
+            self.utilities_window = utilityWindow.UtilityWindow()
+            self.utilities_window.show()
             self.hide()
 
     def retranslateUi(self, MainWindow):
