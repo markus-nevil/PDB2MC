@@ -2,7 +2,7 @@ from PyQt6.QtWidgets import QApplication, QMainWindow
 from PyQt6.QtGui import QDesktopServices, QIcon
 from PyQt6 import QtCore, QtGui, QtWidgets
 
-from utilUI import InformationBox, MyComboBox,IncludedPDBPopup, MinecraftPopup, FileExplorerPopup
+from .utilUI import InformationBox, MyComboBox,IncludedPDBPopup, MinecraftPopup, FileExplorerPopup
 from PDB2MC.variables import decorative_blocks
 import pandas as pd
 from PDB2MC import minecraft_functions as mcf, pdb_manipulation as pdbm, skeleton

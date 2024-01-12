@@ -8,7 +8,7 @@ from PDB2MC.variables import decorative_blocks
 import pandas as pd
 
 from PDB2MC import minecraft_functions as mcf, pdb_manipulation as pdbm, ribbon
-from utilUI import InformationBox, MyComboBox, IncludedPDBPopup, MinecraftPopup, FileExplorerPopup
+from .utilUI import InformationBox, MyComboBox, IncludedPDBPopup, MinecraftPopup, FileExplorerPopup
 
 class RibbonWindow(QMainWindow):
     def __init__(self):

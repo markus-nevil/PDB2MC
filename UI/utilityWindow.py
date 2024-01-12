@@ -3,15 +3,7 @@ from PyQt6.QtWidgets import QFileDialog, QApplication, QMainWindow
 from PyQt6.QtGui import QDesktopServices, QIcon
 from PyQt6 import QtCore, QtGui, QtWidgets
 
-import utilUI
-import xrayWindow
-import space_fillingWindow
-import ribbonWindow
-import skeletonWindow
-import amino_acidsWindow
-import customWindow
-
-from utilUI import IncludedPDBPopup, MinecraftPopup, FileExplorerPopup
+from UI.utilUI import InformationBox, IncludedPDBPopup, MinecraftPopup, FileExplorerPopup
 
 class UtilityWindow(QMainWindow):
     def __init__(self):
@@ -267,7 +259,7 @@ class UtilityWindow(QMainWindow):
         self.includedPDB.selected.connect(self.save_selected_text)
 
     def show_information_box(self, title_text, text, icon_path):
-        self.info_box = utilUI.InformationBox()
+        self.info_box = InformationBox()
         self.info_box.set_text(text)
         self.info_box.set_title(title_text)
         self.info_box.set_icon(icon_path)
@@ -286,38 +278,38 @@ class UtilityWindow(QMainWindow):
         QDesktopServices.openUrl(QtCore.QUrl("https://www.rcsb.org/"))
 
     def handle_custom_mode(self):
-        print("Custom mode button clicked")
-        self.Custom = customWindow.CustomWindow()
+        from customWindow import CustomWindow
+        self.Custom = CustomWindow()
         self.Custom.show()
         self.hide()
 
     def handle_skeleton_mode(self):
-        print("Skeleton mode button clicked")
-        self.Skeleton = skeletonWindow.SkeletonWindow()
+        from skeletonWindow import SkeletonWindow
+        self.Skeleton = SkeletonWindow()
         self.Skeleton.show()
         self.hide()
 
     def handle_xray_mode(self):
-        print("X-Ray mode button clicked")
-        self.Xray = xrayWindow.XrayWindow()
+        from xrayWindow import XrayWindow
+        self.Xray = XrayWindow()
         self.Xray.show()
         self.hide()
 
     def handle_space_filling_mode(self):
-        print("Space Filling mode button clicked")
-        self.SpaceFilling = space_fillingWindow.spWindow()
+        from space_fillingWindow import spWindow
+        self.SpaceFilling = spWindow()
         self.SpaceFilling.show()
         self.hide()
 
     def handle_amino_acid_mode(self):
-        print("Amino Acid mode button clicked")
-        self.AminoAcid = amino_acidsWindow.AAWindow()
+        from amino_acidsWindow import AAWindow
+        self.AminoAcid = AAWindow()
         self.AminoAcid.show()
         self.hide()
 
     def handle_ribbon_mode(self):
-        print("Ribbon mode button clicked")
-        self.Ribbon = ribbonWindow.RibbonWindow()
+        from ribbonWindow import RibbonWindow
+        self.Ribbon = RibbonWindow()
         self.Ribbon.show()
         self.hide()
 

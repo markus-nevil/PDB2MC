@@ -6,8 +6,8 @@ from PDB2MC.variables import decorative_blocks
 import pandas as pd
 from PDB2MC import minecraft_functions as mcf, custom, pdb_manipulation as pdbm
 
-from utilUI import InformationBox, IncludedPDBPopup, MyComboBox, MinecraftPopup, FileExplorerPopup
-
+from UI.utilUI import InformationBox, IncludedPDBPopup, MyComboBox, MinecraftPopup, FileExplorerPopup
+import os
 
 class CustomWindow(QMainWindow):
     def __init__(self):
@@ -16,7 +16,16 @@ class CustomWindow(QMainWindow):
         self.user_minecraft_save = None
         self.setWindowTitle("Custom mode")
         self.setFixedSize(607, 411)
-        self.setWindowIcon(QIcon('../images/icons/logo.png'))
+
+        # Get the directory of the current Python file
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        #go up one directory and then go into images/icons and select logo.png
+        image_path = os.path.join(current_dir, "../images/icons/logo.png")
+
+        print(image_path)
+        self.setWindowIcon(QIcon(image_path))
+
+        #self.setWindowIcon(QIcon('../images/icons/logo.png'))
 
         # Set style to Fusion
         #self.setStyle("Fusion")

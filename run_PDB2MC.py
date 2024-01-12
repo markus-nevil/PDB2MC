@@ -1,10 +1,7 @@
 from PyQt6.QtWidgets import QApplication, QMainWindow
 from PyQt6.QtGui import QDesktopServices, QIcon
 from PyQt6 import QtCore, QtGui, QtWidgets
-
-from UI import (skeletonWindow, amino_acidsWindow, ribbonWindow, space_fillingWindow, xrayWindow, customWindow,
-                utilityWindow)
-
+from UI import customWindow, skeletonWindow, xrayWindow, space_fillingWindow, ribbonWindow, amino_acidsWindow, utilityWindow
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -97,6 +94,7 @@ class MainWindow(QMainWindow):
 
     def handle_dropdown_change(self, text):
         if text == "Custom":
+
             self.custom_window = customWindow.CustomWindow()
             self.custom_window.show()
             #Turn off main window

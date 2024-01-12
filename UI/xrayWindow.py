@@ -5,7 +5,7 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 from PDB2MC.variables import decorative_blocks
 import pandas as pd
 from PDB2MC import minecraft_functions as mcf, pdb_manipulation as pdbm, xray
-from utilUI import InformationBox, MyComboBox, IncludedPDBPopup, MinecraftPopup, FileExplorerPopup
+from .utilUI import InformationBox, MyComboBox, IncludedPDBPopup, MinecraftPopup, FileExplorerPopup
 
 class XrayWindow(QMainWindow):
     def __init__(self):
