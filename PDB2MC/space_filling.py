@@ -1,12 +1,9 @@
-import minecraft_functions as mcf
+from PDB2MC import minecraft_functions as mcf
 import pandas as pd
 import numpy as np
-import pdb_manipulation
-import pdb_manipulation as pdbm
-import variables as var
+from PDB2MC import pdb_manipulation as pdbm
+from PDB2MC import variables as var
 from itertools import cycle
-from datetime import datetime
-import tifffile as tiff
 
 def run_mode(config_data, pdb_name, rounded, mc_dir, atom_df, hetatom_df, hetatm_bonds):
     x = False

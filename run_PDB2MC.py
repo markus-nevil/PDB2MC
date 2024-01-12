@@ -1,14 +1,10 @@
-from PyQt6.QtWidgets import QFileDialog, QHBoxLayout, QApplication, QListWidget, QPushButton, QMainWindow, QMessageBox, QLabel, QVBoxLayout, QWidget, QStylePainter
-from PyQt6.QtGui import QMovie, QPalette, QBrush, QPixmap, QDesktopServices, QIcon
+from PyQt6.QtWidgets import QApplication, QMainWindow
+from PyQt6.QtGui import QDesktopServices, QIcon
 from PyQt6 import QtCore, QtGui, QtWidgets
 
-import skeletonWindow
-import xrayWindow
-import space_fillingWindow
-import ribbonWindow
-import amino_acidsWindow
-import customWindow
-import utilityWindow
+from UI import (skeletonWindow, amino_acidsWindow, ribbonWindow, space_fillingWindow, xrayWindow, customWindow,
+                utilityWindow)
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -148,4 +144,7 @@ if __name__ == "__main__":
     app = QApplication([])
     main_window = MainWindow()
     main_window.show()
-    app.exec()
+    try:
+        app.exec()
+    except KeyboardInterrupt:
+        pass

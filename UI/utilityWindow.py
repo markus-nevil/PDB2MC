@@ -1,5 +1,5 @@
 import os
-from PyQt6.QtWidgets import QFileDialog, QApplication, QMainWindow, QMessageBox, QLabel, QVBoxLayout, QWidget, QStylePainter
+from PyQt6.QtWidgets import QFileDialog, QApplication, QMainWindow
 from PyQt6.QtGui import QDesktopServices, QIcon
 from PyQt6 import QtCore, QtGui, QtWidgets
 
@@ -11,7 +11,7 @@ import skeletonWindow
 import amino_acidsWindow
 import customWindow
 
-from utilUI import MyComboBox, NothingSelected, IncludedPDBPopup, MinecraftPopup, FileExplorerPopup
+from utilUI import IncludedPDBPopup, MinecraftPopup, FileExplorerPopup
 
 class UtilityWindow(QMainWindow):
     def __init__(self):
@@ -19,7 +19,7 @@ class UtilityWindow(QMainWindow):
         self.user_pdb_file = None
         self.user_minecraft_save = None
         self.setWindowTitle("Utilities")
-        self.setWindowIcon(QIcon('images/icons/logo.png'))
+        self.setWindowIcon(QIcon('../images/icons/logo.png'))
 
         self.resize(450, 411)
         # Set style to Fusion
@@ -154,7 +154,7 @@ class UtilityWindow(QMainWindow):
         font.setPointSize(7)
         self.bg.setFont(font)
         self.bg.setText("")
-        self.bg.setPixmap(QtGui.QPixmap("images/MC2PDB bg.png"))
+        self.bg.setPixmap(QtGui.QPixmap("../images/MC2PDB bg.png"))
         self.bg.setScaledContents(True)
         self.bg.setObjectName("bg")
 

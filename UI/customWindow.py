@@ -1,30 +1,22 @@
-from PyQt6.QtWidgets import QFileDialog, QHBoxLayout, QApplication, QListWidget, QPushButton, QMainWindow, QMessageBox, QLabel, QVBoxLayout, QWidget, QStylePainter
-from PyQt6.QtGui import QMovie, QPalette, QBrush, QPixmap, QDesktopServices, QIcon
+from PyQt6.QtWidgets import QApplication, QMainWindow
+from PyQt6.QtGui import QDesktopServices, QIcon
 from PyQt6 import QtCore, QtGui, QtWidgets
 
-import skeletonWindow
-import space_fillingWindow
-import ribbonWindow
-import amino_acidsWindow
-import customWindow
-import utilUI
-
-from variables import decorative_blocks
+from PDB2MC.variables import decorative_blocks
 import pandas as pd
+from PDB2MC import minecraft_functions as mcf, custom, pdb_manipulation as pdbm
 
-import pdb_manipulation as pdbm
-import minecraft_functions as mcf
-import xray
-from utilUI import MyComboBox, NothingSelected, IncludedPDBPopup, MinecraftPopup, FileExplorerPopup
+from utilUI import InformationBox, IncludedPDBPopup, MyComboBox, MinecraftPopup, FileExplorerPopup
 
-class XrayWindow(QMainWindow):
+
+class CustomWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.user_pdb_file = None
         self.user_minecraft_save = None
-        self.setWindowTitle("X-ray mode")
-        self.resize(607, 411)
-        self.setWindowIcon(QIcon('images/icons/logo.png'))
+        self.setWindowTitle("Custom mode")
+        self.setFixedSize(607, 411)
+        self.setWindowIcon(QIcon('../images/icons/logo.png'))
 
         # Set style to Fusion
         #self.setStyle("Fusion")
@@ -139,56 +131,200 @@ class XrayWindow(QMainWindow):
         font.setPointSize(7)
         self.bg.setFont(font)
         self.bg.setText("")
-        self.bg.setPixmap(QtGui.QPixmap("images/MC2PDB bg.png"))
+        self.bg.setPixmap(QtGui.QPixmap("../images/MC2PDB bg.png"))
         self.bg.setScaledContents(True)
         self.bg.setObjectName("bg")
         icon1 = QtGui.QIcon()
-        icon1.addPixmap(QtGui.QPixmap("images/icons/black_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon1.addPixmap(QtGui.QPixmap("../images/icons/black_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
 
         icon2 = QtGui.QIcon()
-        icon2.addPixmap(QtGui.QPixmap("images/icons/red_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon2.addPixmap(QtGui.QPixmap("../images/icons/red_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
 
         icon3 = QtGui.QIcon()
-        icon3.addPixmap(QtGui.QPixmap("images/icons/orange_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon3.addPixmap(QtGui.QPixmap("../images/icons/orange_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
 
         icon4 = QtGui.QIcon()
-        icon4.addPixmap(QtGui.QPixmap("images/icons/yellow_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon4.addPixmap(QtGui.QPixmap("../images/icons/yellow_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
 
         icon5 = QtGui.QIcon()
-        icon5.addPixmap(QtGui.QPixmap("images/icons/lime_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon5.addPixmap(QtGui.QPixmap("../images/icons/lime_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
 
         icon6 = QtGui.QIcon()
-        icon6.addPixmap(QtGui.QPixmap("images/icons/green_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon6.addPixmap(QtGui.QPixmap("../images/icons/green_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
 
         icon7 = QtGui.QIcon()
-        icon7.addPixmap(QtGui.QPixmap("images/icons/cyan_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon7.addPixmap(QtGui.QPixmap("../images/icons/cyan_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
 
         icon8 = QtGui.QIcon()
-        icon8.addPixmap(QtGui.QPixmap("images/icons/light_blue_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon8.addPixmap(QtGui.QPixmap("../images/icons/light_blue_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
 
         icon9 = QtGui.QIcon()
-        icon9.addPixmap(QtGui.QPixmap("images/icons/blue_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon9.addPixmap(QtGui.QPixmap("../images/icons/blue_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
 
         icon10 = QtGui.QIcon()
-        icon10.addPixmap(QtGui.QPixmap("images/icons/purple_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon10.addPixmap(QtGui.QPixmap("../images/icons/purple_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
 
         icon11 = QtGui.QIcon()
-        icon11.addPixmap(QtGui.QPixmap("images/icons/magenta_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon11.addPixmap(QtGui.QPixmap("../images/icons/magenta_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
 
         icon12 = QtGui.QIcon()
-        icon12.addPixmap(QtGui.QPixmap("images/icons/magenta_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon12.addPixmap(QtGui.QPixmap("../images/icons/magenta_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
 
         icon13 = QtGui.QIcon()
-        icon13.addPixmap(QtGui.QPixmap("images/icons/brown_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon13.addPixmap(QtGui.QPixmap("../images/icons/brown_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
 
         icon14 = QtGui.QIcon()
-        icon14.addPixmap(QtGui.QPixmap("images/icons/gray_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon14.addPixmap(QtGui.QPixmap("../images/icons/gray_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
 
         icon15 = QtGui.QIcon()
-        icon15.addPixmap(QtGui.QPixmap("images/icons/light_gray_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon15.addPixmap(QtGui.QPixmap("../images/icons/light_gray_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
 
         icon16 = QtGui.QIcon()
-        icon16.addPixmap(QtGui.QPixmap("images/icons/white_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon16.addPixmap(QtGui.QPixmap("../images/icons/white_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon17 = QtGui.QIcon()
+        icon17.addPixmap(QtGui.QPixmap("../images/icons/red_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon18 = QtGui.QIcon()
+        icon18.addPixmap(QtGui.QPixmap("../images/icons/orange_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon19 = QtGui.QIcon()
+        icon19.addPixmap(QtGui.QPixmap("../images/icons/yellow_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon20 = QtGui.QIcon()
+        icon20.addPixmap(QtGui.QPixmap("../images/icons/lime_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon21 = QtGui.QIcon()
+        icon21.addPixmap(QtGui.QPixmap("../images/icons/green_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon22 = QtGui.QIcon()
+        icon22.addPixmap(QtGui.QPixmap("../images/icons/cyan_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon23 = QtGui.QIcon()
+        icon23.addPixmap(QtGui.QPixmap("../images/icons/light_blue_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon24 = QtGui.QIcon()
+        icon24.addPixmap(QtGui.QPixmap("../images/icons/blue_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon25 = QtGui.QIcon()
+        icon25.addPixmap(QtGui.QPixmap("../images/icons/purple_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon26 = QtGui.QIcon()
+        icon26.addPixmap(QtGui.QPixmap("../images/icons/magenta_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon27 = QtGui.QIcon()
+        icon27.addPixmap(QtGui.QPixmap("../images/icons/pink_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon28 = QtGui.QIcon()
+        icon28.addPixmap(QtGui.QPixmap("../images/icons/brown_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon29 = QtGui.QIcon()
+        icon29.addPixmap(QtGui.QPixmap("../images/icons/black_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon30 = QtGui.QIcon()
+        icon30.addPixmap(QtGui.QPixmap("../images/icons/gray_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon31 = QtGui.QIcon()
+        icon31.addPixmap(QtGui.QPixmap("../images/icons/light_gray_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon32 = QtGui.QIcon()
+        icon32.addPixmap(QtGui.QPixmap("../images/icons/white_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon33 = QtGui.QIcon()
+        icon33.addPixmap(QtGui.QPixmap("../images/icons/red_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon34 = QtGui.QIcon()
+        icon34.addPixmap(QtGui.QPixmap("../images/icons/orange_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon35 = QtGui.QIcon()
+        icon35.addPixmap(QtGui.QPixmap("../images/icons/yellow_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon36 = QtGui.QIcon()
+        icon36.addPixmap(QtGui.QPixmap("../images/icons/lime_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon37 = QtGui.QIcon()
+        icon37.addPixmap(QtGui.QPixmap("../images/icons/green_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon38 = QtGui.QIcon()
+        icon38.addPixmap(QtGui.QPixmap("../images/icons/cyan_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon39 = QtGui.QIcon()
+        icon39.addPixmap(QtGui.QPixmap("../images/icons/light_blue_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon40 = QtGui.QIcon()
+        icon40.addPixmap(QtGui.QPixmap("../images/icons/blue_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon41 = QtGui.QIcon()
+        icon41.addPixmap(QtGui.QPixmap("../images/icons/purple_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon42 = QtGui.QIcon()
+        icon42.addPixmap(QtGui.QPixmap("../images/icons/magenta_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon43 = QtGui.QIcon()
+        icon43.addPixmap(QtGui.QPixmap("../images/icons/pink_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon44 = QtGui.QIcon()
+        icon44.addPixmap(QtGui.QPixmap("../images/icons/brown_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon45 = QtGui.QIcon()
+        icon45.addPixmap(QtGui.QPixmap("../images/icons/black_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon46 = QtGui.QIcon()
+        icon46.addPixmap(QtGui.QPixmap("../images/icons/gray_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon47 = QtGui.QIcon()
+        icon47.addPixmap(QtGui.QPixmap("../images/icons/light_gray_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon48 = QtGui.QIcon()
+        icon48.addPixmap(QtGui.QPixmap("../images/icons/white_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon49 = QtGui.QIcon()
+        icon49.addPixmap(QtGui.QPixmap("../images/icons/red_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon50 = QtGui.QIcon()
+        icon50.addPixmap(QtGui.QPixmap("../images/icons/orange_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon51 = QtGui.QIcon()
+        icon51.addPixmap(QtGui.QPixmap("../images/icons/yellow_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon52 = QtGui.QIcon()
+        icon52.addPixmap(QtGui.QPixmap("../images/icons/lime_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon53 = QtGui.QIcon()
+        icon53.addPixmap(QtGui.QPixmap("../images/icons/green_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon54 = QtGui.QIcon()
+        icon54.addPixmap(QtGui.QPixmap("../images/icons/cyan_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon55 = QtGui.QIcon()
+        icon55.addPixmap(QtGui.QPixmap("../images/icons/light_blue_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon56 = QtGui.QIcon()
+        icon56.addPixmap(QtGui.QPixmap("../images/icons/blue_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon57 = QtGui.QIcon()
+        icon57.addPixmap(QtGui.QPixmap("../images/icons/purple_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon58 = QtGui.QIcon()
+        icon58.addPixmap(QtGui.QPixmap("../images/icons/magenta_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon59 = QtGui.QIcon()
+        icon59.addPixmap(QtGui.QPixmap("../images/icons/pink_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon60 = QtGui.QIcon()
+        icon60.addPixmap(QtGui.QPixmap("../images/icons/brown_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon61 = QtGui.QIcon()
+        icon61.addPixmap(QtGui.QPixmap("../images/icons/black_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon62 = QtGui.QIcon()
+        icon62.addPixmap(QtGui.QPixmap("../images/icons/gray_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon63 = QtGui.QIcon()
+        icon63.addPixmap(QtGui.QPixmap("../images/icons/light_gray_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon64 = QtGui.QIcon()
+        icon64.addPixmap(QtGui.QPixmap("../images/icons/white_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
 
         self.cColorLabel = QtWidgets.QLabel(parent=self.centralwidget)
         self.cColorLabel.setGeometry(QtCore.QRect(110, 10, 106, 21))
@@ -220,176 +356,145 @@ class XrayWindow(QMainWindow):
         self.oColorBox.setObjectName("oColorBox")
         self.oColorBox.setEditable(True)
 
-        self.oColorBox.addItem(icon2, "red_stained_glass")
-        self.oColorBox.addItem(icon3, "orange_stained_glass")
-        self.oColorBox.addItem(icon4, "yellow_stained_glass")
-        self.oColorBox.addItem(icon5, "lime_stained_glass")
-        self.oColorBox.addItem(icon6, "green_stained_glass")
-        self.oColorBox.addItem(icon7, "cyan_stained_glass")
-        self.oColorBox.addItem(icon8, "light_blue_stained_glass")
-        self.oColorBox.addItem(icon9, "blue_stained_glass")
-        self.oColorBox.addItem(icon10, "purple_stained_glass")
-        self.oColorBox.addItem(icon11, "magenta_stained_glass")
-        self.oColorBox.addItem(icon12, "pink_stained_glass")
-        self.oColorBox.addItem(icon13, "brown_stained_glass")
-        self.oColorBox.addItem(icon1, "black_stained_glass")
-        self.oColorBox.addItem(icon14, "gray_stained_glass")
-        self.oColorBox.addItem(icon15, "light_stained_glass")
-        self.oColorBox.addItem(icon16, "white_stained_glass")
-
         self.nColorBox = MyComboBox(self.centralwidget)
         self.nColorBox.setGeometry(QtCore.QRect(240, 70, 175, 22))
         self.nColorBox.setObjectName("nColorBox")
         self.nColorBox.setEditable(True)
-
-        self.nColorBox.addItem(icon9, "blue_stained_glass")
-        self.nColorBox.addItem(icon2, "red_stained_glass")
-        self.nColorBox.addItem(icon3, "orange_stained_glass")
-        self.nColorBox.addItem(icon4, "yellow_stained_glass")
-        self.nColorBox.addItem(icon5, "lime_stained_glass")
-        self.nColorBox.addItem(icon6, "green_stained_glass")
-        self.nColorBox.addItem(icon7, "cyan_stained_glass")
-        self.nColorBox.addItem(icon8, "light_blue_stained_glass")
-        self.nColorBox.addItem(icon10, "purple_stained_glass")
-        self.nColorBox.addItem(icon11, "magenta_stained_glass")
-        self.nColorBox.addItem(icon12, "pink_stained_glass")
-        self.nColorBox.addItem(icon13, "brown_stained_glass")
-        self.nColorBox.addItem(icon1, "black_stained_glass")
-        self.nColorBox.addItem(icon14, "gray_stained_glass")
-        self.nColorBox.addItem(icon15, "light_stained_glass")
-        self.nColorBox.addItem(icon16, "white_stained_glass")
 
         self.pColorBox = MyComboBox(self.centralwidget)
         self.pColorBox.setGeometry(QtCore.QRect(240, 130, 175, 22))
         self.pColorBox.setObjectName("pColorBox")
         self.pColorBox.setEditable(True)
 
-        self.pColorBox.addItem(icon5, "lime_stained_glass")
-        self.pColorBox.addItem(icon2, "red_stained_glass")
-        self.pColorBox.addItem(icon3, "orange_stained_glass")
-        self.pColorBox.addItem(icon4, "yellow_stained_glass")
-        self.pColorBox.addItem(icon6, "green_stained_glass")
-        self.pColorBox.addItem(icon7, "cyan_stained_glass")
-        self.pColorBox.addItem(icon8, "light_blue_stained_glass")
-        self.pColorBox.addItem(icon9, "blue_stained_glass")
-        self.pColorBox.addItem(icon10, "purple_stained_glass")
-        self.pColorBox.addItem(icon11, "magenta_stained_glass")
-        self.pColorBox.addItem(icon12, "pink_stained_glass")
-        self.pColorBox.addItem(icon13, "brown_stained_glass")
-        self.pColorBox.addItem(icon1, "black_stained_glass")
-        self.pColorBox.addItem(icon14, "gray_stained_glass")
-        self.pColorBox.addItem(icon15, "light_stained_glass")
-        self.pColorBox.addItem(icon16, "white_stained_glass")
-
         self.otherColorBox = MyComboBox(self.centralwidget)
         self.otherColorBox.setGeometry(QtCore.QRect(240, 160, 175, 22))
         self.otherColorBox.setObjectName("otherColorBox")
         self.otherColorBox.setEditable(True)
-
-        self.otherColorBox.addItem(icon12, "pink_stained_glass")
-        self.otherColorBox.addItem(icon2, "red_stained_glass")
-        self.otherColorBox.addItem(icon3, "orange_stained_glass")
-        self.otherColorBox.addItem(icon4, "yellow_stained_glass")
-        self.otherColorBox.addItem(icon5, "lime_stained_glass")
-        self.otherColorBox.addItem(icon6, "green_stained_glass")
-        self.otherColorBox.addItem(icon7, "cyan_stained_glass")
-        self.otherColorBox.addItem(icon8, "light_blue_stained_glass")
-        self.otherColorBox.addItem(icon9, "blue_stained_glass")
-        self.otherColorBox.addItem(icon10, "purple_stained_glass")
-        self.otherColorBox.addItem(icon11, "magenta_stained_glass")
-        self.otherColorBox.addItem(icon13, "brown_stained_glass")
-        self.otherColorBox.addItem(icon1, "black_stained_glass")
-        self.otherColorBox.addItem(icon14, "gray_stained_glass")
-        self.otherColorBox.addItem(icon15, "light_stained_glass")
-        self.otherColorBox.addItem(icon16, "white_stained_glass")
 
         self.sColorBox = MyComboBox(self.centralwidget)
         self.sColorBox.setGeometry(QtCore.QRect(240, 100, 175, 22))
         self.sColorBox.setObjectName("sColorBox")
         self.sColorBox.setEditable(True)
 
-        self.sColorBox.addItem(icon4, "yellow_stained_glass")
-        self.sColorBox.addItem(icon2, "red_stained_glass")
-        self.sColorBox.addItem(icon3, "orange_stained_glass")
-        self.sColorBox.addItem(icon5, "lime_stained_glass")
-        self.sColorBox.addItem(icon6, "green_stained_glass")
-        self.sColorBox.addItem(icon7, "cyan_stained_glass")
-        self.sColorBox.addItem(icon8, "light_blue_stained_glass")
-        self.sColorBox.addItem(icon9, "blue_stained_glass")
-        self.sColorBox.addItem(icon10, "purple_stained_glass")
-        self.sColorBox.addItem(icon11, "magenta_stained_glass")
-        self.sColorBox.addItem(icon12, "pink_stained_glass")
-        self.sColorBox.addItem(icon13, "brown_stained_glass")
-        self.sColorBox.addItem(icon1, "black_stained_glass")
-        self.sColorBox.addItem(icon14, "gray_stained_glass")
-        self.sColorBox.addItem(icon15, "light_stained_glass")
-        self.sColorBox.addItem(icon16, "white_stained_glass")
-
         self.cColorBox = MyComboBox(self.centralwidget)
         self.cColorBox.setGeometry(QtCore.QRect(240, 10, 175, 22))
         self.cColorBox.setObjectName("cColorBox")
         self.cColorBox.setEditable(True)
-
-        self.cColorBox.addItem(icon1, "black_stained_glass")
-        self.cColorBox.addItem(icon2, "red_stained_glass")
-        self.cColorBox.addItem(icon3, "orange_stained_glass")
-        self.cColorBox.addItem(icon4, "yellow_stained_glass")
-        self.cColorBox.addItem(icon5, "lime_stained_glass")
-        self.cColorBox.addItem(icon6, "green_stained_glass")
-        self.cColorBox.addItem(icon7, "cyan_stained_glass")
-        self.cColorBox.addItem(icon8, "light_blue_stained_glass")
-        self.cColorBox.addItem(icon9, "blue_stained_glass")
-        self.cColorBox.addItem(icon10, "purple_stained_glass")
-        self.cColorBox.addItem(icon11, "magenta_stained_glass")
-        self.cColorBox.addItem(icon12, "pink_stained_glass")
-        self.cColorBox.addItem(icon13, "brown_stained_glass")
-        self.cColorBox.addItem(icon14, "gray_stained_glass")
-        self.cColorBox.addItem(icon15, "light_stained_glass")
-        self.cColorBox.addItem(icon16, "white_stained_glass")
 
         self.backboneColorBox = MyComboBox(self.centralwidget)
         self.backboneColorBox.setGeometry(QtCore.QRect(240, 240, 175, 22))
         self.backboneColorBox.setObjectName("backboneColorBox")
         self.backboneColorBox.setEditable(True)
 
-        self.backboneColorBox.addItem(icon14, "gray_concrete")
-        self.backboneColorBox.addItem(icon2, "red_concrete")
-        self.backboneColorBox.addItem(icon3, "orange_concrete")
-        self.backboneColorBox.addItem(icon4, "yellow_concrete")
-        self.backboneColorBox.addItem(icon5, "lime_concrete")
-        self.backboneColorBox.addItem(icon6, "green_concrete")
-        self.backboneColorBox.addItem(icon7, "cyan_concrete")
-        self.backboneColorBox.addItem(icon8, "light_blue_concrete")
-        self.backboneColorBox.addItem(icon9, "blue_concrete")
-        self.backboneColorBox.addItem(icon10, "purple_concrete")
-        self.backboneColorBox.addItem(icon11, "magenta_concrete")
-        self.backboneColorBox.addItem(icon12, "pink_concrete")
-        self.backboneColorBox.addItem(icon13, "brown_concrete")
-        self.backboneColorBox.addItem(icon1, "black_concrete")
-        self.backboneColorBox.addItem(icon15, "light_gray_concrete")
-        self.backboneColorBox.addItem(icon16, "white_concrete")
-
         self.sidechainColorBox = MyComboBox(self.centralwidget)
         self.sidechainColorBox.setGeometry(QtCore.QRect(240, 210, 175, 22))
         self.sidechainColorBox.setObjectName("sidechainColorBox")
         self.sidechainColorBox.setEditable(True)
 
-        self.sidechainColorBox.addItem(icon14, "gray_concrete")
-        self.sidechainColorBox.addItem(icon2, "red_concrete")
-        self.sidechainColorBox.addItem(icon3, "orange_concrete")
-        self.sidechainColorBox.addItem(icon4, "yellow_concrete")
-        self.sidechainColorBox.addItem(icon5, "lime_concrete")
-        self.sidechainColorBox.addItem(icon6, "green_concrete")
-        self.sidechainColorBox.addItem(icon7, "cyan_concrete")
-        self.sidechainColorBox.addItem(icon8, "light_blue_concrete")
-        self.sidechainColorBox.addItem(icon9, "blue_concrete")
-        self.sidechainColorBox.addItem(icon10, "purple_concrete")
-        self.sidechainColorBox.addItem(icon11, "magenta_concrete")
-        self.sidechainColorBox.addItem(icon12, "pink_concrete")
-        self.sidechainColorBox.addItem(icon13, "brown_concrete")
-        self.sidechainColorBox.addItem(icon1, "black_concrete")
-        self.sidechainColorBox.addItem(icon15, "light_gray_concrete")
-        self.sidechainColorBox.addItem(icon16, "white_concrete")
+        icon_dict = {
+            "red_concrete": "icon2",
+            "orange_concrete": "icon3",
+            "yellow_concrete": "icon4",
+            "lime_concrete": "icon5",
+            "green_concrete": "icon6",
+            "cyan_concrete": "icon7",
+            "light_blue_concrete": "icon8",
+            "blue_concrete": "icon9",
+            "purple_concrete": "icon10",
+            "magenta_concrete": "icon11",
+            "pink_concrete": "icon12",
+            "brown_concrete": "icon13",
+            "black_concrete": "icon1",
+            "gray_concrete": "icon14",
+            "light_gray_concrete": "icon15",
+            "white_concrete": "icon16",
+            "red_glazed_terracotta": "icon17",
+            "orange_glazed_terracotta": "icon18",
+            "yellow_glazed_terracotta": "icon19",
+            "lime_glazed_terracotta": "icon20",
+            "green_glazed_terracotta": "icon21",
+            "cyan_glazed_terracotta": "icon22",
+            "light_blue_glazed_terracotta": "icon23",
+            "blue_glazed_terracotta": "icon24",
+            "purple_glazed_terracotta": "icon25",
+            "magenta_glazed_terracotta": "icon26",
+            "pink_glazed_terracotta": "icon27",
+            "brown_glazed_terracotta": "icon28",
+            "black_glazed_terracotta": "icon29",
+            "gray_glazed_terracotta": "icon30",
+            "light_gray_glazed_terracotta": "icon31",
+            "white_glazed_terracotta": "icon32",
+            "red_terracotta": "icon33",
+            "orange_terracotta": "icon34",
+            "yellow_terracotta": "icon35",
+            "lime_terracotta": "icon36",
+            "green_terracotta": "icon37",
+            "cyan_terracotta": "icon38",
+            "light_blue_terracotta": "icon39",
+            "blue_terracotta": "icon40",
+            "purple_terracotta": "icon41",
+            "magenta_terracotta": "icon42",
+            "pink_terracotta": "icon43",
+            "brown_terracotta": "icon44",
+            "black_terracotta": "icon45",
+            "gray_terracotta": "icon46",
+            "light_gray_terracotta": "icon47",
+            "white_terracotta": "icon48",
+            "red_wool": "icon49",
+            "orange_wool": "icon50",
+            "yellow_wool": "icon51",
+            "lime_wool": "icon52",
+            "green_wool": "icon53",
+            "cyan_wool": "icon54",
+            "light_blue_wool": "icon55",
+            "blue_wool": "icon56",
+            "purple_wool": "icon57",
+            "magenta_wool": "icon58",
+            "pink_wool": "icon59",
+            "brown_wool": "icon60",
+            "black_wool": "icon61",
+            "gray_wool": "icon62",
+            "light_gray_wool": "icon63",
+            "wool": "icon64",
+            "red_stained_glass": "icon2",
+            "orange_stained_glass": "icon3",
+            "yellow_stained_glass": "icon4",
+            "lime_stained_glass": "icon5",
+            "green_stained_glass": "icon6",
+            "cyan_stained_glass": "icon7",
+            "light_blue_stained_glass": "icon8",
+            "blue_stained_glass": "icon9",
+            "purple_stained_glass": "icon10",
+            "magenta_stained_glass": "icon11",
+            "pink_stained_glass": "icon12",
+            "brown_stained_glass": "icon13",
+            "black_stained_glass": "icon1",
+            "gray_stained_glass": "icon14",
+            "light_stained_glass": "icon15",
+            "white_stained_glass": "icon16"
+        }
+
+        color_boxes = [self.oColorBox, self.otherColorBox,
+                       self.sidechainColorBox, self.backboneColorBox,
+                       self.cColorBox, self.nColorBox, self.sColorBox,
+                       self.pColorBox]
+
+        for color_box in color_boxes:
+            for value, icon in icon_dict.items():
+                color_box.addItem(eval(icon), value)
+            color_box.insertSeparator(16)
+            color_box.insertSeparator(33)
+            color_box.insertSeparator(50)
+            color_box.insertSeparator(67)
+
+        self.oColorBox.setCurrentIndex(0)
+        self.cColorBox.setCurrentIndex(12)
+        self.nColorBox.setCurrentIndex(7)
+        self.sColorBox.setCurrentIndex(2)
+        self.pColorBox.setCurrentIndex(3)
+        self.otherColorBox.setCurrentIndex(10)
+        self.sidechainColorBox.setCurrentIndex(13)
+        self.backboneColorBox.setCurrentIndex(13)
 
         self.aScaleLabel = QtWidgets.QLabel(parent=self.centralwidget)
         self.aScaleLabel.setGeometry(QtCore.QRect(440, 100, 61, 21))
@@ -427,6 +532,11 @@ class XrayWindow(QMainWindow):
         self.showSidechainCheck.setChecked(True)
         self.showSidechainCheck.setObjectName("showSidechainCheck")
         self.showSidechainCheck.setToolTip("Show amino acid R-groups")
+        self.colorByBackboneCheck = QtWidgets.QCheckBox(parent=self.centralwidget)
+        self.colorByBackboneCheck.setGeometry(QtCore.QRect(240, 270, 155, 21))
+        self.colorByBackboneCheck.setChecked(False)
+        self.colorByBackboneCheck.setObjectName("colorByBackboneCheck")
+        self.colorByBackboneCheck.setToolTip("Color the backbones of the main models by the molecule number.")
         self.pScaleLabel = QtWidgets.QLabel(parent=self.centralwidget)
         self.pScaleLabel.setGeometry(QtCore.QRect(440, 130, 71, 21))
         self.pScaleLabel.setObjectName("pScaleLabel")
@@ -529,6 +639,7 @@ class XrayWindow(QMainWindow):
         self.aScaleSpinBox.raise_()
         self.showBackboneCheck.raise_()
         self.showSidechainCheck.raise_()
+        self.colorByBackboneCheck.raise_()
         self.pScaleLabel.raise_()
         self.pScaleSpinBox.raise_()
         self.bScaleLabel.raise_()
@@ -575,6 +686,7 @@ class XrayWindow(QMainWindow):
 
         self.showBackboneCheck.stateChanged.connect(self.on_showBackboneCheck_changed)
         self.showSidechainCheck.stateChanged.connect(self.on_showSidechainCheck_changed)
+        self.colorByBackboneCheck.stateChanged.connect(self.on_colorByBackboneCheck_changed)
 
     def on_showAtomsAndMoleculesCheck_changed(self, state):
         if self.showAtomsCheck.isChecked() or self.otherMoleculeCheck.isChecked():
@@ -591,17 +703,24 @@ class XrayWindow(QMainWindow):
             self.sColorBox.setEnabled(False)
             self.pColorBox.setEnabled(False)
             self.otherColorBox.setEnabled(False)
-
     def on_showBackboneCheck_changed(self, state):
-
-        self.backboneColorBox.setEnabled(state != 0)
-
+        if not self.colorByBackboneCheck.isChecked():
+            self.backboneColorBox.setEnabled(state != 0)
         self.backboneScaleSpinBox.setEnabled(state !=0)
 
     def on_showSidechainCheck_changed(self, state):
+        if not self.colorByBackboneCheck.isChecked():
+            self.sidechainColorBox.setEnabled(state != 0)
 
-        self.sidechainColorBox.setEnabled(state != 0)
-
+    def on_colorByBackboneCheck_changed(self, state):
+        if not self.showBackboneCheck.isChecked() and not self.showSidechainCheck.isChecked():
+            return
+        if not self.colorByBackboneCheck.isChecked():
+            self.backboneColorBox.setEnabled(self.showBackboneCheck.isChecked())
+            self.sidechainColorBox.setEnabled(self.showSidechainCheck.isChecked())
+            return
+        self.backboneColorBox.setEnabled(state == 0)
+        self.sidechainColorBox.setEnabled(state == 0)
 
     def check_input(self, combobox, valid_options):
         text = combobox.currentText()
@@ -612,7 +731,7 @@ class XrayWindow(QMainWindow):
         if text not in decorative_blocks:
             self.show_information_box(title_text=f"Invalid block input",
                                       text=f"{text} is not a valid block option.",
-                                      icon_path="images/icons/icon_bad.png")
+                                      icon_path="../images/icons/icon_bad.png")
             #QMessageBox.warning(self, "Invalid Input", f"{text} is not a valid option.")
             combobox.setCurrentIndex(0)
         else:
@@ -630,7 +749,7 @@ class XrayWindow(QMainWindow):
         if self.selectMinecraft.selected_directory is None:
             self.show_information_box(title_text=f"Error",
                                       text=f"Remember to select a Minecraft save.",
-                                      icon_path="images/icons/icon_bad.png")
+                                      icon_path="../images/icons/icon_bad.png")
             #QMessageBox.critical(None, "Error", "Remember to select a Minecraft save.")
             return
         self.user_minecraft_save = self.selectMinecraft.selected_directory
@@ -674,7 +793,7 @@ class XrayWindow(QMainWindow):
         config_data['mesh'] = self.meshCheck.isChecked()
         config_data['backbone'] = self.showBackboneCheck.isChecked()
         config_data['sidechain'] = self.showSidechainCheck.isChecked()
-        config_data['by_chain'] = False
+        config_data['by_chain'] = self.colorByBackboneCheck.isChecked()
         config_data['simple'] = self.simpleOutputCheck.isChecked()
 
         # Add the current paths of the files and directories to the dictionary
@@ -682,12 +801,12 @@ class XrayWindow(QMainWindow):
         if self.user_pdb_file is None:
             self.show_information_box(title_text=f"Error: No PDB file",
                                       text=f"Please select a PDB file.",
-                                      icon_path="images/icons/icon_bad.png")
+                                      icon_path="../images/icons/icon_bad.png")
             #QMessageBox.critical(None, "Error", "Please select a PDB file.")
         elif self.user_minecraft_save is None:
             self.show_information_box(title_text=f"Error: No Minecraft save",
                                       text=f"Please select a Minecraft save.",
-                                      icon_path="images/icons/icon_bad.png")
+                                      icon_path="../images/icons/icon_bad.png")
             #QMessageBox.critical(None, "Error", "Please select a Minecraft save.")
         else:
             config_data['pdb_file'] = self.user_pdb_file
@@ -706,13 +825,11 @@ class XrayWindow(QMainWindow):
             moved = pdbm.rotate_to_y(moved)
             rounded = pdbm.round_df(moved)
 
-            print("Here!")
             hetatom_df = pd.DataFrame()
             hetatm_bonds = pd.DataFrame()
 
             # Check if the user wants het-atoms, if so, process them
             if config_data["show_hetatm"] == True:
-                print("Hetatm TRUE")
                 # check if the first column of rounded contains any "HETATM" values
 
                 if "HETATM" in rounded.iloc[:, 0].values:
@@ -731,11 +848,11 @@ class XrayWindow(QMainWindow):
             mcf.delete_mcfunctions(mc_dir, "z" + pdb_name.lower())
 
             try:
-                xray.run_mode(config_data, pdb_name, pdb_file, rounded, mc_dir, atom_df, hetatom_df, hetatm_bonds)
+                custom.run_mode(config_data, pdb_name, pdb_file, rounded, mc_dir, atom_df, hetatom_df, hetatm_bonds)
             except Exception as e:
                 self.show_information_box(title_text=f"Error encountered",
                                           text=f"Model has not generated! \nError: {e}",
-                                          icon_path="images/icons/icon_bad.png")
+                                          icon_path="../images/icons/icon_bad.png")
 
             mcfiles = mcf.find_mcfunctions(mc_dir, pdb_name.lower())
 
@@ -748,108 +865,106 @@ class XrayWindow(QMainWindow):
                 mcf.create_clear_function(mc_dir, pdb_name)
 
             lower = pdb_name.lower()
-            self.show_information_box(title_text = f"Model generated", text = f"Finished! \n Remember to use /reload\n Make your model with: /function protein:build_" + lower, icon_path = "images/icons/icon_good.png")
+            self.show_information_box(title_text = f"Model generated", text = f"Finished! \n Remember to use /reload\n Make your model with: /function protein:build_" + lower, icon_path ="../images/icons/icon_good.png")
 
             #QMessageBox.information(None, "Model generated", f"Finished!\nRemember to /reload in your world and /function protein:build_{lower}")
 
 
     def handle_github_button(self):
-        print("Github button clicked")
         QDesktopServices.openUrl(QtCore.QUrl("https://github.com/markus-nevil/mcpdb"))
 
     def handle_help_button(self):
-        print("Help button clicked")
         QDesktopServices.openUrl(QtCore.QUrl("https://github.com/markus-nevil/mcpdb/blob/main/README.md"))
 
     def handle_rscb_button(self):
-        print("RSCB button clicked")
         QDesktopServices.openUrl(QtCore.QUrl("https://www.rcsb.org/"))
 
     def handle_custom_mode(self):
-        print("Custom mode button clicked")
-        self.Custom = customWindow.CustomWindow()
-        self.Custom.show()
-        self.hide()
-
+        pass
     def handle_skeleton_mode(self):
-        print("Skeleton mode button clicked")
-        self.Skeleton = skeletonWindow.SkeletonWindow()
+        from skeletonWindow import SkeletonWindow
+        self.Skeleton = SkeletonWindow()
         self.Skeleton.show()
         #Turn off main window
         self.hide()
 
     def handle_xray_mode(self):
-        print("X-Ray mode button clicked")
-
+        from xrayWindow import XrayWindow
+        self.Xray = XrayWindow()
+        self.Xray.show()
+        self.hide()
 
     def handle_space_filling_mode(self):
-        print("Space Filling mode button clicked")
-        self.SpaceFilling = space_fillingWindow.spWindow()
+        from space_fillingWindow import spWindow
+        self.SpaceFilling = spWindow()
         self.SpaceFilling.show()
         self.hide()
 
     def handle_amino_acid_mode(self):
-        print("Amino Acid mode button clicked")
-        self.AminoAcid = amino_acidsWindow.AAWindow()
+        from amino_acidsWindow import AAWindow
+        self.AminoAcid = AAWindow()
         self.AminoAcid.show()
         self.hide()
 
     def handle_ribbon_mode(self):
-        print("Ribbon mode button clicked")
-        self.Ribbon = ribbonWindow.RibbonWindow()
+        from ribbonWindow import RibbonWindow
+        self.Ribbon = RibbonWindow()
         self.Ribbon.show()
         self.hide()
 
     def show_information_box(self, title_text, text, icon_path):
-        self.info_box = utilUI.InformationBox()
+        self.info_box = InformationBox()
         self.info_box.set_text(text)
         self.info_box.set_title(title_text)
         self.info_box.set_icon(icon_path)
         self.info_box.show()
 
 
-    def retranslateUi(self, XrayWindow):
+    def retranslateUi(self, CustomWindow):
         _translate = QtCore.QCoreApplication.translate
-
-        self.switchModeLabel.setText(_translate("XrayWindow", "Switch Mode"))
-        self.CustomMode.setText(_translate("XrayWindow", "Custom"))
-        self.SkeletonMode.setText(_translate("XrayWindow", "Skeleton"))
-        self.XRayMode.setText(_translate("XrayWindow", "X-Ray"))
-        self.SpaceFillingMode.setText(_translate("XrayWindow", "Space Filling"))
-        self.AminoAcidMode.setText(_translate("XrayWindow", "Amino Acids"))
-        self.RibbonMode.setText(_translate("XrayWindow", "Ribbon"))
-        self.github.setText(_translate("XrayWindow", "Github"))
-        self.help.setText(_translate("XrayWindow", "Help"))
-        self.rcsbButton.setText(_translate("XrayWindow", "RCSB.org"))
-        self.mc2pdbLabel.setText(_translate("XrayWindow", "PDB2MC"))
-        self.pdbDatabaseLabel.setText(_translate("XrayWindow", "PDB Database"))
-        self.cColorLabel.setText(_translate("XrayWindow", "Select C atom color:"))
-        self.oColorLabel.setText(_translate("XrayWindow", "Select O atom color:"))
-        self.nColorLabel.setText(_translate("XrayWindow", "Select N atom color:"))
-        self.sColorLabel.setText(_translate("XrayWindow", "Select S atom color:"))
-        self.pColorLabel.setText(_translate("XrayWindow", "Select P atom color:"))
-        self.backboneColorLabel.setText(_translate("XrayWindow", "Select backbone color:"))
-        self.sidechainColorLabel.setText(_translate("XrayWindow", "Select sidechain color:"))
-        self.otherColorLabel.setText(_translate("XrayWindow", "Select other color:"))
-        self.aScaleLabel.setText(_translate("XrayWindow", "Atom scale:"))
-        self.showAtomsCheck.setText(_translate("XrayWindow", "Show model atoms"))
-        self.otherMoleculeCheck.setText(_translate("XrayWindow", "Show other molecules"))
-        self.meshCheck.setText(_translate("XrayWindow", "Use \"mesh-style\" atoms"))
-        self.showBackboneCheck.setText(_translate("XrayWindow", "Show backbone"))
-        self.showSidechainCheck.setText(_translate("XrayWindow", "Show sidechain"))
-        #self.colorByBackboneCheck.setText(_translate("XrayWindow", "Color backbone by chain"))
-        self.pScaleLabel.setText(_translate("XrayWindow", "Protein scale:"))
-        self.bScaleLabel.setText(_translate("XrayWindow", "Backbone scale:"))
-        self.selectIncludedPDBButton.setText(_translate("XrayWindow", "Select Included PDB File"))
-        self.selectMinecraftSaveButton.setText(_translate("XrayWindow", "Select Minecraft Save"))
-        self.simpleOutputCheck.setText(_translate("XrayWindow", "Simple output"))
-        self.selectPDBFileButton.setText(_translate("XrayWindow", "Select PDB File"))
-        self.createFunctionsButton.setText(_translate("XrayWindow", "Create Minecraft Functions"))
-        self.orText.setText(_translate("XrayWindow", "or"))
-        self.andText.setText(_translate("XrayWindow", "and"))
+        #CustomWindow.setWindowTitle(_translate("CustomWindow", "MainWindow"))
+        self.switchModeLabel.setText(_translate("CustomWindow", "Switch Mode"))
+        self.CustomMode.setText(_translate("CustomWindow", "Custom"))
+        self.SkeletonMode.setText(_translate("CustomWindow", "Skeleton"))
+        self.XRayMode.setText(_translate("CustomWindow", "X-Ray"))
+        self.SpaceFillingMode.setText(_translate("CustomWindow", "Space Filling"))
+        self.AminoAcidMode.setText(_translate("CustomWindow", "Amino Acids"))
+        self.RibbonMode.setText(_translate("CustomWindow", "Ribbon"))
+        self.github.setText(_translate("CustomWindow", "Github"))
+        self.help.setText(_translate("CustomWindow", "Help"))
+        self.rcsbButton.setText(_translate("CustomWindow", "RCSB.org"))
+        self.mc2pdbLabel.setText(_translate("CustomWindow", "PDB2MC"))
+        self.pdbDatabaseLabel.setText(_translate("CustomWindow", "PDB Database"))
+        self.cColorLabel.setText(_translate("CustomWindow", "Select C atom color:"))
+        self.oColorLabel.setText(_translate("CustomWindow", "Select O atom color:"))
+        self.nColorLabel.setText(_translate("CustomWindow", "Select N atom color:"))
+        self.sColorLabel.setText(_translate("CustomWindow", "Select S atom color:"))
+        self.pColorLabel.setText(_translate("CustomWindow", "Select P atom color:"))
+        self.backboneColorLabel.setText(_translate("CustomWindow", "Select backbone color:"))
+        self.sidechainColorLabel.setText(_translate("CustomWindow", "Select sidechain color:"))
+        self.otherColorLabel.setText(_translate("CustomWindow", "Select other color:"))
+        self.aScaleLabel.setText(_translate("CustomWindow", "Atom scale:"))
+        self.showAtomsCheck.setText(_translate("CustomWindow", "Show model atoms"))
+        self.otherMoleculeCheck.setText(_translate("CustomWindow", "Show other molecules"))
+        self.meshCheck.setText(_translate("CustomWindow", "Use \"mesh-style\" atoms"))
+        self.showBackboneCheck.setText(_translate("CustomWindow", "Show backbone"))
+        self.showSidechainCheck.setText(_translate("CustomWindow", "Show sidechain"))
+        self.colorByBackboneCheck.setText(_translate("CustomWindow", "Color backbone by chain"))
+        self.pScaleLabel.setText(_translate("CustomWindow", "Protein scale:"))
+        self.bScaleLabel.setText(_translate("CustomWindow", "Backbone scale:"))
+        self.selectIncludedPDBButton.setText(_translate("CustomWindow", "Select Included PDB File"))
+        self.selectMinecraftSaveButton.setText(_translate("CustomWindow", "Select Minecraft Save"))
+        self.simpleOutputCheck.setText(_translate("CustomWindow", "Simple output"))
+        self.selectPDBFileButton.setText(_translate("CustomWindow", "Select PDB File"))
+        self.createFunctionsButton.setText(_translate("CustomWindow", "Create Minecraft Functions"))
+        self.orText.setText(_translate("CustomWindow", "or"))
+        self.andText.setText(_translate("CustomWindow", "and"))
 
 if __name__ == "__main__":
     app = QApplication([])
-    main_window = XrayWindow()
+    main_window = CustomWindow()
     main_window.show()
-    app.exec()
+    try:
+        app.exec()
+    except KeyboardInterrupt:
+        pass

@@ -1,5 +1,5 @@
-import pdb_manipulation as pdbm
-import minecraft_functions as mcf
+from PDB2MC import pdb_manipulation as pdbm
+from PDB2MC import minecraft_functions as mcf
 from itertools import cycle
 import pandas as pd
 

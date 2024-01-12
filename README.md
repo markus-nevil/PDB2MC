@@ -1,5 +1,10 @@
+<p align = "center">
+<img src="images/title.png" width="500">
+</p>
+
 # PDB2MC: Bridging Biomolecules and Minecraft for accessible, interactive 3D visualization.
 ### Author: Markus Nevil, PhD<br>Version: 1.0.0</sup>
+
 
 **Table of Contents**
  - [Introduction](#introduction)
@@ -20,6 +25,10 @@ The structures of proteins and other biomolecules determined by X-ray crystallog
 the RCSB Protein Data Bank (rcsb.org). These structures are primarily viewed using free or paid program whose learning 
 curve may pose an inaccessible barrier to for educators, students, and the public. The purpose of the `PDB2MC` program is to 
 make a fun and accessible alternative by generating files that can be loaded by the popular video game Minecraft.
+
+<p align = "center">
+<img src="images/bg.gif" width="500">
+</p>
 
 The `PDB2MC` program comes with several models, but also can use any PDB file downloaded from RCSB Protein Data Bank.
 
@@ -243,16 +252,16 @@ PDB files for your own models.
 : Below is a table of the default colors for each atom. These are the colors that will be used if the user does not select
 alternatives.
 
-| Abbreviation | Atom | Color | Currently modifiable? |
-  | ---- | ---- | ----- | ----- |
-  | C | Carbon | Black | Yes |
-  | O | Oxygen | Red | Yes |
-  | N | Nitrogen | Blue | Yes |
-  | S | Sulfur | Yellow | Yes |
-  | P | Phosphorous | White | Yes |
-| H | Hydrogen | White | No |
-| Fe | Iron | Iron block | No |
-  | - | Other | Green | Yes |
+| Abbreviation | Atom | Color                                                                  | Currently modifiable?                                 |
+  | ---- | ---- |------------------------------------------------------------------------|-------------------------------------------------------|
+  | C | Carbon | <img src="images/icons/black_concrete.png" width="13"> Black           | <img src="images/icons/icon_good.png" width="13"> Yes |
+  | O | Oxygen | <img src="images/icons/red_concrete.png" width="13"> Red               | <img src="images/icons/icon_good.png" width="13"> Yes |
+  | N | Nitrogen | <img src="images/icons/blue_concrete.png" width="13"> Blue             | <img src="images/icons/icon_good.png" width="13"> Yes |
+  | S | Sulfur | <img src="images/icons/yellow_concrete.png" width="13"> Yellow         | <img src="images/icons/icon_good.png" width="13"> Yes |
+  | P | Phosphorous | <img src="images/icons/lime_concrete.png" width="13"> Green            | <img src="images/icons/icon_good.png" width="13"> Yes |
+| H | Hydrogen | <img src="images/icons/white_concrete.png" width="13"> White           | <img src="images/icons/icon_bad.png" width="13"> No   |
+| Fe | Iron | <img src="images/icons/light_gray_concrete.png" width="13"> Iron block | <img src="images/icons/icon_bad.png" width="13"> No   |
+  | - | Other | <img src="images/icons/pink_concrete.png" width="13"> Pink             | <img src="images/icons/icon_good.png" width="13"> Yes |
 
 
 ## Glossary of terms
