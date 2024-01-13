@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import QApplication, QMainWindow
 from PyQt6.QtGui import QDesktopServices, QIcon
 from PyQt6 import QtCore, QtGui, QtWidgets
-from UI import customWindow, skeletonWindow, xrayWindow, space_fillingWindow, ribbonWindow, amino_acidsWindow, utilityWindow
+from UI import custom_window, skeleton_window, xray_window, space_filling_window, ribbon_window, amino_acids_window, tool_window
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -94,49 +94,42 @@ class MainWindow(QMainWindow):
 
     def handle_dropdown_change(self, text):
         if text == "Custom":
-
-            self.custom_window = customWindow.CustomWindow()
+            self.custom_window = custom_window.CustomWindow()
             self.custom_window.show()
-            #Turn off main window
             self.hide()
         if text == "Skeleton":
-            self.skeleton_window = skeletonWindow.SkeletonWindow()
+            self.skeleton_window = skeleton_window.SkeletonWindow()
             self.skeleton_window.show()
             self.hide()
         if text == "X-Ray":
-            self.xray_window = xrayWindow.XrayWindow()
+            self.xray_window = xray_window.XrayWindow()
             self.xray_window.show()
             self.hide()
         if text == "Space Filling":
-            self.SpaceFilling = space_fillingWindow.spWindow()
+            self.SpaceFilling = space_filling_window.spWindow()
             self.SpaceFilling.show()
             self.hide()
         if text == "Ribbon":
-            self.ribbon_window = ribbonWindow.RibbonWindow()
+            self.ribbon_window = ribbon_window.RibbonWindow()
             self.ribbon_window.show()
             self.hide()
         if text == "Amino Acids":
-            self.amino_acid_window = amino_acidsWindow.AAWindow()
-            self.amino_acid_window.show()
+            self.amino_acids_window = amino_acids_window.AAWindow()
+            self.amino_acids_window.show()
             self.hide()
-        if text == "Utilities":
-            self.utilities_window = utilityWindow.UtilityWindow()
-            self.utilities_window.show()
+        if text == "Tools":
+            self.tool_window = tool_window.ToolWindow()
+            self.tool_window.show()
             self.hide()
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        #MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
         self.comboBox.setItemText(1, _translate("MainWindow", "Custom"))
-        #self.comboBox.setItemText(2, _translate("MainWindow", "X-Ray"))
         self.help.setText(_translate("MainWindow", "Help"))
         self.comboBox.setItemText(4, _translate("MainWindow", "Space Filling"))
         self.comboBox.setItemText(5, _translate("MainWindow", "Ribbon"))
         self.comboBox.setItemText(6, _translate("MainWindow", "Amino Acid"))
         self.label_2.setText(_translate("MainWindow", "Select Mode:"))
-        #self.label_3.setText(_translate("MainWindow", "Welcome to PDB2MC"))
-
-
 
 if __name__ == "__main__":
     app = QApplication([])

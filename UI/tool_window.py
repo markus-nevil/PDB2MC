@@ -3,19 +3,23 @@ from PyQt6.QtWidgets import QFileDialog, QApplication, QMainWindow
 from PyQt6.QtGui import QDesktopServices, QIcon
 from PyQt6 import QtCore, QtGui, QtWidgets
 
-from UI.utilUI import InformationBox, IncludedPDBPopup, MinecraftPopup, FileExplorerPopup
+from UI.utilities import InformationBox, IncludedPDBPopup, MinecraftPopup, FileExplorerPopup
 
-class UtilityWindow(QMainWindow):
+
+class ToolWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.user_pdb_file = None
         self.user_minecraft_save = None
+        current_directory = os.path.basename(os.getcwd())
+        if current_directory == "UI":
+            mcpdb_directory = os.path.join(os.getcwd(), "..")
+            os.chdir(mcpdb_directory)
+
         self.setWindowTitle("Utilities")
-        self.setWindowIcon(QIcon('../images/icons/logo.png'))
+        self.setWindowIcon(QIcon('images/icons/logo.png'))
 
         self.resize(450, 411)
-        # Set style to Fusion
-        #self.setStyle("Fusion")
         self.centralwidget = QtWidgets.QWidget(parent=self)
         self.centralwidget.setObjectName("centralwidget")
         self.switchModeLabel = QtWidgets.QLabel(parent=self.centralwidget)
@@ -146,7 +150,7 @@ class UtilityWindow(QMainWindow):
         font.setPointSize(7)
         self.bg.setFont(font)
         self.bg.setText("")
-        self.bg.setPixmap(QtGui.QPixmap("../images/MC2PDB bg.png"))
+        self.bg.setPixmap(QtGui.QPixmap("images/MC2PDB bg.png"))
         self.bg.setScaledContents(True)
         self.bg.setObjectName("bg")
 
@@ -218,10 +222,10 @@ class UtilityWindow(QMainWindow):
             return
         self.user_minecraft_save = self.selectMinecraft.selected_directory
 
-        #Take the directory and remove any files that end in .mcfunction
+        # Take the directory and remove any files that end in .mcfunction
         for filename in os.listdir(self.user_minecraft_save):
             if filename.endswith(".mcfunction"):
-                #Open the file to see if it has the word 'setblock'. if so delete it
+                # Open the file to see if it has the word 'setblock'. if so delete it
                 with open(os.path.join(self.user_minecraft_save, filename), 'r') as f:
                     if "setblock" in f.read():
                         os.remove(os.path.join(self.user_minecraft_save, filename))
@@ -278,68 +282,87 @@ class UtilityWindow(QMainWindow):
         QDesktopServices.openUrl(QtCore.QUrl("https://www.rcsb.org/"))
 
     def handle_custom_mode(self):
-        from customWindow import CustomWindow
-        self.Custom = CustomWindow()
-        self.Custom.show()
-        self.hide()
+        try:
+            from UI.custom_window import CustomWindow
+            self.Custom = CustomWindow()
+            self.Custom.show()
+            self.hide()
+        except Exception as e:
+            print(f"Error in handle_custom_mode: {e}")
 
     def handle_skeleton_mode(self):
-        from skeletonWindow import SkeletonWindow
-        self.Skeleton = SkeletonWindow()
-        self.Skeleton.show()
-        self.hide()
+        try:
+            from UI.skeleton_window import SkeletonWindow
+            self.Skeleton = SkeletonWindow()
+            self.Skeleton.show()
+            self.hide()
+        except Exception as e:
+            print(f"Error in handle_skeleton_mode: {e}")
 
     def handle_xray_mode(self):
-        from xrayWindow import XrayWindow
-        self.Xray = XrayWindow()
-        self.Xray.show()
-        self.hide()
+        try:
+            from UI.xray_window import XrayWindow
+            self.Xray = XrayWindow()
+            self.Xray.show()
+            self.hide()
+        except Exception as e:
+            print(f"Error in handle_xray_mode: {e}")
 
     def handle_space_filling_mode(self):
-        from space_fillingWindow import spWindow
-        self.SpaceFilling = spWindow()
-        self.SpaceFilling.show()
-        self.hide()
+        try:
+            from UI.space_filling_window import spWindow
+            self.SpaceFilling = spWindow()
+            self.SpaceFilling.show()
+            self.hide()
+        except Exception as e:
+            print(f"Error in handle_space_filling_mode: {e}")
 
     def handle_amino_acid_mode(self):
-        from amino_acidsWindow import AAWindow
-        self.AminoAcid = AAWindow()
-        self.AminoAcid.show()
-        self.hide()
+        try:
+            from UI.amino_acids_window import AAWindow
+            self.AminoAcid = AAWindow()
+            self.AminoAcid.show()
+            self.hide()
+        except Exception as e:
+            print(f"Error in handle_amino_acid_mode: {e}")
 
     def handle_ribbon_mode(self):
-        from ribbonWindow import RibbonWindow
-        self.Ribbon = RibbonWindow()
-        self.Ribbon.show()
-        self.hide()
+        try:
+            from UI.ribbon_window import RibbonWindow
+            self.Ribbon = RibbonWindow()
+            self.Ribbon.show()
+            self.hide()
+        except Exception as e:
+            print(f"Error in handle_ribbon_mode: {e}")
 
-    def retranslateUi(self, UtilityWindow):
+    def retranslateUi(self, ToolWindow):
         _translate = QtCore.QCoreApplication.translate
-        #UtilityWindow.setWindowTitle(_translate("UtilityWindow", "MainWindow"))
-        self.switchModeLabel.setText(_translate("UtilityWindow", "Switch Mode"))
-        self.CustomMode.setText(_translate("UtilityWindow", "Custom"))
-        self.SkeletonMode.setText(_translate("UtilityWindow", "Skeleton"))
-        self.XRayMode.setText(_translate("UtilityWindow", "X-Ray"))
-        self.SpaceFillingMode.setText(_translate("UtilityWindow", "Space Filling"))
-        self.AminoAcidMode.setText(_translate("UtilityWindow", "Amino Acids"))
-        self.RibbonMode.setText(_translate("UtilityWindow", "Ribbon"))
-        self.github.setText(_translate("UtilityWindow", "Github"))
-        self.help.setText(_translate("UtilityWindow", "Help"))
-        self.rcsbButton.setText(_translate("UtilityWindow", "RCSB.org"))
-        self.mc2pdbLabel.setText(_translate("UtilityWindow", "PDB2MC"))
-        self.pdbDatabaseLabel.setText(_translate("UtilityWindow", "PDB Database"))
-        self.removeFunctionFiles.setText(_translate("UtilityWindow", "Remove Function Files"))
+        self.switchModeLabel.setText(_translate("ToolWindow", "Switch Mode"))
+        self.CustomMode.setText(_translate("ToolWindow", "Custom"))
+        self.SkeletonMode.setText(_translate("ToolWindow", "Skeleton"))
+        self.XRayMode.setText(_translate("ToolWindow", "X-Ray"))
+        self.SpaceFillingMode.setText(_translate("ToolWindow", "Space Filling"))
+        self.AminoAcidMode.setText(_translate("ToolWindow", "Amino Acids"))
+        self.RibbonMode.setText(_translate("ToolWindow", "Ribbon"))
+        self.github.setText(_translate("ToolWindow", "Github"))
+        self.help.setText(_translate("ToolWindow", "Help"))
+        self.rcsbButton.setText(_translate("ToolWindow", "RCSB.org"))
+        self.mc2pdbLabel.setText(_translate("ToolWindow", "PDB2MC"))
+        self.pdbDatabaseLabel.setText(_translate("ToolWindow", "PDB Database"))
+        self.removeFunctionFiles.setText(_translate("ToolWindow", "Remove Function Files"))
+
 
 class FileExplorerPopup(QMainWindow):
     def __init__(self, start_dir):
         super().__init__()
-        #Open a QFileDialog starting at the directory passed to this function
+        # Open a QFileDialog starting at the directory passed to this function
         file_name, _ = QFileDialog.getOpenFileName(self, "File Explorer", start_dir, "")
         if file_name:
             pass
 
+
 if __name__ == "__main__":
     app = QApplication([])
-    main_window = UtilityWindow()
+    main_window = ToolWindow()
     main_window.show()
     app.exec()

@@ -20,14 +20,19 @@ class InformationBox(QMainWindow):
 
         # Set window properties
         self.setWindowTitle("Custom Popup")
-        self.setWindowIcon(QIcon('../images/icons/logo.png'))
+        current_directory = os.path.basename(os.getcwd())
+        if current_directory == "UI":
+            mcpdb_directory = os.path.join(os.getcwd(), "..")
+            os.chdir(mcpdb_directory)
+
+        self.setWindowIcon(QIcon('images/icons/logo.png'))
 
         # Set background image
         self.setStyleSheet("background-image: url(images/MC2PDB bg.png);")
         self.resize(500, 150)
 
         labelTitle = QtWidgets.QLabel(self)
-        pixmap = QtGui.QPixmap("../images/icons/icon_info.png")
+        pixmap = QtGui.QPixmap("images/icons/icon_info.png")
         pixmap = pixmap.scaled(200, 200)
         labelTitle.setScaledContents(True)
         labelTitle.setGeometry(QtCore.QRect(37, 37, 75, 75))
@@ -151,7 +156,12 @@ class IncludedPDBPopup(QMainWindow):
         super().__init__()
         self.setWindowTitle("Select one included PDB model")
         self.resize(350, 200)
-        self.setWindowIcon(QIcon('../images/icons/logo.png'))
+        current_directory = os.path.basename(os.getcwd())
+        if current_directory == "UI":
+            mcpdb_directory = os.path.join(os.getcwd(), "..")
+            os.chdir(mcpdb_directory)
+
+        self.setWindowIcon(QIcon('images/icons/logo.png'))
 
         # Set background image
         self.setStyleSheet("background-image: url(images/MC2PDB bg.png);")
@@ -197,7 +207,7 @@ class IncludedPDBPopup(QMainWindow):
             self.nothing = NothingSelected()
             self.nothing.show()
         else:
-            preset_file = os.path.join("../presets", selected_text + ".pdb")
+            preset_file = os.path.join("presets", selected_text + ".pdb")
             # check if the model is small enough for minecraft
             if not pdbm.check_model_size(preset_file, world_max=320):
                 self.info_box = InformationBox()

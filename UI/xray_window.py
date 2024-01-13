@@ -1,20 +1,25 @@
 from PyQt6.QtWidgets import QApplication, QMainWindow
 from PyQt6.QtGui import QDesktopServices, QIcon
 from PyQt6 import QtCore, QtGui, QtWidgets
-
+import os
 from PDB2MC.variables import decorative_blocks
 import pandas as pd
 from PDB2MC import minecraft_functions as mcf, pdb_manipulation as pdbm, xray
-from .utilUI import InformationBox, MyComboBox, IncludedPDBPopup, MinecraftPopup, FileExplorerPopup
+from .utilities import InformationBox, MyComboBox, IncludedPDBPopup, MinecraftPopup, FileExplorerPopup
 
 class XrayWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.user_pdb_file = None
         self.user_minecraft_save = None
+        current_directory = os.path.basename(os.getcwd())
+        if current_directory == "UI":
+            mcpdb_directory = os.path.join(os.getcwd(), "..")
+            os.chdir(mcpdb_directory)
+        
         self.setWindowTitle("X-ray mode")
         self.resize(607, 411)
-        self.setWindowIcon(QIcon('../images/icons/logo.png'))
+        self.setWindowIcon(QIcon('images/icons/logo.png'))
 
         # Set style to Fusion
         #self.setStyle("Fusion")
@@ -129,56 +134,56 @@ class XrayWindow(QMainWindow):
         font.setPointSize(7)
         self.bg.setFont(font)
         self.bg.setText("")
-        self.bg.setPixmap(QtGui.QPixmap("../images/MC2PDB bg.png"))
+        self.bg.setPixmap(QtGui.QPixmap("images/MC2PDB bg.png"))
         self.bg.setScaledContents(True)
         self.bg.setObjectName("bg")
         icon1 = QtGui.QIcon()
-        icon1.addPixmap(QtGui.QPixmap("../images/icons/black_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon1.addPixmap(QtGui.QPixmap("images/icons/black_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
 
         icon2 = QtGui.QIcon()
-        icon2.addPixmap(QtGui.QPixmap("../images/icons/red_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon2.addPixmap(QtGui.QPixmap("images/icons/red_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
 
         icon3 = QtGui.QIcon()
-        icon3.addPixmap(QtGui.QPixmap("../images/icons/orange_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon3.addPixmap(QtGui.QPixmap("images/icons/orange_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
 
         icon4 = QtGui.QIcon()
-        icon4.addPixmap(QtGui.QPixmap("../images/icons/yellow_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon4.addPixmap(QtGui.QPixmap("images/icons/yellow_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
 
         icon5 = QtGui.QIcon()
-        icon5.addPixmap(QtGui.QPixmap("../images/icons/lime_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon5.addPixmap(QtGui.QPixmap("images/icons/lime_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
 
         icon6 = QtGui.QIcon()
-        icon6.addPixmap(QtGui.QPixmap("../images/icons/green_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon6.addPixmap(QtGui.QPixmap("images/icons/green_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
 
         icon7 = QtGui.QIcon()
-        icon7.addPixmap(QtGui.QPixmap("../images/icons/cyan_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon7.addPixmap(QtGui.QPixmap("images/icons/cyan_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
 
         icon8 = QtGui.QIcon()
-        icon8.addPixmap(QtGui.QPixmap("../images/icons/light_blue_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon8.addPixmap(QtGui.QPixmap("images/icons/light_blue_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
 
         icon9 = QtGui.QIcon()
-        icon9.addPixmap(QtGui.QPixmap("../images/icons/blue_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon9.addPixmap(QtGui.QPixmap("images/icons/blue_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
 
         icon10 = QtGui.QIcon()
-        icon10.addPixmap(QtGui.QPixmap("../images/icons/purple_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon10.addPixmap(QtGui.QPixmap("images/icons/purple_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
 
         icon11 = QtGui.QIcon()
-        icon11.addPixmap(QtGui.QPixmap("../images/icons/magenta_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon11.addPixmap(QtGui.QPixmap("images/icons/magenta_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
 
         icon12 = QtGui.QIcon()
-        icon12.addPixmap(QtGui.QPixmap("../images/icons/magenta_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon12.addPixmap(QtGui.QPixmap("images/icons/magenta_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
 
         icon13 = QtGui.QIcon()
-        icon13.addPixmap(QtGui.QPixmap("../images/icons/brown_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon13.addPixmap(QtGui.QPixmap("images/icons/brown_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
 
         icon14 = QtGui.QIcon()
-        icon14.addPixmap(QtGui.QPixmap("../images/icons/gray_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon14.addPixmap(QtGui.QPixmap("images/icons/gray_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
 
         icon15 = QtGui.QIcon()
-        icon15.addPixmap(QtGui.QPixmap("../images/icons/light_gray_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon15.addPixmap(QtGui.QPixmap("images/icons/light_gray_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
 
         icon16 = QtGui.QIcon()
-        icon16.addPixmap(QtGui.QPixmap("../images/icons/white_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon16.addPixmap(QtGui.QPixmap("images/icons/white_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
 
         self.cColorLabel = QtWidgets.QLabel(parent=self.centralwidget)
         self.cColorLabel.setGeometry(QtCore.QRect(110, 10, 106, 21))
@@ -602,7 +607,7 @@ class XrayWindow(QMainWindow):
         if text not in decorative_blocks:
             self.show_information_box(title_text=f"Invalid block input",
                                       text=f"{text} is not a valid block option.",
-                                      icon_path="../images/icons/icon_bad.png")
+                                      icon_path="images/icons/icon_bad.png")
             #QMessageBox.warning(self, "Invalid Input", f"{text} is not a valid option.")
             combobox.setCurrentIndex(0)
         else:
@@ -620,7 +625,7 @@ class XrayWindow(QMainWindow):
         if self.selectMinecraft.selected_directory is None:
             self.show_information_box(title_text=f"Error",
                                       text=f"Remember to select a Minecraft save.",
-                                      icon_path="../images/icons/icon_bad.png")
+                                      icon_path="images/icons/icon_bad.png")
             #QMessageBox.critical(None, "Error", "Remember to select a Minecraft save.")
             return
         self.user_minecraft_save = self.selectMinecraft.selected_directory
@@ -672,12 +677,12 @@ class XrayWindow(QMainWindow):
         if self.user_pdb_file is None:
             self.show_information_box(title_text=f"Error: No PDB file",
                                       text=f"Please select a PDB file.",
-                                      icon_path="../images/icons/icon_bad.png")
+                                      icon_path="images/icons/icon_bad.png")
             #QMessageBox.critical(None, "Error", "Please select a PDB file.")
         elif self.user_minecraft_save is None:
             self.show_information_box(title_text=f"Error: No Minecraft save",
                                       text=f"Please select a Minecraft save.",
-                                      icon_path="../images/icons/icon_bad.png")
+                                      icon_path="images/icons/icon_bad.png")
             #QMessageBox.critical(None, "Error", "Please select a Minecraft save.")
         else:
             config_data['pdb_file'] = self.user_pdb_file
@@ -725,7 +730,7 @@ class XrayWindow(QMainWindow):
             except Exception as e:
                 self.show_information_box(title_text=f"Error encountered",
                                           text=f"Model has not generated! \nError: {e}",
-                                          icon_path="../images/icons/icon_bad.png")
+                                          icon_path="images/icons/icon_bad.png")
 
             mcfiles = mcf.find_mcfunctions(mc_dir, pdb_name.lower())
 
@@ -738,7 +743,7 @@ class XrayWindow(QMainWindow):
                 mcf.create_clear_function(mc_dir, pdb_name)
 
             lower = pdb_name.lower()
-            self.show_information_box(title_text = f"Model generated", text = f"Finished! \n Remember to use /reload\n Make your model with: /function protein:build_" + lower, icon_path ="../images/icons/icon_good.png")
+            self.show_information_box(title_text = f"Model generated", text = f"Finished! \n Remember to use /reload\n Make your model with: /function protein:build_" + lower, icon_path ="images/icons/icon_good.png")
 
             #QMessageBox.information(None, "Model generated", f"Finished!\nRemember to /reload in your world and /function protein:build_{lower}")
 
@@ -756,39 +761,55 @@ class XrayWindow(QMainWindow):
         QDesktopServices.openUrl(QtCore.QUrl("https://www.rcsb.org/"))
 
     def handle_custom_mode(self):
-        from customWindow import CustomWindow
-        self.Custom = CustomWindow()
-        self.Custom.show()
-        self.hide()
+        try:
+            from UI.custom_window import CustomWindow
+            self.Custom = CustomWindow()
+            self.Custom.show()
+            self.hide()
+        except Exception as e:
+            print(f"Error in handle_custom_mode: {e}")
 
     def handle_skeleton_mode(self):
-        from skeletonWindow import SkeletonWindow
-        self.Skeleton = SkeletonWindow()
-        self.Skeleton.show()
-        #Turn off main window
-        self.hide()
+        try:
+            from UI.skeleton_window import SkeletonWindow
+            self.Skeleton = SkeletonWindow()
+            self.Skeleton.show()
+            self.hide()
+        except Exception as e:
+            print(f"Error in handle_skeleton_mode: {e}")
 
     def handle_xray_mode(self):
-        print("X-Ray mode button clicked")
-
+        try:
+            pass
+        except Exception as e:
+            print(f"Error in handle_xray_mode: {e}")
 
     def handle_space_filling_mode(self):
-        from space_fillingWindow import spWindow
-        self.SpaceFilling = spWindow()
-        self.SpaceFilling.show()
-        self.hide()
+        try:
+            from UI.space_filling_window import spWindow
+            self.SpaceFilling = spWindow()
+            self.SpaceFilling.show()
+            self.hide()
+        except Exception as e:
+            print(f"Error in handle_space_filling_mode: {e}")
 
     def handle_amino_acid_mode(self):
-        from amino_acidsWindow import AAWindow
-        self.AminoAcid = AAWindow()
-        self.AminoAcid.show()
-        self.hide()
+        try:
+            from UI.amino_acids_window import AAWindow
+            self.AminoAcid = AAWindow()
+            self.AminoAcid.show()
+            self.hide()
+        except Exception as e:
+            print(f"Error in handle_amino_acid_mode: {e}")
 
     def handle_ribbon_mode(self):
-        from ribbonWindow import RibbonWindow
-        self.Ribbon = RibbonWindow()
-        self.Ribbon.show()
-        self.hide()
+        try:
+            from UI.ribbon_window import RibbonWindow
+            self.Ribbon = RibbonWindow()
+            self.Ribbon.show()
+            self.hide()
+        except Exception as e:
+            print(f"Error in handle_ribbon_mode: {e}")
 
     def show_information_box(self, title_text, text, icon_path):
         self.info_box = InformationBox()
