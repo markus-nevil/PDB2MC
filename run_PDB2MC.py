@@ -1,7 +1,9 @@
 from PyQt6.QtWidgets import QApplication, QMainWindow
 from PyQt6.QtGui import QDesktopServices, QIcon
 from PyQt6 import QtCore, QtGui, QtWidgets
-from UI import custom_window, skeleton_window, xray_window, space_filling_window, ribbon_window, amino_acids_window, tool_window
+from UI import help_window, custom_window, skeleton_window, xray_window, space_filling_window, ribbon_window, amino_acids_window, tool_window
+
+help_window = None
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -89,8 +91,22 @@ class MainWindow(QMainWindow):
         self.help.clicked.connect(self.handle_help_button)
 
     def handle_help_button(self):
-        print("Help button clicked")
-        QDesktopServices.openUrl(QtCore.QUrl("https://github.com/markus-nevil/mcpdb/blob/main/README.md"))
+        from UI.help_window import HelpWindow
+        help_window = HelpWindow.instance()
+        if help_window.isVisible():
+            # If a HelpWindow already exists, bring it to the front
+            help_window.raise_()
+            help_window.activateWindow()
+        else:
+            # If no HelpWindow exists, create a new one
+            help_window.show()
+
+        # Move the HelpWindow to the center of the current screen
+        frame_geometry = help_window.frameGeometry()
+        screen_center = self.screen().availableGeometry().center()
+        frame_geometry.moveCenter(screen_center)
+        help_window.move(frame_geometry.topLeft())
+        #QDesktopServices.openUrl(QtCore.QUrl("https://github.com/markus-nevil/mcpdb/blob/main/README.md"))
 
     def handle_dropdown_change(self, text):
         if text == "Custom":

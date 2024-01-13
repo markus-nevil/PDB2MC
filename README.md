@@ -54,7 +54,8 @@ This guide includes a quick start, glossary of terms, description of features, a
     2. `Game Mode: Creative`
     3. `Difficulty: Peaceful`'
     4. `Allow Cheats: ON`
-![MC1.png](images%2FMC1.png)
+
+    <img src="images/MC1.png" width="500">
 
 4. On the 'World' tab, change the following:
     1. `World Type: Superflat`
@@ -77,7 +78,8 @@ This guide includes a quick start, glossary of terms, description of features, a
     5. `Spawn Wardens OFF`
     6. `Advance time of day OFF`
     7. `Update weather OFF`
-![MC3.png](images%2FMC3.png)
+
+    <img src="images/MC3.png" width="800">
 
 6. When finished select `Done` and/or `Create New World` to create the world.
     1. Minecraft can be closed until the PDB model is generated, or kept open.
@@ -92,7 +94,8 @@ This guide includes a quick start, glossary of terms, description of features, a
 
 3. Select a structure (For this example: the model named "1GFL")
     1. This is the entry for published structures. It contains 3D previews, sequences, and structure information as well as the original citation.
-![PDBselect.png](images%2FPDBselect.png)
+
+   <img src="images/PDBselect.png" width="500">
    
 4. Select `Download Files` and download the `PDB Format` file. Note where this is saved.
 
