@@ -109,8 +109,6 @@ def get_corner_points(df):
 # Function that takes a pdb file, reads the coordinates of a single chain, and determines whether the shortest edge of the bounding box is shorter than the parameter ymax
 def check_model_size(file_path, world_max):
     pdb_df = read_pdb(file_path)
-    #chain = pdb_df.loc[pdb_df['chain'] == 'A']
-    #chain = clip_coords(chain)
     chain = clip_coords(pdb_df)
     chain = rotate_to_y(chain)
     ymin = chain['Y'].min()
@@ -173,11 +171,15 @@ def read_pdb(filename):
 
 
 def get_pdb_code(file_path):
+    code = None
     with open(file_path, 'r') as f:
         for line in f:
             if line.startswith('HEADER'):
                 code = line.strip().split()[-1]
                 return code
+    if code == None:
+        code = 'UNKN'
+        return code
     return None
 
 

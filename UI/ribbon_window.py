@@ -1,14 +1,12 @@
 from PyQt6.QtWidgets import QApplication, QMainWindow
 from PyQt6.QtGui import QDesktopServices, QIcon
 from PyQt6 import QtCore, QtGui, QtWidgets
-
-from UI import amino_acids_window, skeleton_window, space_filling_window, xray_window, custom_window, utilities
 import os
 from PDB2MC.variables import decorative_blocks
 import pandas as pd
-
 from PDB2MC import minecraft_functions as mcf, pdb_manipulation as pdbm, ribbon
 from .utilities import InformationBox, MyComboBox, IncludedPDBPopup, MinecraftPopup, FileExplorerPopup
+
 
 class RibbonWindow(QMainWindow):
     def __init__(self):
@@ -16,18 +14,15 @@ class RibbonWindow(QMainWindow):
         self.user_pdb_file = None
         self.user_minecraft_save = None
         self.setWindowTitle("Ribbon Diagram Mode")
+
         current_directory = os.path.basename(os.getcwd())
         if current_directory == "UI":
             mcpdb_directory = os.path.join(os.getcwd(), "..")
             os.chdir(mcpdb_directory)
 
-        
         self.setWindowIcon(QIcon('images/icons/logo.png'))
 
         self.setFixedSize(430, 405)
-        #self.resize(450, 411)
-        # Set style to Fusion
-        #self.setStyle("Fusion")
         self.centralwidget = QtWidgets.QWidget(parent=self)
         self.centralwidget.setObjectName("centralwidget")
         self.switchModeLabel = QtWidgets.QLabel(parent=self.centralwidget)
@@ -522,7 +517,6 @@ class RibbonWindow(QMainWindow):
         self.ribbonColorBox.insertSeparator(50)
         self.ribbonColorBox.insertSeparator(67)
 
-
         self.backboneColorBox = MyComboBox(self.centralwidget)
         self.backboneColorBox.setObjectName("backboneColorBox")
         self.backboneColorBox.setEditable(True)
@@ -742,17 +736,6 @@ class RibbonWindow(QMainWindow):
         self.pScaleSpinBox.setSingleStep(0.5)
         self.pScaleSpinBox.setObjectName("pScaleSpinBox")
         self.pScaleSpinBox.setToolTip("Scale the entire model by this factor.")
-        # self.bScaleLabel = QtWidgets.QLabel(parent=self.centralwidget)
-        #
-        # self.bScaleLabel.setObjectName("bScaleLabel")
-        # self.backboneScaleSpinBox = QtWidgets.QDoubleSpinBox(parent=self.centralwidget)
-        #
-        # self.backboneScaleSpinBox.setDecimals(1)
-        # self.backboneScaleSpinBox.setMinimum(1.0)
-        # self.backboneScaleSpinBox.setMaximum(50.0)
-        # self.backboneScaleSpinBox.setSingleStep(0.5)
-        # self.backboneScaleSpinBox.setObjectName("backboneScaleSpinBox")
-        # self.backboneScaleSpinBox.setToolTip("Scale the width of the backbone by this factor.")
         self.selectIncludedPDBButton = QtWidgets.QPushButton(parent=self.centralwidget)
 
         self.selectIncludedPDBButton.setObjectName("selectIncludedPDBButton")
@@ -836,9 +819,6 @@ class RibbonWindow(QMainWindow):
         self.aScaleLabel.setGeometry(QtCore.QRect(110, 255, 61, 21))
         self.aScaleSpinBox.setGeometry(QtCore.QRect(240, 255, 62, 22))
 
-        #self.pScaleLabel.setGeometry(QtCore.QRect(110, 255, 71, 21))
-        #self.pScaleSpinBox.setGeometry(QtCore.QRect(240, 255, 62, 22))
-
         self.selectPDBFileButton.setGeometry(QtCore.QRect(110, 290, 91, 23))
         self.orText.setGeometry(QtCore.QRect(210, 290, 31, 21))
         self.selectIncludedPDBButton.setGeometry(QtCore.QRect(250, 290, 141, 23))
@@ -848,7 +828,6 @@ class RibbonWindow(QMainWindow):
 
         self.simpleOutputCheck.setGeometry(QtCore.QRect(110, 360, 100, 31))
         self.createFunctionsButton.setGeometry(QtCore.QRect(230, 360, 181, 31))
-
 
         self.bg.raise_()
         self.switchModeLabel.raise_()
@@ -866,36 +845,22 @@ class RibbonWindow(QMainWindow):
         self.pdbDatabaseLabel.raise_()
         self.modeInfoHLine.raise_()
         self.infoDatabaseHLine.raise_()
-        # self.cColorLabel.raise_()
-        # self.oColorLabel.raise_()
-        # self.nColorLabel.raise_()
-        # self.sColorLabel.raise_()
-        # self.pColorLabel.raise_()
         self.backboneColorLabel.raise_()
         self.sidechainColorLabel.raise_()
         self.otherColorLabel.raise_()
         self.ribbonColorLabel.raise_()
         self.ribbonColorBox.raise_()
-        # self.oColorBox.raise_()
-        # self.nColorBox.raise_()
-        # self.pColorBox.raise_()
         self.otherColorBox.raise_()
-        # self.sColorBox.raise_()
-        # self.cColorBox.raise_()
         self.backboneColorBox.raise_()
         self.sidechainColorBox.raise_()
         self.aScaleLabel.raise_()
-        # self.showAtomsCheck.raise_()
         self.otherMoleculeCheck.raise_()
-        #self.meshCheck.raise_()
         self.aScaleSpinBox.raise_()
         self.showBackboneCheck.raise_()
         self.showSidechainCheck.raise_()
         self.colorByBackboneCheck.raise_()
         self.pScaleLabel.raise_()
         self.pScaleSpinBox.raise_()
-        #self.bScaleLabel.raise_()
-        #self.backboneScaleSpinBox.raise_()
         self.selectIncludedPDBButton.raise_()
         self.selectMinecraftSaveButton.raise_()
         self.simpleOutputCheck.raise_()
@@ -930,19 +895,15 @@ class RibbonWindow(QMainWindow):
         self.colorByBackboneCheck.stateChanged.connect(self.on_colorByBackboneCheck_changed)
         self.otherMoleculeCheck.stateChanged.connect(self.on_otherMoleculeCheck_changed)
 
-        #Start out with ribbon items greyed out
+        # Start out with ribbon items greyed out
         self.ribbonColorBox.setEnabled(False)
         self.backboneColorBox.setEnabled(False)
-        #self.showBackboneCheck.setEnabled(False)
         self.sidechainColorBox.setEnabled(False)
-        #self.showSidechainCheck.setEnabled(False)
 
     def on_colorByBackboneCheck_changed(self, state):
         self.ribbonColorBox.setEnabled(state == 0)
         self.backboneColorBox.setEnabled(state == 0)
-        #self.showBackboneCheck.setEnabled(state == 0)
         self.sidechainColorBox.setEnabled(state == 0)
-        #self.showSidechainCheck.setEnabled(state == 0)
 
     def on_otherMoleculeCheck_changed(self, state):
         self.otherColorBox.setEnabled(state != 0)
@@ -950,25 +911,20 @@ class RibbonWindow(QMainWindow):
 
     def check_input(self, combobox, valid_options):
         text = combobox.currentText()
-        #ensure that text is lowercase
         text = text.lower()
-        #replace any space characters with '_'
         text = text.replace(' ', '_')
         if text not in decorative_blocks:
             self.show_information_box(title_text=f"Invalid block input",
                                       text=f"{text} is not a valid block option.",
                                       icon_path="images/icons/icon_bad.png")
-            #QMessageBox.warning(self, "Invalid Input", f"{text} is not a valid option.")
             combobox.setCurrentIndex(0)
         else:
             combobox.setCurrentText(text)
 
     # Slot methods to handle QPushButton clicks
     def handle_select_pdb_file_button(self):
-        print("Selecting PDB file")
         self.selectPDB = FileExplorerPopup()
         self.user_pdb_file = self.selectPDB.selected_file
-        print(f"The user has this file: {self.user_pdb_file}")
 
     def handle_select_minecraft_button(self):
         self.selectMinecraft = MinecraftPopup()
@@ -976,21 +932,16 @@ class RibbonWindow(QMainWindow):
             self.show_information_box(title_text=f"Error",
                                       text=f"Remember to select a Minecraft save.",
                                       icon_path="images/icons/icon_bad.png")
-            #QMessageBox.critical(None, "Error", "Remember to select a Minecraft save.")
             return
         self.user_minecraft_save = self.selectMinecraft.selected_directory
     def handle_included_pdb_button(self):
-        print("Included PDB button clicked")
         self.includedPDB = IncludedPDBPopup()
         self.includedPDB.show()
         self.includedPDB.selected.connect(self.save_selected_text)
 
     def save_selected_text(self, text):
         self.selected_text = text
-        print(f"This is what was selectd: {text}")
-        #make global variable for pdb file
         self.user_pdb_file = f"presets/{text}.pdb"
-        print(f"The user has this file: {self.user_pdb_file}")
 
     def handle_make_function_button(self):
         # Create a dictionary to store the user options
@@ -1024,12 +975,10 @@ class RibbonWindow(QMainWindow):
             self.show_information_box(title_text=f"Error: No PDB file",
                                       text=f"Please select a PDB file.",
                                       icon_path="images/icons/icon_bad.png")
-            #QMessageBox.critical(None, "Error", "Please select a PDB file.")
         elif self.user_minecraft_save is None:
             self.show_information_box(title_text=f"Error: No Minecraft save",
                                       text=f"Please select a Minecraft save.",
                                       icon_path="images/icons/icon_bad.png")
-            #QMessageBox.critical(None, "Error", "Please select a Minecraft save.")
         else:
             config_data['pdb_file'] = self.user_pdb_file
             config_data['save_path'] = self.user_minecraft_save
@@ -1043,25 +992,22 @@ class RibbonWindow(QMainWindow):
             moved = pdbm.move_coordinates(scaled)
             moved = pdbm.rotate_to_y(moved)
             rounded = pdbm.round_df(moved)
-
-
             hetatom_df = pd.DataFrame()
             hetatm_bonds = pd.DataFrame()
 
             # Check if the user wants het-atoms, if so, process them
-            if config_data["show_hetatm"] == True:
-                # check if the first column of rounded contains any "HETATM" values
+            if config_data["show_hetatm"]:
 
+                # check if the first column of rounded contains any "HETATM" values
                 if "HETATM" in rounded.iloc[:, 0].values:
                     hetatm_bonds = pdbm.process_hetatom(rounded, pdb_file)
                     hetatom_df = pdbm.filter_type_atom(rounded, remove_type="ATOM", remove_atom="H")
-                    # hetatom_df = pdbm.filter_type_atom(rounded, remove_type="ATOM")
                 else:
                     hetatm_bonds = None
                     hetatom_df = None
                     config_data["show_hetatm"] = False
 
-            atom_df = pdbm.filter_type_atom(rounded, remove_type="HETATM", remove_atom="H")
+            # atom_df = pdbm.filter_type_atom(rounded, remove_type="HETATM", remove_atom="H")
 
             # Delete the old mcfunctions if they match the current one
             mc_dir = config_data['save_path']
@@ -1088,11 +1034,7 @@ class RibbonWindow(QMainWindow):
 
             self.show_information_box(title_text = f"Model generated", text = f"Finished! \n Remember to use /reload\n Make your model with: /function protein:build_" + lower, icon_path ="images/icons/icon_good.png")
 
-            #QMessageBox.information(None, "Model generated", f"Finished!\nRemember to /reload in your world and /function protein:build_{lower}")
-
-
     def handle_github_button(self):
-        print("Github button clicked")
         QDesktopServices.openUrl(QtCore.QUrl("https://github.com/markus-nevil/mcpdb"))
 
     def handle_help_button(self):
@@ -1111,10 +1053,8 @@ class RibbonWindow(QMainWindow):
         screen_center = self.screen().availableGeometry().center()
         frame_geometry.moveCenter(screen_center)
         help_window.move(frame_geometry.topLeft())
-        #QDesktopServices.openUrl(QtCore.QUrl("https://github.com/markus-nevil/mcpdb/blob/main/README.md"))
 
     def handle_rscb_button(self):
-        print("RSCB button clicked")
         QDesktopServices.openUrl(QtCore.QUrl("https://www.rcsb.org/"))
 
     def handle_custom_mode(self):
@@ -1177,7 +1117,6 @@ class RibbonWindow(QMainWindow):
 
     def retranslateUi(self, RibbonWindow):
         _translate = QtCore.QCoreApplication.translate
-        #RibbonWindow.setWindowTitle(_translate("RibbonWindow", "MainWindow"))
         self.switchModeLabel.setText(_translate("RibbonWindow", "Switch Mode"))
         self.CustomMode.setText(_translate("RibbonWindow", "Custom"))
         self.SkeletonMode.setText(_translate("RibbonWindow", "Skeleton"))
@@ -1190,24 +1129,16 @@ class RibbonWindow(QMainWindow):
         self.rcsbButton.setText(_translate("RibbonWindow", "RCSB.org"))
         self.mc2pdbLabel.setText(_translate("RibbonWindow", "PDB2MC"))
         self.pdbDatabaseLabel.setText(_translate("RibbonWindow", "PDB Database"))
-        # self.cColorLabel.setText(_translate("RibbonWindow", "Select C atom color:"))
-        # self.oColorLabel.setText(_translate("RibbonWindow", "Select O atom color:"))
-        # self.nColorLabel.setText(_translate("RibbonWindow", "Select N atom color:"))
-        # self.sColorLabel.setText(_translate("RibbonWindow", "Select S atom color:"))
-        # self.pColorLabel.setText(_translate("RibbonWindow", "Select P atom color:"))
         self.ribbonColorLabel.setText(_translate("RibbonWindow", "Select ribbon color:"))
         self.backboneColorLabel.setText(_translate("RibbonWindow", "Select backbone color:"))
         self.sidechainColorLabel.setText(_translate("RibbonWindow", "Select sidechain color:"))
         self.otherColorLabel.setText(_translate("RibbonWindow", "Select other color:"))
         self.aScaleLabel.setText(_translate("RibbonWindow", "Atom scale:"))
-        # self.showAtomsCheck.setText(_translate("RibbonWindow", "Show model atoms"))
         self.otherMoleculeCheck.setText(_translate("RibbonWindow", "Show other molecules"))
-        #self.meshCheck.setText(_translate("RibbonWindow", "Use \"mesh-style\" atoms"))
         self.showBackboneCheck.setText(_translate("RibbonWindow", "Show backbone"))
         self.showSidechainCheck.setText(_translate("RibbonWindow", "Show sidechain"))
         self.colorByBackboneCheck.setText(_translate("RibbonWindow", "Color backbone by chain"))
         self.pScaleLabel.setText(_translate("RibbonWindow", "Protein scale:"))
-        #self.bScaleLabel.setText(_translate("RibbonWindow", "Backbone scale:"))
         self.selectIncludedPDBButton.setText(_translate("RibbonWindow", "Select Included PDB File"))
         self.selectMinecraftSaveButton.setText(_translate("RibbonWindow", "Select Minecraft Save"))
         self.simpleOutputCheck.setText(_translate("RibbonWindow", "Simple output"))
@@ -1215,6 +1146,7 @@ class RibbonWindow(QMainWindow):
         self.createFunctionsButton.setText(_translate("RibbonWindow", "Create Minecraft Functions"))
         self.orText.setText(_translate("RibbonWindow", "or"))
         self.andText.setText(_translate("RibbonWindow", "and"))
+
 
 if __name__ == "__main__":
     app = QApplication([])

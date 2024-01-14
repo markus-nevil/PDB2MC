@@ -5,7 +5,7 @@ import os
 from PDB2MC.variables import decorative_blocks
 import pandas as pd
 from PDB2MC import minecraft_functions as mcf, pdb_manipulation as pdbm, xray
-from .utilities import InformationBox, MyComboBox, IncludedPDBPopup, MinecraftPopup, FileExplorerPopup
+from UI.utilities import InformationBox, MyComboBox, IncludedPDBPopup, MinecraftPopup, FileExplorerPopup
 
 class XrayWindow(QMainWindow):
     def __init__(self):
@@ -185,6 +185,150 @@ class XrayWindow(QMainWindow):
         icon16 = QtGui.QIcon()
         icon16.addPixmap(QtGui.QPixmap("images/icons/white_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
 
+        icon17 = QtGui.QIcon()
+        icon17.addPixmap(QtGui.QPixmap("images/icons/red_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon18 = QtGui.QIcon()
+        icon18.addPixmap(QtGui.QPixmap("images/icons/orange_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon19 = QtGui.QIcon()
+        icon19.addPixmap(QtGui.QPixmap("images/icons/yellow_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon20 = QtGui.QIcon()
+        icon20.addPixmap(QtGui.QPixmap("images/icons/lime_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon21 = QtGui.QIcon()
+        icon21.addPixmap(QtGui.QPixmap("images/icons/green_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon22 = QtGui.QIcon()
+        icon22.addPixmap(QtGui.QPixmap("images/icons/cyan_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon23 = QtGui.QIcon()
+        icon23.addPixmap(QtGui.QPixmap("images/icons/light_blue_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon24 = QtGui.QIcon()
+        icon24.addPixmap(QtGui.QPixmap("images/icons/blue_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon25 = QtGui.QIcon()
+        icon25.addPixmap(QtGui.QPixmap("images/icons/purple_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon26 = QtGui.QIcon()
+        icon26.addPixmap(QtGui.QPixmap("images/icons/magenta_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon27 = QtGui.QIcon()
+        icon27.addPixmap(QtGui.QPixmap("images/icons/pink_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon28 = QtGui.QIcon()
+        icon28.addPixmap(QtGui.QPixmap("images/icons/brown_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon29 = QtGui.QIcon()
+        icon29.addPixmap(QtGui.QPixmap("images/icons/black_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon30 = QtGui.QIcon()
+        icon30.addPixmap(QtGui.QPixmap("images/icons/gray_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon31 = QtGui.QIcon()
+        icon31.addPixmap(QtGui.QPixmap("images/icons/light_gray_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon32 = QtGui.QIcon()
+        icon32.addPixmap(QtGui.QPixmap("images/icons/white_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon33 = QtGui.QIcon()
+        icon33.addPixmap(QtGui.QPixmap("images/icons/red_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon34 = QtGui.QIcon()
+        icon34.addPixmap(QtGui.QPixmap("images/icons/orange_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon35 = QtGui.QIcon()
+        icon35.addPixmap(QtGui.QPixmap("images/icons/yellow_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon36 = QtGui.QIcon()
+        icon36.addPixmap(QtGui.QPixmap("images/icons/lime_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon37 = QtGui.QIcon()
+        icon37.addPixmap(QtGui.QPixmap("images/icons/green_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon38 = QtGui.QIcon()
+        icon38.addPixmap(QtGui.QPixmap("images/icons/cyan_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon39 = QtGui.QIcon()
+        icon39.addPixmap(QtGui.QPixmap("images/icons/light_blue_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon40 = QtGui.QIcon()
+        icon40.addPixmap(QtGui.QPixmap("images/icons/blue_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon41 = QtGui.QIcon()
+        icon41.addPixmap(QtGui.QPixmap("images/icons/purple_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon42 = QtGui.QIcon()
+        icon42.addPixmap(QtGui.QPixmap("images/icons/magenta_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon43 = QtGui.QIcon()
+        icon43.addPixmap(QtGui.QPixmap("images/icons/pink_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon44 = QtGui.QIcon()
+        icon44.addPixmap(QtGui.QPixmap("images/icons/brown_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon45 = QtGui.QIcon()
+        icon45.addPixmap(QtGui.QPixmap("images/icons/black_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon46 = QtGui.QIcon()
+        icon46.addPixmap(QtGui.QPixmap("images/icons/gray_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon47 = QtGui.QIcon()
+        icon47.addPixmap(QtGui.QPixmap("images/icons/light_gray_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon48 = QtGui.QIcon()
+        icon48.addPixmap(QtGui.QPixmap("images/icons/white_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon49 = QtGui.QIcon()
+        icon49.addPixmap(QtGui.QPixmap("images/icons/red_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon50 = QtGui.QIcon()
+        icon50.addPixmap(QtGui.QPixmap("images/icons/orange_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon51 = QtGui.QIcon()
+        icon51.addPixmap(QtGui.QPixmap("images/icons/yellow_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon52 = QtGui.QIcon()
+        icon52.addPixmap(QtGui.QPixmap("images/icons/lime_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon53 = QtGui.QIcon()
+        icon53.addPixmap(QtGui.QPixmap("images/icons/green_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon54 = QtGui.QIcon()
+        icon54.addPixmap(QtGui.QPixmap("images/icons/cyan_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon55 = QtGui.QIcon()
+        icon55.addPixmap(QtGui.QPixmap("images/icons/light_blue_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon56 = QtGui.QIcon()
+        icon56.addPixmap(QtGui.QPixmap("images/icons/blue_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon57 = QtGui.QIcon()
+        icon57.addPixmap(QtGui.QPixmap("images/icons/purple_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon58 = QtGui.QIcon()
+        icon58.addPixmap(QtGui.QPixmap("images/icons/magenta_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon59 = QtGui.QIcon()
+        icon59.addPixmap(QtGui.QPixmap("images/icons/pink_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon60 = QtGui.QIcon()
+        icon60.addPixmap(QtGui.QPixmap("images/icons/brown_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon61 = QtGui.QIcon()
+        icon61.addPixmap(QtGui.QPixmap("images/icons/black_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon62 = QtGui.QIcon()
+        icon62.addPixmap(QtGui.QPixmap("images/icons/gray_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon63 = QtGui.QIcon()
+        icon63.addPixmap(QtGui.QPixmap("images/icons/light_gray_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
+        icon64 = QtGui.QIcon()
+        icon64.addPixmap(QtGui.QPixmap("images/icons/white_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+
         self.cColorLabel = QtWidgets.QLabel(parent=self.centralwidget)
         self.cColorLabel.setGeometry(QtCore.QRect(110, 10, 106, 21))
         self.cColorLabel.setObjectName("cColorLabel")
@@ -209,182 +353,174 @@ class XrayWindow(QMainWindow):
         self.otherColorLabel = QtWidgets.QLabel(parent=self.centralwidget)
         self.otherColorLabel.setGeometry(QtCore.QRect(110, 160, 121, 21))
         self.otherColorLabel.setObjectName("otherColorLabel")
-        #self.oColorBox = QtWidgets.QComboBox(parent=self.centralwidget)
         self.oColorBox = MyComboBox(self.centralwidget)
         self.oColorBox.setGeometry(QtCore.QRect(240, 40, 175, 22))
         self.oColorBox.setObjectName("oColorBox")
         self.oColorBox.setEditable(True)
-
-        self.oColorBox.addItem(icon2, "red_stained_glass")
-        self.oColorBox.addItem(icon3, "orange_stained_glass")
-        self.oColorBox.addItem(icon4, "yellow_stained_glass")
-        self.oColorBox.addItem(icon5, "lime_stained_glass")
-        self.oColorBox.addItem(icon6, "green_stained_glass")
-        self.oColorBox.addItem(icon7, "cyan_stained_glass")
-        self.oColorBox.addItem(icon8, "light_blue_stained_glass")
-        self.oColorBox.addItem(icon9, "blue_stained_glass")
-        self.oColorBox.addItem(icon10, "purple_stained_glass")
-        self.oColorBox.addItem(icon11, "magenta_stained_glass")
-        self.oColorBox.addItem(icon12, "pink_stained_glass")
-        self.oColorBox.addItem(icon13, "brown_stained_glass")
-        self.oColorBox.addItem(icon1, "black_stained_glass")
-        self.oColorBox.addItem(icon14, "gray_stained_glass")
-        self.oColorBox.addItem(icon15, "light_stained_glass")
-        self.oColorBox.addItem(icon16, "white_stained_glass")
 
         self.nColorBox = MyComboBox(self.centralwidget)
         self.nColorBox.setGeometry(QtCore.QRect(240, 70, 175, 22))
         self.nColorBox.setObjectName("nColorBox")
         self.nColorBox.setEditable(True)
 
-        self.nColorBox.addItem(icon9, "blue_stained_glass")
-        self.nColorBox.addItem(icon2, "red_stained_glass")
-        self.nColorBox.addItem(icon3, "orange_stained_glass")
-        self.nColorBox.addItem(icon4, "yellow_stained_glass")
-        self.nColorBox.addItem(icon5, "lime_stained_glass")
-        self.nColorBox.addItem(icon6, "green_stained_glass")
-        self.nColorBox.addItem(icon7, "cyan_stained_glass")
-        self.nColorBox.addItem(icon8, "light_blue_stained_glass")
-        self.nColorBox.addItem(icon10, "purple_stained_glass")
-        self.nColorBox.addItem(icon11, "magenta_stained_glass")
-        self.nColorBox.addItem(icon12, "pink_stained_glass")
-        self.nColorBox.addItem(icon13, "brown_stained_glass")
-        self.nColorBox.addItem(icon1, "black_stained_glass")
-        self.nColorBox.addItem(icon14, "gray_stained_glass")
-        self.nColorBox.addItem(icon15, "light_stained_glass")
-        self.nColorBox.addItem(icon16, "white_stained_glass")
-
         self.pColorBox = MyComboBox(self.centralwidget)
         self.pColorBox.setGeometry(QtCore.QRect(240, 130, 175, 22))
         self.pColorBox.setObjectName("pColorBox")
         self.pColorBox.setEditable(True)
-
-        self.pColorBox.addItem(icon5, "lime_stained_glass")
-        self.pColorBox.addItem(icon2, "red_stained_glass")
-        self.pColorBox.addItem(icon3, "orange_stained_glass")
-        self.pColorBox.addItem(icon4, "yellow_stained_glass")
-        self.pColorBox.addItem(icon6, "green_stained_glass")
-        self.pColorBox.addItem(icon7, "cyan_stained_glass")
-        self.pColorBox.addItem(icon8, "light_blue_stained_glass")
-        self.pColorBox.addItem(icon9, "blue_stained_glass")
-        self.pColorBox.addItem(icon10, "purple_stained_glass")
-        self.pColorBox.addItem(icon11, "magenta_stained_glass")
-        self.pColorBox.addItem(icon12, "pink_stained_glass")
-        self.pColorBox.addItem(icon13, "brown_stained_glass")
-        self.pColorBox.addItem(icon1, "black_stained_glass")
-        self.pColorBox.addItem(icon14, "gray_stained_glass")
-        self.pColorBox.addItem(icon15, "light_stained_glass")
-        self.pColorBox.addItem(icon16, "white_stained_glass")
 
         self.otherColorBox = MyComboBox(self.centralwidget)
         self.otherColorBox.setGeometry(QtCore.QRect(240, 160, 175, 22))
         self.otherColorBox.setObjectName("otherColorBox")
         self.otherColorBox.setEditable(True)
 
-        self.otherColorBox.addItem(icon12, "pink_stained_glass")
-        self.otherColorBox.addItem(icon2, "red_stained_glass")
-        self.otherColorBox.addItem(icon3, "orange_stained_glass")
-        self.otherColorBox.addItem(icon4, "yellow_stained_glass")
-        self.otherColorBox.addItem(icon5, "lime_stained_glass")
-        self.otherColorBox.addItem(icon6, "green_stained_glass")
-        self.otherColorBox.addItem(icon7, "cyan_stained_glass")
-        self.otherColorBox.addItem(icon8, "light_blue_stained_glass")
-        self.otherColorBox.addItem(icon9, "blue_stained_glass")
-        self.otherColorBox.addItem(icon10, "purple_stained_glass")
-        self.otherColorBox.addItem(icon11, "magenta_stained_glass")
-        self.otherColorBox.addItem(icon13, "brown_stained_glass")
-        self.otherColorBox.addItem(icon1, "black_stained_glass")
-        self.otherColorBox.addItem(icon14, "gray_stained_glass")
-        self.otherColorBox.addItem(icon15, "light_stained_glass")
-        self.otherColorBox.addItem(icon16, "white_stained_glass")
-
         self.sColorBox = MyComboBox(self.centralwidget)
         self.sColorBox.setGeometry(QtCore.QRect(240, 100, 175, 22))
         self.sColorBox.setObjectName("sColorBox")
         self.sColorBox.setEditable(True)
-
-        self.sColorBox.addItem(icon4, "yellow_stained_glass")
-        self.sColorBox.addItem(icon2, "red_stained_glass")
-        self.sColorBox.addItem(icon3, "orange_stained_glass")
-        self.sColorBox.addItem(icon5, "lime_stained_glass")
-        self.sColorBox.addItem(icon6, "green_stained_glass")
-        self.sColorBox.addItem(icon7, "cyan_stained_glass")
-        self.sColorBox.addItem(icon8, "light_blue_stained_glass")
-        self.sColorBox.addItem(icon9, "blue_stained_glass")
-        self.sColorBox.addItem(icon10, "purple_stained_glass")
-        self.sColorBox.addItem(icon11, "magenta_stained_glass")
-        self.sColorBox.addItem(icon12, "pink_stained_glass")
-        self.sColorBox.addItem(icon13, "brown_stained_glass")
-        self.sColorBox.addItem(icon1, "black_stained_glass")
-        self.sColorBox.addItem(icon14, "gray_stained_glass")
-        self.sColorBox.addItem(icon15, "light_stained_glass")
-        self.sColorBox.addItem(icon16, "white_stained_glass")
 
         self.cColorBox = MyComboBox(self.centralwidget)
         self.cColorBox.setGeometry(QtCore.QRect(240, 10, 175, 22))
         self.cColorBox.setObjectName("cColorBox")
         self.cColorBox.setEditable(True)
 
-        self.cColorBox.addItem(icon1, "black_stained_glass")
-        self.cColorBox.addItem(icon2, "red_stained_glass")
-        self.cColorBox.addItem(icon3, "orange_stained_glass")
-        self.cColorBox.addItem(icon4, "yellow_stained_glass")
-        self.cColorBox.addItem(icon5, "lime_stained_glass")
-        self.cColorBox.addItem(icon6, "green_stained_glass")
-        self.cColorBox.addItem(icon7, "cyan_stained_glass")
-        self.cColorBox.addItem(icon8, "light_blue_stained_glass")
-        self.cColorBox.addItem(icon9, "blue_stained_glass")
-        self.cColorBox.addItem(icon10, "purple_stained_glass")
-        self.cColorBox.addItem(icon11, "magenta_stained_glass")
-        self.cColorBox.addItem(icon12, "pink_stained_glass")
-        self.cColorBox.addItem(icon13, "brown_stained_glass")
-        self.cColorBox.addItem(icon14, "gray_stained_glass")
-        self.cColorBox.addItem(icon15, "light_stained_glass")
-        self.cColorBox.addItem(icon16, "white_stained_glass")
-
         self.backboneColorBox = MyComboBox(self.centralwidget)
         self.backboneColorBox.setGeometry(QtCore.QRect(240, 240, 175, 22))
         self.backboneColorBox.setObjectName("backboneColorBox")
         self.backboneColorBox.setEditable(True)
-
-        self.backboneColorBox.addItem(icon14, "gray_concrete")
-        self.backboneColorBox.addItem(icon2, "red_concrete")
-        self.backboneColorBox.addItem(icon3, "orange_concrete")
-        self.backboneColorBox.addItem(icon4, "yellow_concrete")
-        self.backboneColorBox.addItem(icon5, "lime_concrete")
-        self.backboneColorBox.addItem(icon6, "green_concrete")
-        self.backboneColorBox.addItem(icon7, "cyan_concrete")
-        self.backboneColorBox.addItem(icon8, "light_blue_concrete")
-        self.backboneColorBox.addItem(icon9, "blue_concrete")
-        self.backboneColorBox.addItem(icon10, "purple_concrete")
-        self.backboneColorBox.addItem(icon11, "magenta_concrete")
-        self.backboneColorBox.addItem(icon12, "pink_concrete")
-        self.backboneColorBox.addItem(icon13, "brown_concrete")
-        self.backboneColorBox.addItem(icon1, "black_concrete")
-        self.backboneColorBox.addItem(icon15, "light_gray_concrete")
-        self.backboneColorBox.addItem(icon16, "white_concrete")
 
         self.sidechainColorBox = MyComboBox(self.centralwidget)
         self.sidechainColorBox.setGeometry(QtCore.QRect(240, 210, 175, 22))
         self.sidechainColorBox.setObjectName("sidechainColorBox")
         self.sidechainColorBox.setEditable(True)
 
-        self.sidechainColorBox.addItem(icon14, "gray_concrete")
-        self.sidechainColorBox.addItem(icon2, "red_concrete")
-        self.sidechainColorBox.addItem(icon3, "orange_concrete")
-        self.sidechainColorBox.addItem(icon4, "yellow_concrete")
-        self.sidechainColorBox.addItem(icon5, "lime_concrete")
-        self.sidechainColorBox.addItem(icon6, "green_concrete")
-        self.sidechainColorBox.addItem(icon7, "cyan_concrete")
-        self.sidechainColorBox.addItem(icon8, "light_blue_concrete")
-        self.sidechainColorBox.addItem(icon9, "blue_concrete")
-        self.sidechainColorBox.addItem(icon10, "purple_concrete")
-        self.sidechainColorBox.addItem(icon11, "magenta_concrete")
-        self.sidechainColorBox.addItem(icon12, "pink_concrete")
-        self.sidechainColorBox.addItem(icon13, "brown_concrete")
-        self.sidechainColorBox.addItem(icon1, "black_concrete")
-        self.sidechainColorBox.addItem(icon15, "light_gray_concrete")
-        self.sidechainColorBox.addItem(icon16, "white_concrete")
+        icon_dict = {
+            "red_concrete": "icon2",
+            "orange_concrete": "icon3",
+            "yellow_concrete": "icon4",
+            "lime_concrete": "icon5",
+            "green_concrete": "icon6",
+            "cyan_concrete": "icon7",
+            "light_blue_concrete": "icon8",
+            "blue_concrete": "icon9",
+            "purple_concrete": "icon10",
+            "magenta_concrete": "icon11",
+            "pink_concrete": "icon12",
+            "brown_concrete": "icon13",
+            "black_concrete": "icon1",
+            "gray_concrete": "icon14",
+            "light_gray_concrete": "icon15",
+            "white_concrete": "icon16",
+            "red_glazed_terracotta": "icon17",
+            "orange_glazed_terracotta": "icon18",
+            "yellow_glazed_terracotta": "icon19",
+            "lime_glazed_terracotta": "icon20",
+            "green_glazed_terracotta": "icon21",
+            "cyan_glazed_terracotta": "icon22",
+            "light_blue_glazed_terracotta": "icon23",
+            "blue_glazed_terracotta": "icon24",
+            "purple_glazed_terracotta": "icon25",
+            "magenta_glazed_terracotta": "icon26",
+            "pink_glazed_terracotta": "icon27",
+            "brown_glazed_terracotta": "icon28",
+            "black_glazed_terracotta": "icon29",
+            "gray_glazed_terracotta": "icon30",
+            "light_gray_glazed_terracotta": "icon31",
+            "white_glazed_terracotta": "icon32",
+            "red_terracotta": "icon33",
+            "orange_terracotta": "icon34",
+            "yellow_terracotta": "icon35",
+            "lime_terracotta": "icon36",
+            "green_terracotta": "icon37",
+            "cyan_terracotta": "icon38",
+            "light_blue_terracotta": "icon39",
+            "blue_terracotta": "icon40",
+            "purple_terracotta": "icon41",
+            "magenta_terracotta": "icon42",
+            "pink_terracotta": "icon43",
+            "brown_terracotta": "icon44",
+            "black_terracotta": "icon45",
+            "gray_terracotta": "icon46",
+            "light_gray_terracotta": "icon47",
+            "white_terracotta": "icon48",
+            "red_wool": "icon49",
+            "orange_wool": "icon50",
+            "yellow_wool": "icon51",
+            "lime_wool": "icon52",
+            "green_wool": "icon53",
+            "cyan_wool": "icon54",
+            "light_blue_wool": "icon55",
+            "blue_wool": "icon56",
+            "purple_wool": "icon57",
+            "magenta_wool": "icon58",
+            "pink_wool": "icon59",
+            "brown_wool": "icon60",
+            "black_wool": "icon61",
+            "gray_wool": "icon62",
+            "light_gray_wool": "icon63",
+            "wool": "icon64",
+            "red_stained_glass": "icon2",
+            "orange_stained_glass": "icon3",
+            "yellow_stained_glass": "icon4",
+            "lime_stained_glass": "icon5",
+            "green_stained_glass": "icon6",
+            "cyan_stained_glass": "icon7",
+            "light_blue_stained_glass": "icon8",
+            "blue_stained_glass": "icon9",
+            "purple_stained_glass": "icon10",
+            "magenta_stained_glass": "icon11",
+            "pink_stained_glass": "icon12",
+            "brown_stained_glass": "icon13",
+            "black_stained_glass": "icon1",
+            "gray_stained_glass": "icon14",
+            "light_stained_glass": "icon15",
+            "white_stained_glass": "icon16"
+        }
+
+        color_boxes = [self.sidechainColorBox, self.backboneColorBox]
+
+        for color_box in color_boxes:
+            for value, icon in icon_dict.items():
+                color_box.addItem(eval(icon), value)
+            color_box.insertSeparator(16)
+            color_box.insertSeparator(33)
+            color_box.insertSeparator(50)
+            color_box.insertSeparator(67)
+
+        self.sidechainColorBox.setCurrentIndex(13)
+        self.backboneColorBox.setCurrentIndex(13)
+
+        glass_dict = {
+            "red_stained_glass": "icon2",
+            "orange_stained_glass": "icon3",
+            "yellow_stained_glass": "icon4",
+            "lime_stained_glass": "icon5",
+            "green_stained_glass": "icon6",
+            "cyan_stained_glass": "icon7",
+            "light_blue_stained_glass": "icon8",
+            "blue_stained_glass": "icon9",
+            "purple_stained_glass": "icon10",
+            "magenta_stained_glass": "icon11",
+            "pink_stained_glass": "icon12",
+            "brown_stained_glass": "icon13",
+            "black_stained_glass": "icon1",
+            "gray_stained_glass": "icon14",
+            "light_stained_glass": "icon15",
+            "white_stained_glass": "icon16"
+        }
+
+        color_boxes = [self.oColorBox, self.otherColorBox, self.cColorBox,
+                       self.nColorBox, self.sColorBox, self.pColorBox]
+
+        for color_box in color_boxes:
+            for value, icon in glass_dict.items():
+                color_box.addItem(eval(icon), value)
+
+        self.oColorBox.setCurrentIndex(0)
+        self.cColorBox.setCurrentIndex(12)
+        self.nColorBox.setCurrentIndex(7)
+        self.sColorBox.setCurrentIndex(2)
+        self.pColorBox.setCurrentIndex(3)
+        self.otherColorBox.setCurrentIndex(10)
 
         self.aScaleLabel = QtWidgets.QLabel(parent=self.centralwidget)
         self.aScaleLabel.setGeometry(QtCore.QRect(440, 100, 61, 21))

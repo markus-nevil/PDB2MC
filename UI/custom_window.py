@@ -1,7 +1,6 @@
 from PyQt6.QtWidgets import QApplication, QMainWindow
 from PyQt6.QtGui import QDesktopServices, QIcon
 from PyQt6 import QtCore, QtGui, QtWidgets
-from PyQt6.QtCore import QTimer
 
 from PDB2MC.variables import decorative_blocks
 import pandas as pd
