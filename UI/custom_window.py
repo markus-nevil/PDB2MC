@@ -8,6 +8,8 @@ from PDB2MC import minecraft_functions as mcf, custom, pdb_manipulation as pdbm
 
 from UI.utilities import InformationBox, IncludedPDBPopup, MyComboBox, MinecraftPopup, FileExplorerPopup
 import os
+import sys
+import pkg_resources
 
 class CustomWindow(QMainWindow):
     def __init__(self):
@@ -17,10 +19,13 @@ class CustomWindow(QMainWindow):
         self.setWindowTitle("Custom mode")
         self.setFixedSize(607, 411)
 
-        current_directory = os.path.basename(os.getcwd())
-        if current_directory == "UI":
-            mcpdb_directory = os.path.join(os.getcwd(), "..")
-            os.chdir(mcpdb_directory)
+        # current_directory = os.path.basename(os.getcwd())
+        # if current_directory == "PDB2MC":
+        #     mcpdb_directory = os.path.join(os.getcwd(), ".." "UI")
+        #     os.chdir(mcpdb_directory)
+        print(get_images_path())
+        os.chdir(get_images_path())
+        print(os.getcwd())
 
         self.setWindowIcon(QIcon('images/icons/logo.png'))
 
@@ -995,6 +1000,20 @@ class CustomWindow(QMainWindow):
         self.createFunctionsButton.setText(_translate("CustomWindow", "Create Minecraft Functions"))
         self.orText.setText(_translate("CustomWindow", "or"))
         self.andText.setText(_translate("CustomWindow", "and"))
+
+def get_images_path():
+    if getattr(sys, 'frozen', False):
+        # The program is running as a compiled executable
+        images_dir = pkg_resources.resource_filename('UI', 'images')
+        images_dir = os.path.join(images_dir, '..')
+        return images_dir
+    else:
+        # The program is running as a Python script or it's installed in the Python environment
+        # Get the directory of the current script
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        # Construct the path to the UI/images directory
+        images_dir = os.path.join(current_dir, '..', 'UI')
+        return images_dir
 
 if __name__ == "__main__":
     app = QApplication([])

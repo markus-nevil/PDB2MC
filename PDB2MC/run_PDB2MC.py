@@ -1,7 +1,12 @@
-from PyQt6.QtWidgets import QApplication, QMainWindow
+import os
+
+from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel
 from PyQt6.QtGui import QDesktopServices, QIcon
 from PyQt6 import QtCore, QtGui, QtWidgets
 from UI import help_window, custom_window, skeleton_window, xray_window, space_filling_window, ribbon_window, amino_acids_window, tool_window
+import sys
+import pkg_resources
+from PDB2MC.version import version
 
 help_window = None
 
@@ -12,9 +17,20 @@ class MainWindow(QMainWindow):
         self.setObjectName("MainWindow")
         self.setWindowTitle("Welcome to PDB2MC")
         self.setFixedSize(929, 621)
+        os.chdir(get_images_path())
+
+        # print(os.getcwd())
+        #
+        # current_directory = os.path.basename(os.getcwd())
+        # if current_directory == "PDB2MC":
+        #     mcpdb_directory = os.path.join(os.getcwd(), "..", "UI")
+        #     os.chdir(mcpdb_directory)
+
         self.setWindowIcon(QIcon('images/icons/logo.png'))
+
         self.centralwidget = QtWidgets.QWidget(parent=self)
         self.centralwidget.setObjectName("centralwidget")
+
         self.label = QtWidgets.QLabel(parent=self.centralwidget)
         self.label.setGeometry(QtCore.QRect(-130, 0, 1161, 631))
         font = QtGui.QFont()
@@ -25,6 +41,21 @@ class MainWindow(QMainWindow):
         movie = QtGui.QMovie("images/bg.gif")
         self.label.setMovie(movie)
         movie.start()
+
+        # Get the version number
+        #version = get_version('PDB2MC')
+        self.version_label = QLabel(f'Version: {version}', self)
+        self.version_label.setGeometry(0, 0, 130, 30)
+        self.version_label.move(5, 590)
+        font = QtGui.QFont()
+        font.setPointSize(14)
+        font.setBold(True)
+        font.setWeight(500)
+        self.version_label.setFont(font)
+        self.version_label.setStyleSheet("background-color: rgba(255, 255, 255, 127);")
+        self.version_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignVCenter | QtCore.Qt.AlignmentFlag.AlignHCenter)
+        self.layout().addWidget(self.version_label)
+        self.version_label.setObjectName("version_label")
 
         self.label.setScaledContents(True)
         self.label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
@@ -49,7 +80,7 @@ class MainWindow(QMainWindow):
         self.comboBox.addItem("Space Filling")
         self.comboBox.addItem("Ribbon")
         self.comboBox.addItem("Amino Acids")
-        self.comboBox.addItem("Utilities")
+        self.comboBox.addItem("Tools")
 
         labelTitle = QtWidgets.QLabel(self)
         pixmap = QtGui.QPixmap("images/title.png")
@@ -147,7 +178,27 @@ class MainWindow(QMainWindow):
         self.comboBox.setItemText(6, _translate("MainWindow", "Amino Acid"))
         self.label_2.setText(_translate("MainWindow", "Select Mode:"))
 
-if __name__ == "__main__":
+def get_images_path():
+    if getattr(sys, 'frozen', False):
+        # The program is running as a compiled executable
+        images_dir = pkg_resources.resource_filename('UI', 'images')
+        images_dir = os.path.join(images_dir, '..')
+        return images_dir
+    else:
+        # The program is running as a Python script or it's installed in the Python environment
+        # Get the directory of the current script
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        # Construct the path to the UI/images directory
+        images_dir = os.path.join(current_dir, '..', 'UI')
+        return images_dir
+
+def get_version(package_name):
+    try:
+        return pkg_resources.get_distribution(package_name).version
+    except pkg_resources.DistributionNotFound:
+        return None
+
+def main():
     app = QApplication([])
     main_window = MainWindow()
     main_window.show()
@@ -155,3 +206,6 @@ if __name__ == "__main__":
         app.exec()
     except KeyboardInterrupt:
         pass
+
+if __name__ == "__main__":
+    main()

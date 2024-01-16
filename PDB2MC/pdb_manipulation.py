@@ -4,8 +4,6 @@ import tkinter as tk
 from tkinter import filedialog
 import numpy as np
 import math
-import re
-import trimesh
 from scipy.interpolate import splprep, splev
 from scipy.spatial import ConvexHull, Delaunay, cKDTree
 from scipy import ndimage
@@ -13,6 +11,8 @@ import tifffile as tiff
 import cv2
 from scipy.ndimage import convolve
 from scipy.spatial import cKDTree
+import pkg_resources
+import sys
 
 def assign_atom_values(surface_df, branch_df):
     # Build a k-d tree from branch_df
@@ -1336,9 +1336,17 @@ def smooth_line(df):
     # Return the new dataframe
     return new_df
 
-
 def sidechain(atom_df):
-    chains_df = pd.read_csv("chains.txt", sep='\s+', header=None, names=['residue', 'atom', 'atom2'], engine='python')
+    if getattr(sys, 'frozen', False):
+        # The program is running as a compiled executable
+        base_path = sys._MEIPASS
+        chains_file_path = os.path.join(base_path, 'PDB2MC', 'chains.txt')
+    else:
+        chains_file_path = pkg_resources.resource_filename('PDB2MC', 'chains.txt')
+
+    chains_df = pd.read_csv(chains_file_path, sep='\s+', header=None, names=['residue', 'atom', 'atom2'],
+                            engine='python')
+    #chains_df = pd.read_csv("chains.txt", sep='\s+', header=None, names=['residue', 'atom', 'atom2'], engine='python')
 
     # Create an empty list to store the coordinates
     coordinates = []

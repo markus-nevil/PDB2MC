@@ -6,7 +6,8 @@ from PDB2MC.variables import decorative_blocks
 import pandas as pd
 from PDB2MC import minecraft_functions as mcf, pdb_manipulation as pdbm, ribbon
 from .utilities import InformationBox, MyComboBox, IncludedPDBPopup, MinecraftPopup, FileExplorerPopup
-
+import sys
+import pkg_resources
 
 class RibbonWindow(QMainWindow):
     def __init__(self):
@@ -15,10 +16,12 @@ class RibbonWindow(QMainWindow):
         self.user_minecraft_save = None
         self.setWindowTitle("Ribbon Diagram Mode")
 
-        current_directory = os.path.basename(os.getcwd())
-        if current_directory == "UI":
-            mcpdb_directory = os.path.join(os.getcwd(), "..")
-            os.chdir(mcpdb_directory)
+        # current_directory = os.path.basename(os.getcwd())
+        # if current_directory == "PDB2MC":
+        #     mcpdb_directory = os.path.join(os.getcwd(), ".." "UI")
+        #     os.chdir(mcpdb_directory)
+
+        os.chdir(get_images_path())
 
         self.setWindowIcon(QIcon('images/icons/logo.png'))
 
@@ -1147,6 +1150,19 @@ class RibbonWindow(QMainWindow):
         self.orText.setText(_translate("RibbonWindow", "or"))
         self.andText.setText(_translate("RibbonWindow", "and"))
 
+def get_images_path():
+    if getattr(sys, 'frozen', False):
+        # The program is running as a compiled executable
+        images_dir = pkg_resources.resource_filename('UI', 'images')
+        images_dir = os.path.join(images_dir, '..')
+        return images_dir
+    else:
+        # The program is running as a Python script or it's installed in the Python environment
+        # Get the directory of the current script
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        # Construct the path to the UI/images directory
+        images_dir = os.path.join(current_dir, '..', 'UI')
+        return images_dir
 
 if __name__ == "__main__":
     app = QApplication([])

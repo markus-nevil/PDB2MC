@@ -1,5 +1,5 @@
 <p align = "center">
-<img src="images/title.png" width="500">
+<img src="UI/images/title.png" width="500">
 </p>
 
 # PDB2MC: Bridging Biomolecules and Minecraft for accessible, interactive 3D visualization.
@@ -19,15 +19,18 @@
    - [Default atom colors](#default-atom-colors)
  - [Glossary of terms](#glossary-of-terms)
  - [Program Flowchart](#generalized-flowchart-of-program-procedure)
+ - [Citation](#citation)
+ - [License](#license)
 
 ## Introduction
 The structures of proteins and other biomolecules determined by X-ray crystallography, NMR, and cryo-EM are published at
-the RCSB Protein Data Bank (rcsb.org). These structures are primarily viewed using free or paid program whose learning 
-curve may pose an inaccessible barrier to for educators, students, and the public. The purpose of the `PDB2MC` program is to 
-make a fun and accessible alternative by generating files that can be loaded by the popular video game Minecraft.
+the RCSB Protein Data Bank (rcsb.org). These structures are primarily viewed using free or paid programs that are
+powerful tools, yet whose learning curve may pose an inaccessible barrier to for educators, students, and the public.
+The purpose of the stand-alone `PDB2MC` program is to make a fun and accessible alternative by generating files that 
+can be loaded by the popular video game Minecraft.
 
 <p align = "center">
-<img src="images/bg.gif" width="500">
+<img src="UI/images/bg.gif" width="500">
 </p>
 
 The `PDB2MC` program comes with several models, but also can use any PDB file downloaded from RCSB Protein Data Bank.
@@ -36,13 +39,26 @@ This guide includes a quick start, glossary of terms, description of features, a
 
 ## Quick Start:
 
+### Windows .EXE installation
 1. Download the latest release of the program from Github via a Zip file.
-2. Extract the contents of the Zip file to a folder
-3. Open the program by double-clicking the `main.exe` file
+2. Extract the contents of the Zip file to a location of your choice (e.g. Desktop).
+3. Open the program by double-clicking the `PDB2MC.exe` file.
+
+### Python installation
+1. Download the latest version with `Code` > `Download ZIP` from Github.
+2. Extract the contents of the Zip file to a location of your choice (e.g. Desktop).
+3. Open a terminal and navidgate to the extracted folder.
+4. Install PDB2MC with `pip install .`
+5. Run PDB2MC with `python -m PDB2MC`
 
 > [!IMPORTANT]
 > Due to the size of even small models, it is recommended to prepare a special Minecraft world with minimal other blocks to generate models.
 > This will ensure that there is the maximum amount of space to generate models.
+
+### Issues and Questions
+Please note any bugs and/or relay any questions under the Issues tab: 
+https://github.com/markus-nevil/mcpdb/issues.
+
 
 ## Prepare a new Minecraft world for PDB models
 1. Open Minecraft (without any mods) and follow these steps to prepare a `Superflat Creative` world
@@ -55,18 +71,18 @@ This guide includes a quick start, glossary of terms, description of features, a
     3. `Difficulty: Peaceful`'
     4. `Allow Cheats: ON`
 
-    <img src="images/MC1.png" width="500">
+    <img src="UI/images/MC1.png" width="500">
 
 4. On the 'World' tab, change the following:
     1. `World Type: Superflat`
     2. `Generate Structures: OFF`
    3. Select `Customize`, then `Presets` to create a world with a white floor (not required,but suggsted).
    
-<img src="images/MC2a.png" width="500">
+<img src="UI/images/MC2a.png" width="500">
 
    4. Change the text of the top box to: `minecraft:bedrock,minecraft:white_concrete`
 
-<img src="images/MC2b.png" width="500">
+<img src="UI/images/MC2b.png" width="500">
 
 5. On the `More` tab, select `Game Rules` to change the following:
 
@@ -79,7 +95,7 @@ This guide includes a quick start, glossary of terms, description of features, a
     6. `Advance time of day OFF`
     7. `Update weather OFF`
 
-    <img src="images/MC3.png" width="800">
+    <img src="UI/images/MC3.png" width="800">
 
 6. When finished select `Done` and/or `Create New World` to create the world.
     1. Minecraft can be closed until the PDB model is generated, or kept open.
@@ -90,27 +106,27 @@ This guide includes a quick start, glossary of terms, description of features, a
 1. Navigate to [https://rcsb.org](https://www.rcsb.org/)
 2. In the Search bar, search for a biomolecule (For this example: "Green fluorescent protein")
 
-    <img src="images/PDBsearch.png" width="500">
+    <img src="UI/images/PDBsearch.png" width="500">
 
 3. Select a structure (For this example: the model named "1GFL")
     1. This is the entry for published structures. It contains 3D previews, sequences, and structure information as well as the original citation.
 
-   <img src="images/PDBselect.png" width="500">
+   <img src="UI/images/PDBselect.png" width="500">
    
 4. Select `Download Files` and download the `PDB Format` file. Note where this is saved.
 
-    <img src="images/PDBdownload.png" width="500">
+    <img src="UI/images/PDBdownload.png" width="500">
 
 ### Open the PDB2MC program
 - Select the desired mode
   - For this example, select `Ribbon` from the `Select Mode:` dropdown menu
 
-<img src="images/PDB2MC1.png" width="500">
+<img src="UI/images/PDB2MC1.png" width="500">
 
 > [!NOTE]
 > Descriptions of the different modes are included in the next section.
 
-<img src="images/PDB2MC2.png" width="400">
+<img src="UI/images/PDB2MC2.png" width="400">
 
 1. Change `Protein scale` to 4.0.
     - A future step will suggest a maximum size for this scale.
@@ -257,14 +273,14 @@ alternatives.
 
 | Abbreviation | Atom | Color                                                                  | Currently modifiable?                                 |
   | ---- | ---- |------------------------------------------------------------------------|-------------------------------------------------------|
-  | C | Carbon | <img src="images/icons/black_concrete.png" width="13"> Black           | <img src="images/icons/icon_good.png" width="13"> Yes |
-  | O | Oxygen | <img src="images/icons/red_concrete.png" width="13"> Red               | <img src="images/icons/icon_good.png" width="13"> Yes |
-  | N | Nitrogen | <img src="images/icons/blue_concrete.png" width="13"> Blue             | <img src="images/icons/icon_good.png" width="13"> Yes |
-  | S | Sulfur | <img src="images/icons/yellow_concrete.png" width="13"> Yellow         | <img src="images/icons/icon_good.png" width="13"> Yes |
-  | P | Phosphorous | <img src="images/icons/lime_concrete.png" width="13"> Green            | <img src="images/icons/icon_good.png" width="13"> Yes |
-| H | Hydrogen | <img src="images/icons/white_concrete.png" width="13"> White           | <img src="images/icons/icon_bad.png" width="13"> No   |
-| Fe | Iron | <img src="images/icons/light_gray_concrete.png" width="13"> Iron block | <img src="images/icons/icon_bad.png" width="13"> No   |
-  | - | Other | <img src="images/icons/pink_concrete.png" width="13"> Pink             | <img src="images/icons/icon_good.png" width="13"> Yes |
+  | C | Carbon | <img src="UI/images/icons/black_concrete.png" width="13"> Black           | <img src="UI/images/icons/icon_good.png" width="13"> Yes |
+  | O | Oxygen | <img src="UI/images/icons/red_concrete.png" width="13"> Red               | <img src="UI/images/icons/icon_good.png" width="13"> Yes |
+  | N | Nitrogen | <img src="UI/images/icons/blue_concrete.png" width="13"> Blue             | <img src="UI/images/icons/icon_good.png" width="13"> Yes |
+  | S | Sulfur | <img src="UI/images/icons/yellow_concrete.png" width="13"> Yellow         | <img src="UI/images/icons/icon_good.png" width="13"> Yes |
+  | P | Phosphorous | <img src="UI/images/icons/lime_concrete.png" width="13"> Green            | <img src="UI/images/icons/icon_good.png" width="13"> Yes |
+| H | Hydrogen | <img src="UI/images/icons/white_concrete.png" width="13"> White           | <img src="UI/images/icons/icon_bad.png" width="13"> No   |
+| Fe | Iron | <img src="UI/images/icons/light_gray_concrete.png" width="13"> Iron block | <img src="UI/images/icons/icon_bad.png" width="13"> No   |
+  | - | Other | <img src="UI/images/icons/pink_concrete.png" width="13"> Pink             | <img src="UI/images/icons/icon_good.png" width="13"> Yes |
 
 
 ## Glossary of terms
@@ -363,3 +379,38 @@ flowchart TD
         U --> W
         V --> W
 ```
+## Citation
+*PDB2MC is not yet published with an associated paper, however if you use PDB2MC in your research, please cite the following:* <br>
+Nevil, M. 2024. [**PDB2MC: Bridging Biomolecules and Minecraft for accessible, interactive 3D visualization.**](https://github.com/markus-nevil/mcpdb).
+
+```
+@article{NevilMarkus2024,
+author = {Nevil, M.},
+title = {PDB2MC: Bridging Biomolecules and Minecraft for accessible, interactive 3D visualization.},
+year = {2024},
+}
+```
+
+## License
+
+MIT License
+
+Copyright (c) 2024 Markus Nevil
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

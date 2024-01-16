@@ -7,19 +7,21 @@ import pandas as pd
 from PDB2MC import minecraft_functions as mcf, pdb_manipulation as pdbm, space_filling
 
 from .utilities import InformationBox, MyComboBox, IncludedPDBPopup, MinecraftPopup, FileExplorerPopup
-
+import sys
+import pkg_resources
 class spWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.user_pdb_file = None
         self.user_minecraft_save = None
         self.setWindowTitle("Space Filling mode")
-        current_directory = os.path.basename(os.getcwd())
-        if current_directory == "UI":
-            mcpdb_directory = os.path.join(os.getcwd(), "..")
-            os.chdir(mcpdb_directory)
+        # current_directory = os.path.basename(os.getcwd())
+        # if current_directory == "PDB2MC":
+        #     mcpdb_directory = os.path.join(os.getcwd(), ".." "UI")
+        #     os.chdir(mcpdb_directory)
 
-        
+        os.chdir(get_images_path())
+
         self.resize(435, 411)
         self.setWindowIcon(QIcon('images/icons/logo.png'))
 
@@ -896,6 +898,20 @@ class spWindow(QMainWindow):
         self.createFunctionsButton.setText(_translate("sfWindow", "Create Minecraft Functions"))
         self.orText.setText(_translate("sfWindow", "or"))
         self.andText.setText(_translate("sfWindow", "and"))
+
+def get_images_path():
+    if getattr(sys, 'frozen', False):
+        # The program is running as a compiled executable
+        images_dir = pkg_resources.resource_filename('UI', 'images')
+        images_dir = os.path.join(images_dir, '..')
+        return images_dir
+    else:
+        # The program is running as a Python script or it's installed in the Python environment
+        # Get the directory of the current script
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        # Construct the path to the UI/images directory
+        images_dir = os.path.join(current_dir, '..', 'UI')
+        return images_dir
 
 if __name__ == "__main__":
     app = QApplication([])

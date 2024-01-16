@@ -8,3 +8,8 @@ PDB2MC/testing/plotting_functions.py
 PDB2MC/testing/scratch.py
 scratch_1.py
 docs/config.json
+dist/
+venv/
+PDB2MC.spec
+run_PDB2MC.spec
+PDB2MC.egg-info/

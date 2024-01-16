@@ -12,8 +12,8 @@ class ToolWindow(QMainWindow):
         self.user_pdb_file = None
         self.user_minecraft_save = None
         current_directory = os.path.basename(os.getcwd())
-        if current_directory == "UI":
-            mcpdb_directory = os.path.join(os.getcwd(), "..")
+        if current_directory == "PDB2MC":
+            mcpdb_directory = os.path.join(os.getcwd(), ".." "UI")
             os.chdir(mcpdb_directory)
 
         self.setWindowTitle("Utilities")

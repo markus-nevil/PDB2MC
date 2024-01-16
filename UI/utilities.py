@@ -6,6 +6,8 @@ from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6 import QtCore, QtGui, QtWidgets
 
 from PDB2MC import pdb_manipulation as pdbm
+import sys
+import pkg_resources
 
 
 class MyComboBox(QtWidgets.QComboBox):
@@ -20,10 +22,7 @@ class InformationBox(QMainWindow):
 
         # Set window properties
         self.setWindowTitle("Custom Popup")
-        current_directory = os.path.basename(os.getcwd())
-        if current_directory == "UI":
-            mcpdb_directory = os.path.join(os.getcwd(), "..")
-            os.chdir(mcpdb_directory)
+        os.chdir(get_images_path())
 
         self.setWindowIcon(QIcon('images/icons/logo.png'))
 
@@ -142,7 +141,10 @@ class IncludedPDBPopup(QMainWindow):
     selected = pyqtSignal(str)
     def ListAvailableModels(self):
         cwd = os.getcwd()
-        available = os.listdir(os.path.join(cwd, "presets"))
+        #available = os.listdir(os.path.join(cwd, "presets"))
+        print(os.getcwd())
+        print(get_presets_path())
+        available = os.listdir(get_presets_path())
         listOutput = ['-none-']
         for file in available:
             if file.endswith(".pdb"):
@@ -156,10 +158,7 @@ class IncludedPDBPopup(QMainWindow):
         super().__init__()
         self.setWindowTitle("Select one included PDB model")
         self.resize(350, 200)
-        current_directory = os.path.basename(os.getcwd())
-        if current_directory == "UI":
-            mcpdb_directory = os.path.join(os.getcwd(), "..")
-            os.chdir(mcpdb_directory)
+        os.chdir(get_images_path())
 
         self.setWindowIcon(QIcon('images/icons/logo.png'))
 
@@ -288,17 +287,41 @@ class MinecraftPopup(QMainWindow):
 
         # check for pack.mcmeta in the /datapacks/mcPDB folder and if not copy it from the python directory
         if not os.path.isfile(os.path.join(save_path, "datapacks/mcPDB/pack.mcmeta")):
-            copyfile("../PDB2MC/pack.mcmeta", os.path.join(save_path, "datapacks/mcPDB/pack.mcmeta"))
+            pack_mcmeta_path = pkg_resources.resource_filename('PDB2MC', 'pack.mcmeta')
+            copyfile(pack_mcmeta_path, os.path.join(save_path, "datapacks/mcPDB/pack.mcmeta"))
+
+        else:
+            if not os.path.isfile(os.path.join(save_path, "datapacks/mcPDB/pack.mcmeta")):
+                copyfile("../PDB2MC/pack.mcmeta", os.path.join(save_path, "datapacks/mcPDB/pack.mcmeta"))
 
         if directory_path:
             self.selected_directory = directory_path
 
+def get_images_path():
+    if getattr(sys, 'frozen', False):
+        # The program is running as a compiled executable
+        images_dir = pkg_resources.resource_filename('UI', 'images')
+        images_dir = os.path.join(images_dir, '..')
+        return images_dir
+    else:
+        # The program is running as a Python script or it's installed in the Python environment
+        # Get the directory of the current script
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        # Construct the path to the UI/images directory
+        images_dir = os.path.join(current_dir, '..', 'UI')
+        return images_dir
 
+def get_presets_path():
+    if getattr(sys, 'frozen', False):
+        # The program is running as a compiled executable
+        preset_dir = pkg_resources.resource_filename('UI', 'presets')
+        preset_dir = os.path.join(preset_dir)
+        return preset_dir
+    else:
+        # The program is running as a Python script or it's installed in the Python environment
+        # Get the directory of the current script
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        # Construct the path to the UI/images directory
+        preset_dir = os.path.join(current_dir, '..', 'UI', 'presets')
+        return preset_dir
 
-if __name__ == "__main__":
-    app = QApplication([])
-    main_window = InformationBox()
-    main_window.set_text("Finished! \n Remember to take your stuff out of the\n minecraft yes okay good")
-    main_window.set_icon("images/icons/icon_good.png")
-    main_window.show()
-    #app.exec()

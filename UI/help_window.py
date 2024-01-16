@@ -3,8 +3,9 @@ import markdown
 from PyQt6.QtWidgets import QApplication, QMainWindow, QTextBrowser
 from PyQt6.QtGui import QDesktopServices, QIcon
 from PyQt6 import QtCore, QtGui, QtWidgets
-from markdown.extensions.codehilite import CodeHiliteExtension
+import sys
 import re
+import pkg_resources
 
 class HelpWindow(QMainWindow):
     _instance = None  # Class variable to hold the single instance
@@ -24,12 +25,16 @@ class HelpWindow(QMainWindow):
         self.setWindowTitle("Help")
         self.setFixedSize(900, 600)
 
-        current_directory = os.path.basename(os.getcwd())
-        if current_directory == "UI":
-            mcpdb_directory = os.path.join(os.getcwd(), "..")
-            os.chdir(mcpdb_directory)
-
+        # current_directory = os.path.basename(os.getcwd())
+        # if current_directory == "PDB2MC":
+        #     mcpdb_directory = os.path.join(os.getcwd(), "..", "UI")
+        #     os.chdir(mcpdb_directory)
+        os.chdir(get_images_path())
+        test = os.path.isfile(os.path.join(os.getcwd(), 'images/icons/logo.png'))
+        print(os.path.join(os.getcwd(), 'images/icons/logo.png'))
+        print(test)
         self.setWindowIcon(QIcon('images/icons/logo.png'))
+
         self.centralwidget = QtWidgets.QWidget(parent=self)
         self.centralwidget.setObjectName("centralwidget")
 
@@ -47,7 +52,16 @@ class HelpWindow(QMainWindow):
     def load_readme(self):
         # Get the directory of the current Python file
         start_dir = os.path.dirname(os.path.abspath(__file__))
-        readme_path = os.path.join(start_dir, "..", "README.md")
+
+        current_directory = os.path.basename(os.getcwd())
+        if current_directory == "PDB2MC":
+            mcpdb_directory = os.path.join(os.getcwd(), ".." "UI")
+            os.chdir(mcpdb_directory)
+            readme_path = os.path.join(mcpdb_directory, "README.md")
+        else:
+            readme_path = os.path.join(start_dir, "..", "README.md")
+
+        #readme_path = pkg_resources.resource_filename('PDB2MC', 'README.md')
 
         # Read the README.md file
         readme_content = self.read_file(readme_path)
@@ -83,11 +97,61 @@ class HelpWindow(QMainWindow):
             # Convert the markdown to HTML
             html = markdown.markdown(markdown_text, extensions=['tables', 'toc', 'fenced_code', 'nl2br', 'extra'])
 
+            # print(os.getcwd())
+            # print(html)
+
+            html = adjust_image_paths(html)
+            return html
+
             # Replace relative image paths with absolute paths
-            return html.replace('src="images/', 'src="' + os.path.join(start_dir, "..",'images/'))
+            #return html.replace('src="images/', 'src="' + os.path.join(start_dir, "..",'images/'))
+
         except Exception as e:
             print(f"Error converting markdown to HTML: {e}")
             return ""
+
+# def adjust_image_paths(html):
+#     # Check if the program is running as a compiled executable
+#     if getattr(sys, 'frozen', False):
+#         # Define a regular expression pattern for the img tags
+#         pattern = r'<img src="(UI/images/[^"]+)"'
+#         print("changing paths")
+#         # Define a function that takes a match object and returns the replacement string
+#         def replacer(match):
+#             # Get the relative path to the image from the match object
+#             relative_path = match.group(1)
+#
+#             # Use pkg_resources to get the absolute path to the image in the installed package
+#             absolute_path = pkg_resources.resource_filename('PDB2MC', relative_path)
+#             #absolute_path = pkg_resources.resource_filename('UI', relative_path)
+#
+#             # Return the img tag with the src attribute replaced with the absolute path
+#             return f'<img src="{absolute_path}"'
+#
+#         # Use the sub function to replace the img tags
+#         html = re.sub(pattern, replacer, html)
+#     return html
+def adjust_image_paths(html):
+    # Define a regular expression pattern for the img tags
+    pattern = r'<img src="(UI/images/[^"]+)"'
+
+    # Define a function that takes a match object and returns the replacement string
+    def replacer(match):
+        # Get the relative path to the image from the match object
+        relative_path = match.group(1)
+        #print(relative_path)
+
+        # Replace 'UI/images' with 'images' in the relative path
+        new_path = relative_path.replace('UI/images', 'images')
+        #print(new_path)
+
+        # Return the img tag with the src attribute replaced with the new path
+        return f'<img src="{new_path}"'
+
+    # Use the sub function to replace the img tags
+    html = re.sub(pattern, replacer, html)
+
+    return html
 
 def adjust_list_indentation(markdown_text):
     return markdown_text.replace("\n   ", "\n    ")
@@ -139,6 +203,24 @@ def replace_mermaid_diagram(markdown_text):
         markdown_text = markdown_text[:start] + replacement + markdown_text[end + len(end_marker):]
 
     return markdown_text
+
+def get_images_path():
+    if getattr(sys, 'frozen', False):
+        # The program is running as a compiled executable
+        images_dir = sys._MEIPASS
+        images_dir = os.path.join(images_dir, "UI")
+        print(images_dir)
+        # test_path = os.path.join(images_dir, 'UI', 'images')
+        # print(test_path)
+        #images_dir = os.path.join(images_dir, '..')
+        return images_dir
+    else:
+        # The program is running as a Python script or it's installed in the Python environment
+        # Get the directory of the current script
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        # Construct the path to the UI/images directory
+        images_dir = os.path.join(current_dir, '..', 'UI')
+        return images_dir
 
 if __name__ == "__main__":
     app = QApplication([])
