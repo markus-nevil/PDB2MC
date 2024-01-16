@@ -8,8 +8,10 @@
 
 **Table of Contents**
  - [Introduction](#introduction)
- - [Quickstart](#quick-start)
- - [Prepare a Minecraft world](#prepare-a-new-minecraft-world-for-pdb-models)
+ - [Installation](#installation)
+   - [Issues and Questions](#issues-and-questions)
+ - [General Program Procedure](#general-program-procedure)
+ - [Preparing a Minecraft world](#preparing-a-new-minecraft-world-for-pdb-models)
  - [Walkthrough of an example GFP model](#walkthrough-of-an-example-gfp-model)
    - [(Optional) Download a PDB file from RCSB PDB](#optional-download-a-pdb-file-from-rcsb-pdb)
    - [Open the PDB2MC program](#open-the-pdb2mc-program)
@@ -33,11 +35,12 @@ can be loaded by the popular video game Minecraft.
 <img src="UI/images/bg.gif" width="500">
 </p>
 
-The `PDB2MC` program comes with several models, but also can use any PDB file downloaded from RCSB Protein Data Bank.
+The `PDB2MC` program comes with several models, but also can use any PDB file downloaded from RCSB Protein Data Bank. 
+Currently, the program only includes a .EXE file for Windows, but can be installed on any operating system with Python 3.11+
 
 This guide includes a quick start, glossary of terms, description of features, and a walk through to generate a model of the included GFP model.
 
-## Quick Start:
+## Installation:
 
 ### Windows .EXE installation
 1. Download the latest release of the program from Github via a Zip file.
@@ -59,8 +62,32 @@ This guide includes a quick start, glossary of terms, description of features, a
 Please note any bugs and/or relay any questions under the Issues tab: 
 https://github.com/markus-nevil/mcpdb/issues.
 
+## General Program Procedure
 
-## Prepare a new Minecraft world for PDB models
+1. Ensure that you have a Minecraft world prepared for PDB models.
+   - Creative mode, superflat world with a white floor is recommended.
+
+2. Download a model in a .pdb format
+   - The program comes with several example models, but many models from the RCSB PDB website are compatible.
+   - The program has a button that will open the RCSB PDB website for ease of access.
+
+3. Open the PDB2MC program
+   - Select the mode.
+   - Select the Minecraft save file and PDB file.
+   - Select the options you wish to change.
+   - Press `Create Minecraft Functions` to generate the model.
+     - This may take a few minutes depending on the complexity of the model and settings.
+
+4. Open the Minecraft world
+   - Open the Minecraft world and open the console with `t`.
+   - Type `/reload` to reload the world and ensure that the functions are recognized.
+   - Type `/function protein:build_` and select your model.
+     - This will generate the model relative to the player's position.
+   - Type `/clear protien:clear_` and select your model to remove it.
+     - It is essential to stand on the black `obsidian` block that was generated when the model was created.
+
+
+## Preparing a new Minecraft world for PDB models
 1. Open Minecraft (without any mods) and follow these steps to prepare a `Superflat Creative` world
     1. Select `Single Player`
     2. Select `Create New World`
@@ -76,46 +103,54 @@ https://github.com/markus-nevil/mcpdb/issues.
 4. On the 'World' tab, change the following:
     1. `World Type: Superflat`
     2. `Generate Structures: OFF`
-   3. Select `Customize`, then `Presets` to create a world with a white floor (not required,but suggsted).
+    3. Select `Customize`, then `Presets` to create a world with a white floor (not required,but suggsted).
    
 <img src="UI/images/MC2a.png" width="500">
 
-   4. Change the text of the top box to: `minecraft:bedrock,minecraft:white_concrete`
+5. Change the text of the top box to: `minecraft:bedrock,minecraft:white_concrete`
 
 <img src="UI/images/MC2b.png" width="500">
 
-5. On the `More` tab, select `Game Rules` to change the following:
+6. On the `More` tab, select `Game Rules` to change the following:
 
     1. `Spawn phantoms OFF`
     2. `Command Chain Size Limit: 1000000 (or higher)`
-    2. `Spawn mobs OFF`
-    3. `Spawn pillager patrols OFF`
-    4. `Spawn Wandering Traders OFF`
-    5. `Spawn Wardens OFF`
-    6. `Advance time of day OFF`
-    7. `Update weather OFF`
+    3. `Spawn mobs OFF`
+    4. `Spawn pillager patrols OFF`
+    5. `Spawn Wandering Traders OFF`
+    6. `Spawn Wardens OFF`
+    7. `Advance time of day OFF`
+    8. `Update weather OFF`
 
     <img src="UI/images/MC3.png" width="800">
 
-6. When finished select `Done` and/or `Create New World` to create the world.
+7. When finished select `Done` and/or `Create New World` to create the world.
     1. Minecraft can be closed until the PDB model is generated, or kept open.
 
 ## Walkthrough of an example GFP model
 
 ### (Optional) Download a PDB file from RCSB PDB
+
+> [!NOTE]
+> `PDB2MC` comes pre-loaded with several example models and models of the individual
+> amino acids. The following is an example of how to download a PDB file from RCSB PDB.
+
 1. Navigate to [https://rcsb.org](https://www.rcsb.org/)
+   - For ease, there is an 'RCSB PDB' button in the program that will open this website. 
+   - This is the home page for the RCSB PDB website. It contains a search bar and links to other resources.
 2. In the Search bar, search for a biomolecule (For this example: "Green fluorescent protein")
 
     <img src="UI/images/PDBsearch.png" width="500">
 
 3. Select a structure (For this example: the model named "1GFL")
-    1. This is the entry for published structures. It contains 3D previews, sequences, and structure information as well as the original citation.
+    - This is the entry for published structures. It contains 3D previews, sequences, and structure information as well as the original citation.
 
    <img src="UI/images/PDBselect.png" width="500">
    
-4. Select `Download Files` and download the `PDB Format` file. Note where this is saved.
-
-    <img src="UI/images/PDBdownload.png" width="500">
+4. Select `Download Files` and download the `PDB Format` file. 
+   - Take note where this file is saved.
+   
+   <img src="UI/images/PDBdownload.png" width="500">
 
 ### Open the PDB2MC program
 - Select the desired mode
@@ -182,32 +217,57 @@ https://github.com/markus-nevil/mcpdb/issues.
 1. Custom
 : This mode allows for the most customization of the visualization of atoms and bonds. Useful if you want to add, remove,
 or modify most elements of the model.
+<p align = "center">
+<img src="UI/images/default.png" width="800">
+</p>
 
 2. Skeleton
 : Makes a simple model of the protein backbone and sidechains. These represent the bond between atoms, without showing the atoms themselves. Useful for visualizing the overall shape of the protein with or without 
 amino acid side chains.
+<p align = "center">
+<img src="UI/images/skeleton.png" width="800">
+</p>
+
 
 3. X-ray
 : Preset that creates a model that displays both atoms and bond of the PDB file. However, the default setting for the
 visualization of the atoms are set to glass blocks and the bonds are set to opaque blocks, which allows for the visualization of the bonds between atoms.
+<p align = "center">
+<img src="UI/images/xray.png" width="800">
+</p>
+
 
 4. Space Filling 
-: This mode creates a model where the atoms are represented by spheres that are scaled to the size of the atom. This gives
-the general appearance of what a protein would look like if it were scaled up. Bonds are still created by default but only
-visible if the atoms are made of glass. 
+: This mode creates a model where the atoms are represented by the approximate "Solvent-Accessible Surface Area". This 
+is roughly the shape of the cloud of electrons that surrounds each atom which prevents "solvents" like water from entering
+the interior of large bio-molecules. This gives the general appearance of what a protein would look like if
+it were scaled up. Inside the protein, the bonds are created as a `skeleton` model, thus exploration of the interior is useful
+for understanding the connection between overall shape and the bonds between atoms.
+<p align = "center">
+<img src="UI/images/sf_bychain.png" width="800">
+</p>
+
 
 > [!WARNING]
-> This mode will take a long time to run and may take Minecraft a long
+> Space Filling mode will take a long time for `PDB2MC` to run and may take Minecraft a long
 time to process.
 
 5. Amino Acid 
 : This mode creates a model where the amino acids are represented by a single sphere. This is no longer a true representation
 however, it is useful for visualizing the overall shape of the protein and the location/identity of the amino acids.
+<p align = "center">
+<img src="UI/images/amino_acids.png" width="800">
+</p>
+
 
 6. Ribbon
 : This is preset creates a cartoon-like representation of the protein. The backbone is presented as a smoothed line. Residues
 that are part of either an alpha-helix or beta-sheet are represented as ribbons. The ribbons are colored based on the peptide
 or DNA/RNA chain to which they belong. This mode is useful for visualizing the secondary and tertiary structure of the protein.
+<p align = "center">
+<img src="UI/images/ribbon.png" width="800">
+</p>
+
 
 ## Description of options
 
@@ -389,6 +449,7 @@ flowchart TD
 ```
 ## Citation
 *PDB2MC is not yet published with an associated paper, however if you use PDB2MC in your research, please cite the following:* <br>
+
 Nevil, M. 2024. [**PDB2MC: Bridging Biomolecules and Minecraft for accessible, interactive 3D visualization.**](https://github.com/markus-nevil/mcpdb).
 
 ```

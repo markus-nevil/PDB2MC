@@ -823,7 +823,8 @@ class CustomWindow(QMainWindow):
             config_data['pdb_file'] = self.user_pdb_file
             config_data['save_path'] = self.user_minecraft_save
 
-            #print(config_data)
+
+
 
             # Read in the PDB file and process it
             pdb_file = config_data['pdb_file']
@@ -836,6 +837,12 @@ class CustomWindow(QMainWindow):
             moved = pdbm.rotate_to_y(moved)
             rounded = pdbm.round_df(moved)
 
+            # if(config_data['scale'] > 5):
+            #     lower = pdb_name.lower()
+            #     print(f"Generating large model for {lower}")
+            #     self.show_information_box(title_text=f"Generating large model",
+            #                               text=f"You are generating a very large model.\nThis may take a long time and may cause lag. Press Okay to continue",
+            #                               icon_path="images/icons/icon_info.png")
             hetatom_df = pd.DataFrame()
             hetatm_bonds = pd.DataFrame()
 
