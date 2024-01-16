@@ -87,7 +87,7 @@ https://github.com/markus-nevil/mcpdb/issues.
 5. On the `More` tab, select `Game Rules` to change the following:
 
     1. `Spawn phantoms OFF`
-    2. `Max Command Chain Length: 1000000 (or higher)`
+    2. `Command Chain Size Limit: 1000000 (or higher)`
     2. `Spawn mobs OFF`
     3. `Spawn pillager patrols OFF`
     4. `Spawn Wandering Traders OFF`
@@ -168,6 +168,14 @@ https://github.com/markus-nevil/mcpdb/issues.
 > Any time a function is run to add a component to the same model, stand on the black obsidian block (generated after 
 > the first command) to ensure the model components are placed correctly.
 
+6. **To clear the model:**
+    - Find the black `obsidian` block that was generated when the model was created, this represents where the model was generated.
+    - Type `/function protein:clear_` which will bring up the clearing command, press `tab` to autocomplete for your model.
+    - Press `Enter` to remove the model.
+
+> [!NOTE]
+> Running the clear command anywhere except the obsidian block generated for that model will not remove the model.
+> The program works by making `and` deleting models relative to the players current position.
 
 ## Description of Program modes
 

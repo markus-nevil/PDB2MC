@@ -876,7 +876,9 @@ class CustomWindow(QMainWindow):
                 mcf.create_clear_function(mc_dir, pdb_name)
 
             lower = pdb_name.lower()
-            self.show_information_box(title_text = f"Model generated", text = f"Finished! \n Remember to use /reload\n Make your model with: /function protein:build_" + lower, icon_path ="images/icons/icon_good.png")
+            self.show_information_box(title_text = f"Model generated",
+                                      text = f"Finished! \n Remember to use /reload\n Make your model with: /function protein:build_" + lower,
+                                      icon_path ="images/icons/icon_good.png")
 
             #QMessageBox.information(None, "Model generated", f"Finished!\nRemember to /reload in your world and /function protein:build_{lower}")
 
