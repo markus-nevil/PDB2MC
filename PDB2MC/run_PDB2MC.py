@@ -7,6 +7,8 @@ from UI import help_window, custom_window, skeleton_window, xray_window, space_f
 import sys
 import pkg_resources
 from PDB2MC.version import version
+from UI.utilities import InformationBox
+import requests
 
 help_window = None
 
@@ -121,6 +123,31 @@ class MainWindow(QMainWindow):
         self.comboBox.currentTextChanged.connect(self.handle_dropdown_change)
         self.help.clicked.connect(self.handle_help_button)
 
+        self.timer = QtCore.QTimer()
+        self.timer.singleShot(1000, self.is_outdated)
+
+    def is_outdated(self):
+        user_version = version
+        repo_owner = "markus-nevil"
+        repo_name = "PDB2MC"
+
+        # Get the latest release from GitHub
+        response = requests.get(f"https://api.github.com/repos/{repo_owner}/{repo_name}/releases/latest")
+        response.raise_for_status()  # Raise an exception if the request failed
+        latest_release = response.json()["tag_name"]
+
+        # Compare the local version with the latest release
+        if pkg_resources.parse_version(user_version) < pkg_resources.parse_version(latest_release):
+            self.show_information_box(title_text=f"New Version Available!",
+                                      text=f"There is a new PDB2MC version available.\n Download Release v{pkg_resources.parse_version(latest_release)} from Github.",
+                                      icon_path="images/icons/icon_good.png")
+
+    def show_information_box(self, title_text, text, icon_path):
+        self.info_box = InformationBox()
+        self.info_box.set_text(text)
+        self.info_box.set_title(title_text)
+        self.info_box.set_icon(icon_path)
+        self.info_box.show()
     def handle_help_button(self):
         from UI.help_window import HelpWindow
         help_window = HelpWindow.instance()
