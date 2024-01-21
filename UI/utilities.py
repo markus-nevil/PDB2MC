@@ -255,7 +255,12 @@ class FileExplorerPopup(QMainWindow):
                 size_factor = pdbm.check_max_size(file_name, world_max=320)
                 size_factor = str(round(size_factor, 2))
                 message_box.close()
-                QMessageBox.information(self, "Maximum scale", f"The maximum protein scale is: {size_factor}x")
+                self.info_box = InformationBox()
+                self.info_box.set_text(f"The suggested maximum protein scale is: {size_factor}x\n\nSet 'Protein Scale' below this for best results.")
+                self.info_box.set_title("Maximum scale")
+                self.info_box.set_icon("images/icons/icon_info.png")
+                self.info_box.show()
+                #QMessageBox.information(self, "Maximum scale", f"The maximum protein scale is: {size_factor}x")
         else:
             message_box.close()
             QMessageBox.warning(self, "No file selected", f"Please select a file.")

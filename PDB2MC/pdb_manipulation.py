@@ -524,7 +524,8 @@ def flank_DNA(df, vector_df):
 
     # Iterate over the rows of the dataframe
     for i, row in df.iterrows():
-        if df.loc[i, 'resid'] < df['resid'].max() - 1:
+        #if df.loc[i, 'resid'] < df['resid'].max() - 1:
+        if df.loc[i, 'resid'] <= df['resid'].max():
             # Find the matching row in the vector dataframe
             matching_vector = vector_df[vector_df['resid'] == row['resid']]
 
@@ -571,6 +572,7 @@ def flank_DNA(df, vector_df):
     non_flanked_df = pd.DataFrame(non_flanked_coordinates,
                                   columns=['atom_num', 'atom', 'residue', 'resid', 'chain', 'X', 'Y', 'Z'])
 
+    print("Positive DF: \n", positive_df.tail())
     # Ensure all the values in the X, Y, Z columns are integers
     positive_df['X'] = positive_df['X'].astype(int)
     positive_df['Y'] = positive_df['Y'].astype(int)
@@ -614,10 +616,6 @@ def flank_DNA(df, vector_df):
     final_df = final_df[columns]
 
     return final_df
-
-
-
-
 
 
 
@@ -1812,22 +1810,21 @@ def find_border_cells(arr_3d):
     arr_3d_copy = arr_3d_copy.astype(np.int32)
 
     # Define a shape
-    # kernel = np.array([[[0, 0, 0],
-    #                     [0, 1, 0],
-    #                     [0, 0, 0]],
-    #                    [[0, 1, 0],
+    # kernel = np.array([[[0, 1, 0],
     #                     [1, 1, 1],
     #                     [0, 1, 0]],
-    #                    [[0, 0, 0],
-    #                     [0, 1, 0],
-    #                     [0, 0, 0]]])
+    #                    [[1, 1, 1],
+    #                     [1, 1, 1],
+    #                     [1, 1, 1]],
+    #                    [[0, 1, 0],
+    #                     [1, 1, 1],
+    #                     [0, 1, 0]]])
 
     # Define a 3D kernel for the convolution operation
     kernel = np.ones((3, 3, 3), dtype=np.int32)
 
     # Perform the convolution operation
     convolved = convolve(arr_3d_copy, kernel, mode='constant', cval=0)
-
 
     # Create a boolean mask for cells that are filled (255) and have at least one neighboring cell that is empty (0)
     border_mask = (arr_3d_copy == 255) & (convolved < 255 * 27)
@@ -1836,6 +1833,8 @@ def find_border_cells(arr_3d):
     border_cells = np.where(border_mask, arr_3d_copy, 0)
 
     return border_cells
+
+
 def align_and_filter_dataframes(numpy_array, original_df):
     # Convert the numpy array to a dataframe with columns X, Y, Z
     numpy_df = pd.DataFrame(np.argwhere(numpy_array >= 1), columns=['X', 'Y', 'Z'])

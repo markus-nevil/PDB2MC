@@ -1,6 +1,7 @@
 from PDB2MC import pdb_manipulation as pdbm
 from PDB2MC import minecraft_functions as mcf
 import pandas as pd
+import re
 
 def run_mode(config_data, pdb_name, pdb_file, rounded, mc_dir, atom_df, hetatom_df, hetatm_bonds):
     print(config_data)
@@ -88,10 +89,7 @@ def run_mode(config_data, pdb_name, pdb_file, rounded, mc_dir, atom_df, hetatom_
         center = pdbm.sphere_center(config_data['atom_scale'])
         shortened = pdbm.shorten_atom_names(hetatom_df)
         spheres = pdbm.add_sphere_coordinates(coord, center, shortened, mesh=config_data['mesh'])
-        # if config_data["mode"] == "X-ray":
-        #     mcf.create_minecraft_functions(spheres, pdb_hetatm, False, mc_dir, config_data['atoms'],
-        #                                    replace=False)
-        # else:
+        spheres['atom'] = spheres['atom'].apply(lambda x: re.sub(r'P[A-Z]', 'P', x, count=1))
         mcf.create_minecraft_functions(spheres, pdb_hetatm, False, mc_dir, config_data['atoms'],
                                            replace=True)
         pdb_hetatm_bonds = pdb_name + "_hetatm_bonds"

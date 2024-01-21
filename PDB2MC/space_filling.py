@@ -70,19 +70,19 @@ def run_mode(config_data, pdb_name, rounded, mc_dir, atom_df, hetatom_df, hetatm
         #bool_df = pdbm.array_to_voxel(bool_array)
         #bool_df['atom'] = 10
 
-        pdbm.save_3d_tiff(bool_array, r'C:\Users\marku\Desktop\point_np.tif')
+        #pdbm.save_3d_tiff(bool_array, r'C:\Users\marku\Desktop\point_np.tif')
 
         master_bool = pdbm.find_border_cells(bool_array)
 
         # convert all values to uint8 with a max of 255
         master_bool = master_bool.astype(np.uint8)
 
-        pdbm.save_3d_tiff(master_bool, r'C:\Users\marku\Desktop\master_bool_array.tif')
+        #pdbm.save_3d_tiff(master_bool, r'C:\Users\marku\Desktop\master_bool_array.tif')
 
         master_array = pdbm.array_to_voxel(master_bool, padding_size=0)
 
-        test_check = pdbm.construct_surface_array(master_array)
-        pdbm.save_3d_tiff(test_check, r'C:\Users\marku\Desktop\test_check.tif')
+        #test_check = pdbm.construct_surface_array(master_array)
+        #pdbm.save_3d_tiff(test_check, r'C:\Users\marku\Desktop\test_check.tif')
         master_array['atom'] = 0
 
 

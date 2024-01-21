@@ -1,21 +1,39 @@
 from PDB2MC import pdb_manipulation as pdbm
 from PDB2MC import minecraft_functions as mcf
 import pandas as pd
-
+import re
 
 def run_mode(rounded, config_data, pdb_name, mc_dir):
-    print("Amino acid mode")
+
     residue = pdbm.atom_subset(rounded, ['CA', "C4'"], include=True)
 
     pdb_atoms = pdb_name + "_atoms"
     coord = pdbm.rasterized_sphere(config_data['atom_scale'])
+
+    coord[coord == 1] = 255
+    coord = pdbm.find_border_cells(coord)
+    coord[coord == 255] = 1
+
     center = pdbm.sphere_center(config_data['atom_scale'])
     shortened = pdbm.residue_to_atoms(residue)
 
     # Hard coded the "mesh" due to lack in the config file
     spheres = pdbm.fill_sphere_coordinates(coord, center, shortened)
 
-    mcf.create_minecraft_functions(spheres, pdb_atoms, False, mc_dir, config_data['amino_acids'],
+    #Create a dictionary for the DNA/RNA bases
+    dna_bases = {"DA": "lime_concrete",
+                 "DC": "blue_concrete",
+                 "DG": "black_concrete",
+                 "DT": "red_concrete",
+                 "A": "lime_wool",
+                 "C": "blue_wool",
+                 "G": "black_wool",
+                 "T": "red_wool"}
+
+    #append config_data['amino_acids'] to dna_bases and save to combined_dictionary
+    combined_dictionary = {**config_data['amino_acids'], **dna_bases}
+
+    mcf.create_minecraft_functions(spheres, pdb_atoms, False, mc_dir, combined_dictionary,
                                    replace=True)
 
     if config_data["backbone"]:
@@ -75,6 +93,7 @@ def run_mode(rounded, config_data, pdb_name, mc_dir):
         center = pdbm.sphere_center(config_data['atom_scale'])
         shortened = pdbm.shorten_atom_names(atom_df)
         spheres = pdbm.add_sphere_coordinates(coord, center, shortened, mesh=config_data['mesh'])
+        print(spheres.head())
 
         if config_data["mode"] == "X-ray":
             mcf.create_minecraft_functions(spheres, pdb_atoms, False, mc_dir, config_data['atoms'],
@@ -88,11 +107,9 @@ def run_mode(rounded, config_data, pdb_name, mc_dir):
         center = pdbm.sphere_center(config_data['atom_scale'])
         shortened = pdbm.shorten_atom_names(hetatom_df)
         spheres = pdbm.add_sphere_coordinates(coord, center, shortened, mesh=config_data['mesh'])
-        if config_data["mode"] == "X-ray":
-            mcf.create_minecraft_functions(spheres, pdb_hetatm, False, mc_dir, config_data['atoms'],
-                                           replace=False)
-        else:
-            mcf.create_minecraft_functions(spheres, pdb_hetatm, False, mc_dir, config_data['atoms'],
+        spheres['atom'] = spheres['atom'].apply(lambda x: re.sub(r'P[A-Z]', 'P', x, count=1))
+
+        mcf.create_minecraft_functions(spheres, pdb_hetatm, False, mc_dir, config_data['atoms'],
                                            replace=True)
         pdb_hetatm_bonds = pdb_name + "_hetatm_bonds"
         mcf.create_minecraft_functions(hetatm_bonds, pdb_hetatm_bonds, False, mc_dir, config_data['atoms'])

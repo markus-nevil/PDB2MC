@@ -173,9 +173,9 @@ class MainWindow(QMainWindow):
         _translate = QtCore.QCoreApplication.translate
         self.comboBox.setItemText(1, _translate("MainWindow", "Custom"))
         self.help.setText(_translate("MainWindow", "Help"))
-        self.comboBox.setItemText(4, _translate("MainWindow", "Space Filling"))
-        self.comboBox.setItemText(5, _translate("MainWindow", "Ribbon"))
-        self.comboBox.setItemText(6, _translate("MainWindow", "Amino Acid"))
+        # self.comboBox.setItemText(4, _translate("MainWindow", "Space Filling"))
+        # self.comboBox.setItemText(5, _translate("MainWindow", "Ribbon"))
+        # self.comboBox.setItemText(6, _translate("MainWindow", "Amino Acids"))
         self.label_2.setText(_translate("MainWindow", "Select Mode:"))
 
 def get_images_path():

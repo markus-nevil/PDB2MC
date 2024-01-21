@@ -2,6 +2,7 @@ from PDB2MC import pdb_manipulation as pdbm
 from PDB2MC import minecraft_functions as mcf
 from itertools import cycle
 import pandas as pd
+import re
 
 
 def run_mode(pdb_name, pdb_file, rounded, mc_dir, config_data, hetatom_df, hetatm_bonds):
@@ -37,13 +38,10 @@ def run_mode(pdb_name, pdb_file, rounded, mc_dir, config_data, hetatom_df, hetat
             branch_ribbon_df = ribbon_df[ribbon_df["atom"].isin(ribose_list + base_list)]
             flanked_df = pdbm.sidechain(branch_ribbon_df)
 
-        #print(flanked_df.tail())
-        #print(flanked_df.head())
         if config_data["by_chain"] == False:
             flanked_df['atom'] = "ribbon_atom"
         else:
             flanked_df['atom'] = num
-        print(flanked_df.head())
         mcf.create_minecraft_functions(flanked_df, pdb_ribbon, False, mc_dir, config_data['atoms'], replace=True)
 
         # Deal with the backbone
@@ -58,7 +56,6 @@ def run_mode(pdb_name, pdb_file, rounded, mc_dir, config_data, hetatom_df, hetat
         if ribbon_df["residue"].isin(["ALA", "ARG", "ASN", "ASP", "CYS", "GLN", "GLU", "GLY", "HIS",
                                       "ILE", "LEU", "LYS", "MET", "PHE", "PRO", "SER", "THR", "TRP",
                                       "TYR", "VAL"]).any():
-            print(backbone.tail())
             intermediate = pdbm.find_intermediate_points(backbone)
             intermediate = pdbm.interpolate_dataframe(intermediate, 5000)
 
@@ -87,8 +84,8 @@ def run_mode(pdb_name, pdb_file, rounded, mc_dir, config_data, hetatom_df, hetat
             center = pdbm.sphere_center(1.5)
             shortened = pdbm.shorten_atom_names(hetatom_df)
             spheres = pdbm.add_sphere_coordinates(coord, center, shortened)
-
-            ##TODO Make this user configurable
+            #If 'atom' is 'P' plus another character, shorten it to just 'P'
+            spheres['atom'] = spheres['atom'].apply(lambda x: re.sub(r'P[A-Z]', 'P', x, count=1))
             mcf.create_minecraft_functions(spheres, pdb_hetatm, False, mc_dir, config_data['atoms'], replace=True)
 
             pdb_hetatm_bonds = pdb_name + "_hetatm_bonds"

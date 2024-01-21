@@ -7,7 +7,6 @@ def run_mode(config_data, pdb_name, pdb_file, rounded, mc_dir, atom_df, hetatom_
         pdb_backbone = pdb_name + "_backbone"
         backbone = pdbm.atom_subset(rounded, ['C', 'N', 'CA', 'P', "O5'", "C5'", "C4'", "C3'", "O3'"],
                                     include=True)
-
         if config_data["by_chain"]:
             by_chain_df = pd.DataFrame(columns=['X', 'Y', 'Z', 'atom'])
             chain_values = backbone["chain"].unique()
@@ -30,8 +29,17 @@ def run_mode(config_data, pdb_name, pdb_file, rounded, mc_dir, atom_df, hetatom_
 
             intermediate = by_chain_df
         else:
-            intermediate = pdbm.find_intermediate_points(backbone)
-            intermediate = pdbm.interpolate_dataframe(intermediate, 5000)
+            #iterate through each chain
+            backbone_df = pd.DataFrame(columns=['X', 'Y', 'Z', 'atom'])
+            for chain in pdbm.enumerate_chains(rounded):
+                #extract all rows that match the same value in "chain"
+                chain_df = backbone[backbone["chain"] == chain]
+
+                #perform intermediate calculations
+                intermediate = pdbm.find_intermediate_points(chain_df)
+                intermediate = pdbm.interpolate_dataframe(intermediate, 5000)
+                #Add intermediate to backbone_df
+                backbone_df = pd.concat([backbone_df, intermediate], ignore_index=True)
 
         mcf.create_minecraft_functions(intermediate, pdb_backbone, False, mc_dir, config_data['atoms'], replace=True)
 
@@ -60,6 +68,7 @@ def run_mode(config_data, pdb_name, pdb_file, rounded, mc_dir, atom_df, hetatom_
         center = pdbm.sphere_center(config_data['atom_scale'])
         shortened = pdbm.shorten_atom_names(hetatom_df)
         spheres = pdbm.add_sphere_coordinates(coord, center, shortened, mesh=config_data['mesh'])
+        spheres['atom'] = spheres['atom'].apply(lambda x: re.sub(r'P[A-Z]', 'P', x, count=1))
 
         mcf.create_minecraft_functions(spheres, pdb_hetatm, False, mc_dir, config_data['atoms'], replace=False)
 
