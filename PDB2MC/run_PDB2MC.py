@@ -131,15 +131,17 @@ class MainWindow(QMainWindow):
         repo_owner = "markus-nevil"
         repo_name = "PDB2MC"
 
+
         # Get the latest release from GitHub
         response = requests.get(f"https://api.github.com/repos/{repo_owner}/{repo_name}/releases/latest")
         response.raise_for_status()  # Raise an exception if the request failed
         latest_release = response.json()["tag_name"]
 
+
         # Compare the local version with the latest release
         if pkg_resources.parse_version(user_version) < pkg_resources.parse_version(latest_release):
             self.show_information_box(title_text=f"New Version Available!",
-                                      text=f"There is a new PDB2MC version available.\n Download Release v{pkg_resources.parse_version(latest_release)} from Github.",
+                                      text=f"There is a new PDB2MC version available.\n Download Release v{pkg_resources.parse_version(latest_release)} from Github.\nhttps://github.com/markus-nevil/PDB2MC",
                                       icon_path="images/icons/icon_good.png")
 
     def show_information_box(self, title_text, text, icon_path):
