@@ -25,15 +25,12 @@ def assign_atom_values(surface_df, branch_df):
         #breakpoint()
         # If there are multiple points in branch_df with the same minimum distance, check if they all have the same 'atom' value
         if isinstance(closest_atoms, pd.Series):
-            #print(f"Number of unique closest atoms for point {i}: {closest_atoms.nunique()}")
             #if closest_atoms.nunique() == 1:
             surface_df.at[i, 'atom'] = 0
         else:
-            #print(f"Closest atom for point {i}: {closest_atoms}")
             #if closest_atoms != surface_df.at[i, 'atom']:
             surface_df.at[i, 'atom'] = closest_atoms
 
-    #print(surface_df.head(), "\n", surface_row.tail())
     return surface_df
 
 def remove_random_rows(df, percent):
@@ -143,8 +140,7 @@ def choose_subdir(file_path):
         else:
             file_path = os.path.expanduser("~")
     else:
-        print("Path given")
-
+        print(":P")
     root = tk.Tk()
     root.withdraw()
     subdirectory = filedialog.askdirectory(initialdir=file_path)
@@ -244,10 +240,7 @@ def fill_grid(dataframe):
     # Take the dataframe X, Y, Z columns and convert them to a numpy array
     points_3d = dataframe[['X', 'Y', 'Z']].to_numpy()
 
-    print("Points 3D: \n", points_3d)
-
     if is_flat(points_3d):
-        print("Points are flat")
 
         #Take the numpy array and remove the column where all values are the same
         points_2d = np.delete(points_3d, np.where(~points_3d.any(axis=0))[0], axis=1)
@@ -300,8 +293,6 @@ def fill_grid(dataframe):
         # Convert 3D coordinates to a dataframe with the same columns as the original. If there are missing columns,
         # the data will be copied from an existing row
 
-    print(points_inside)
-
     # Create a dataframe from the points inside the shape
     df_inside = pd.DataFrame(points_inside, columns = ['X', 'Y', 'Z'])
 
@@ -327,11 +318,10 @@ def set_min_y(df):
 
 # Function that takes a dataframe of coordinates and a integer, "width", and returns a dataframe of vectors calculated as the vector between each dataframe row with "atom" value of "C" to the next row with matching "resid" and "atom" value of "O".
 def CO_vectors(df, width=1):
+
     # Filter the dataframe for rows with an 'atom' column value of "C" or "O"
     df = df[df['atom'].isin(['C', 'O'])]
     df = df.reset_index(drop=True)
-
-    # print(df.tail(n=10))
 
     # Create an empty list to store the coordinates
     coordinates = []
@@ -339,33 +329,24 @@ def CO_vectors(df, width=1):
     # Ensure that width is an integer:
     # width = int(width)
 
-    # print(df['atom'][2])
     # Iterate over the rows of the dataframe and calculate the vector between the coordinates of each 'C' and 'O' with matching 'resid' values
     for i, row in df.iterrows():
-        # print(i)
         # Calculate the 3D vector of row i and row i+1
         if i < len(df) - 1:
-            # print(row['atom'] == 'C')
-            # print(df['atom'][i+1] == 'O')
-            # print(row['resid'] == df['resid'].values[i+1])
             if row['atom'] == 'C' and df['atom'][i + 1] == 'O' and row['resid'] == df['resid'][i + 1]:
                 coordinates.append([df['X'].values[i + 1] - row['X'], df['Y'].values[i + 1] - row['Y'],
                                     df['Z'].values[i + 1] - row['Z'], row['resid'], row['residue'], row['chain']])
-                # print(row['resid'], i, len(df), sep=" ")
 
     # multiply the vector by the width
     coordinates = [[coordinates[i][j] * width for j in range(3)] + coordinates[i][3:] for i in range(len(coordinates))]
 
     # Create a new dataframe with the new coordinates
     new_df = pd.DataFrame(coordinates, columns=['X', 'Y', 'Z', 'resid', 'residue', 'chain'])
-
-    # print("Here's the dataframe of vectors:")
-    # print(new_df.tail(n=10))
     return new_df
 
 
 # Function that will take the coordinates from a dataframe, match them with the vectors of another dataframe by "resid" column, and make two dataframes of each coordinate transformed by either the positive or negative of the matched vector. Then call bresenham_line function to fill the gaps. combine all 3 dataframes and return them.
-def flank_coordinates(df, vector_df):
+def flank_coordinates(df, vector_df, bar=False):
     # Create an empty list to store the positive coordinates
     positive_coordinates = []
 
@@ -388,13 +369,11 @@ def flank_coordinates(df, vector_df):
             match_len = len(df[df['resid'] == row['resid']])
 
             # Find the next row in the vector dataframe
-            next_vector = vector_df[vector_df['resid'] == row['resid'] + 1]
-
+            #next_vector = vector_df[vector_df['resid'] == row['resid'] + 1]
             # Iterate over the matching vector rows
             for j, vector_row in matching_vector.iterrows():
-
                 if row['atom'] == 'CA' or row['atom'] == 'C' or row['atom'] == 'N':
-                    if row['structure'] == 'helix' or row['structure'] == 'sheet':
+                    if (row['structure'] == 'helix' and not bar) or row['structure'] == 'sheet':
                         # Add the positive coordinates to the positive coordinates list
                         positive_coordinates.append(
                             [row['atom_num'], row['atom'], row['residue'], row['resid'], row['chain'],
@@ -414,63 +393,66 @@ def flank_coordinates(df, vector_df):
                 vector_iter_count = 1
             else:
                 vector_iter_count += 1
+    #check if positive_coordinates has data
+    if positive_coordinates:
+        # Create a new dataframe with the positive coordinates
+        positive_df = pd.DataFrame(positive_coordinates,
+                                   columns=['atom_num', 'atom', 'residue', 'resid', 'chain', 'X', 'Y', 'Z'])
 
-    # Create a new dataframe with the positive coordinates
-    positive_df = pd.DataFrame(positive_coordinates,
-                               columns=['atom_num', 'atom', 'residue', 'resid', 'chain', 'X', 'Y', 'Z'])
+        # Create a new dataframe with the negative coordinates
+        negative_df = pd.DataFrame(negative_coordinates,
+                                   columns=['atom_num', 'atom', 'residue', 'resid', 'chain', 'X', 'Y', 'Z'])
 
-    # Create a new dataframe with the negative coordinates
-    negative_df = pd.DataFrame(negative_coordinates,
-                               columns=['atom_num', 'atom', 'residue', 'resid', 'chain', 'X', 'Y', 'Z'])
+        # Create a new dataframe with the non-flanked coordinates
+        non_flanked_df = pd.DataFrame(non_flanked_coordinates,
+                                      columns=['atom_num', 'atom', 'residue', 'resid', 'chain', 'X', 'Y', 'Z'])
 
-    # Create a new dataframe with the non-flanked coordinates
-    non_flanked_df = pd.DataFrame(non_flanked_coordinates,
-                                  columns=['atom_num', 'atom', 'residue', 'resid', 'chain', 'X', 'Y', 'Z'])
+        # Ensure all the values in the X, Y, Z columns are integers
+        positive_df['X'] = positive_df['X'].astype(int)
+        positive_df['Y'] = positive_df['Y'].astype(int)
+        positive_df['Z'] = positive_df['Z'].astype(int)
 
-    # Ensure all the values in the X, Y, Z columns are integers
-    positive_df['X'] = positive_df['X'].astype(int)
-    positive_df['Y'] = positive_df['Y'].astype(int)
-    positive_df['Z'] = positive_df['Z'].astype(int)
+        negative_df['X'] = negative_df['X'].astype(int)
+        negative_df['Y'] = negative_df['Y'].astype(int)
+        negative_df['Z'] = negative_df['Z'].astype(int)
 
-    negative_df['X'] = negative_df['X'].astype(int)
-    negative_df['Y'] = negative_df['Y'].astype(int)
-    negative_df['Z'] = negative_df['Z'].astype(int)
+        non_flanked_df['X'] = non_flanked_df['X'].astype(int)
+        non_flanked_df['Y'] = non_flanked_df['Y'].astype(int)
+        non_flanked_df['Z'] = non_flanked_df['Z'].astype(int)
 
-    non_flanked_df['X'] = non_flanked_df['X'].astype(int)
-    non_flanked_df['Y'] = non_flanked_df['Y'].astype(int)
-    non_flanked_df['Z'] = non_flanked_df['Z'].astype(int)
+        # Round the coordinates to the nearest whole number
+        positive_df = positive_df.round()
+        negative_df = negative_df.round()
+        non_flanked_df = non_flanked_df.round()
 
-    # Round the coordinates to the nearest whole number
-    positive_df = positive_df.round()
-    negative_df = negative_df.round()
-    non_flanked_df = non_flanked_df.round()
+        # iterate through each dataframe and call the bresenham_line function to fill in the gaps between each coordinate, add the new coordinates to a new dataframe, and return the new dataframe
+        for i, row in positive_df.iterrows():
 
-    # iterate through each dataframe and call the bresenham_line function to fill in the gaps between each coordinate, add the new coordinates to a new dataframe, and return the new dataframe
-    for i, row in positive_df.iterrows():
+            # assume that positive_df and negative_df have the same number of rows and order of rows
 
-        # assume that positive_df and negative_df have the same number of rows and order of rows
+            new_coordinates = bresenham_line(negative_df['X'][i], negative_df['Y'][i], negative_df['Z'][i], row['X'],
+                                             row['Y'], row['Z'])
+            new_df = pd.DataFrame(new_coordinates, columns=['X', 'Y', 'Z'])
+            new_df['resid'] = row['resid']
+            new_df['residue'] = row['residue']
+            new_df['chain'] = row['chain']
+            new_df['atom_num'] = row['atom_num']
+            new_df['atom'] = row['atom']
+            if i == 0:
+                final_df = new_df
+            else:
+                final_df = pd.concat([final_df, new_df], ignore_index=True)
 
-        new_coordinates = bresenham_line(negative_df['X'][i], negative_df['Y'][i], negative_df['Z'][i], row['X'],
-                                         row['Y'], row['Z'])
-        new_df = pd.DataFrame(new_coordinates, columns=['X', 'Y', 'Z'])
-        new_df['resid'] = row['resid']
-        new_df['residue'] = row['residue']
-        new_df['chain'] = row['chain']
-        new_df['atom_num'] = row['atom_num']
-        new_df['atom'] = row['atom']
-        if i == 0:
-            final_df = new_df
-        else:
-            final_df = pd.concat([final_df, new_df], ignore_index=True)
+        # add the non-flanked coordinates to the final dataframe
+        # final_df = pd.concat([final_df, non_flanked_df], ignore_index=True)
 
-    # add the non-flanked coordinates to the final dataframe
-    # final_df = pd.concat([final_df, non_flanked_df], ignore_index=True)
+        # reorder the columns
+        columns = ["atom_num", "atom", "residue", "resid", "chain", "X", "Y", "Z"]
+        final_df = final_df[columns]
 
-    # reorder the columns
-    columns = ["atom_num", "atom", "residue", "resid", "chain", "X", "Y", "Z"]
-    final_df = final_df[columns]
-
-    return final_df
+        return final_df
+    else:
+        return pd.DataFrame(columns=['atom_num', 'atom', 'residue', 'resid', 'chain', 'X', 'Y', 'Z'])
 
 
 # Function that takes a dataframe of coordinates and a integer, "width", and returns a dataframe of vectors calculated as the vector between each dataframe row with "atom" value of "C" to the next row with matching "resid" and "atom" value of "O".
@@ -478,8 +460,6 @@ def DNA_vectors(df, width=1):
     # Filter the dataframe for rows with an 'atom' column value of "OP1" or "OP2"
     df = df[df['atom'].isin(['OP1', 'P'])]
     df = df.reset_index(drop=True)
-
-    print(df.head())
 
     # Create an empty list to store the coordinates
     coordinates = []
@@ -500,7 +480,6 @@ def DNA_vectors(df, width=1):
     # Create a new dataframe with the new coordinates
     new_df = pd.DataFrame(coordinates, columns=['X', 'Y', 'Z', 'resid', 'residue', 'chain'])
 
-    print(new_df.head())
     return new_df
 
 
@@ -572,7 +551,6 @@ def flank_DNA(df, vector_df):
     non_flanked_df = pd.DataFrame(non_flanked_coordinates,
                                   columns=['atom_num', 'atom', 'residue', 'resid', 'chain', 'X', 'Y', 'Z'])
 
-    print("Positive DF: \n", positive_df.tail())
     # Ensure all the values in the X, Y, Z columns are integers
     positive_df['X'] = positive_df['X'].astype(int)
     positive_df['Y'] = positive_df['Y'].astype(int)
@@ -633,13 +611,10 @@ def rotate_to_y(df):
 
     if x_range < y_range and x_range < z_range:
         df = rotate_x(df)
-        # print("Rotated to X")
     if y_range < x_range and y_range < z_range:
         df = rotate_y(df)
-        # print("Rotated to Y")
     if z_range < x_range and z_range < y_range:
         df = rotate_z(df)
-        # print("Rotated to Z")
 
     df = set_min_y(df)
 
@@ -681,7 +656,6 @@ def interpolate_dataframe(df, smoothness):
         # Add a decimal to the points if they don't have one
         points = points + 0.01
     point_len = len(points[0])
-    #print("Number of points: ", point_len)
 
     # Perform B-spline interpolation
     tck, _ = splprep(points, s=smoothness)
@@ -689,8 +663,6 @@ def interpolate_dataframe(df, smoothness):
     # Generate interpolated points
     u = np.linspace(0, 1, num=point_len)  # Increase num for more interpolated points
     interpolated_points = splev(u, tck)
-
-    #print("Number of interpolated_ points: ", len(interpolated_points[0]))
 
     # Create a new dataframe with interpolated points
     interpolated_df = pd.DataFrame(
@@ -705,9 +677,6 @@ def interpolate_dataframe(df, smoothness):
     # Re-order the columns of interpolated_df to match the original dataframe, df
     interpolated_df = interpolated_df[df.columns]
 
-    #print("interpolated dataframe: \n", interpolated_df.tail(n=10))
-    #print("other dataframe: \n", other_df.tail(n=10))
-
     # Concatenate the interpolated_df with the other_df and order them by the resid then atom_num
     if 'atom' in df.columns:
         if len(df['atom'].unique()) > 3:
@@ -718,8 +687,6 @@ def interpolate_dataframe(df, smoothness):
             interpolated_df = pd.concat([interpolated_df, other_df], axis=0)
     else:
         interpolated_df = pd.concat([interpolated_df, other_df], axis=0)
-
-    #print(interpolated_df.tail(n=10))
 
     return interpolated_df
 
@@ -834,7 +801,6 @@ def increase_cylinder_diameter(df, diameter):
 
     # Transform the meshgrid by each rotation matrix
     transformed_points = []
-    # print(rot_mats.head(n=10))
     for i, mat in enumerate(rot_mats):
         xyz = np.vstack((xx, yy, zz))
         transformed_xyz = np.dot(mat, xyz) + coords[i]
@@ -966,8 +932,34 @@ def atom_subset(df, atoms, include=True):
         subset = df[~df['atom'].isin(atoms)]
     return subset.reset_index(drop=True)
 
+def process_bars(df, size = 1):
+    # Initialize an empty DataFrame to store the results
+    result_df = pd.DataFrame(columns=['X', 'Y', 'Z'])
+    # Iterate over the rows of the input DataFrame
+    for i in range(len(df) - 1):
+        if (df.loc[i + 1, 'resid'] - df.loc[i, 'resid']) >= 2:
+            # Get the coordinates (X, Y, Z) of the current row and the next row
+            start_coords = df.loc[i, ['X', 'Y', 'Z']]
+            end_coords = df.loc[i + 1, ['X', 'Y', 'Z']]
+            # Run the bresenham_line function on these two points and store the result in a temporary DataFrame
+           # line_df = pd.DataFrame(bresenham_line(start_coords['X'], start_coords['Y'], start_coords['Z'], end_coords['X'], end_coords['Y'], end_coords['Z']), columns=['X', 'Y', 'Z'])
+            line_array = bresenham_line(int(start_coords['X']),
+                                        int(start_coords['Y']),
+                                        int(start_coords['Z']),
+                                        int(end_coords['X']),
+                                        int(end_coords['Y']),
+                                        int(end_coords['Z']))
+            line_df = pd.DataFrame(line_array, columns=['X', 'Y', 'Z'])
 
-def find_intermediate_points(replot_df, keep_columns=False, atoms=None):
+            # Run the cylinderize function on the temporary DataFrame and store the result in another DataFrame
+            cylinder_df = pd.DataFrame(cylinderize(line_df, diameter=size), columns=['X', 'Y', 'Z'])
+            # Append the result to the result DataFrame
+            result_df = pd.concat([result_df, cylinder_df], ignore_index=True)
+
+    # Return the result DataFrame
+    return result_df
+
+def find_intermediate_points(replot_df, keep_columns=False, atoms=None, fill_columns=False):
     other_atoms_df = pd.DataFrame(columns=replot_df.columns)
 
     # If atoms was passed a value, filter the dataframe by the atoms saving the filtered-out atoms in other_atoms_df
@@ -995,7 +987,6 @@ def find_intermediate_points(replot_df, keep_columns=False, atoms=None):
         if replot_df.iloc[i - 1]['chain'] == replot_df.iloc[i]['chain']:
             # Use Bresenham's line algorithm to find the intermediate points
             intermediate_points = bresenham_line(*point1, *point2)
-            # print(intermediate_points)
 
             # Convert to a small dataframe if intermediate_points is not empty
             if intermediate_points.size > 0:
@@ -1005,7 +996,63 @@ def find_intermediate_points(replot_df, keep_columns=False, atoms=None):
                 if keep_columns:
                     for col in other_columns:
                         df_small[col] = replot_df.iloc[i][col]
-                # print(df_small)
+
+                # If fill_columns is True, copy the non-x, y, z columns from the start and end rows to the intermediate points
+                if fill_columns:
+                    half_point = len(df_small) // 2
+                    for j in range(len(df_small)):
+                        if j < half_point:
+                            for col in other_columns:
+                                df_small.loc[j, col] = replot_df.iloc[i - 1][col]
+                        else:
+                            for col in other_columns:
+                                df_small.loc[j, col] = replot_df.iloc[i][col]
+
+                # Add the df_small dataframe to the new_data dataframe
+                new_data = pd.concat([new_data, df_small], ignore_index=True)
+
+    if len(other_atoms_df) > 0:
+        new_data = pd.concat([new_data, other_atoms_df], ignore_index=True)
+
+    return new_data
+
+def find_intermediate_points_old(replot_df, keep_columns=False, atoms=None):
+    other_atoms_df = pd.DataFrame(columns=replot_df.columns)
+
+    # If atoms was passed a value, filter the dataframe by the atoms saving the filtered-out atoms in other_atoms_df
+    if atoms:
+        other_atoms_df = atom_subset(replot_df, atoms, include=False)
+        replot_df = atom_subset(replot_df, atoms, include=True)
+
+    # Initialize the new dataframe
+    columns = ['X', 'Y', 'Z']
+
+    if keep_columns:
+        other_columns = replot_df.columns.drop(columns)
+        final_columns = replot_df.columns
+    else:
+        final_columns = columns
+
+    # initialize a new dataframe, new_data, with columns = final_columns
+    new_data = pd.DataFrame(columns=final_columns)
+
+    # Iterate over each row of the input dataframe
+    for i in range(1, len(replot_df)):
+        # Get the current and previous points
+        point1 = replot_df.iloc[i - 1][columns].values
+        point2 = replot_df.iloc[i][columns].values
+        if replot_df.iloc[i - 1]['chain'] == replot_df.iloc[i]['chain']:
+            # Use Bresenham's line algorithm to find the intermediate points
+            intermediate_points = bresenham_line(*point1, *point2)
+
+            # Convert to a small dataframe if intermediate_points is not empty
+            if intermediate_points.size > 0:
+                df_small = pd.DataFrame(intermediate_points, columns=columns)
+
+                # Add the missing columns from replot_df.iloc[i] to df_small
+                if keep_columns:
+                    for col in other_columns:
+                        df_small[col] = replot_df.iloc[i][col]
 
                 # Add the df_small dataframe to the new_data dataframe
                 new_data = pd.concat([new_data, df_small], ignore_index=True)
@@ -1018,10 +1065,6 @@ def find_intermediate_points(replot_df, keep_columns=False, atoms=None):
         new_data = pd.concat([new_data, other_atoms_df], ignore_index=True)
 
     return new_data
-    # Create the new dataframe and return it
-
-
-# return pd.DataFrame(new_data, columns=final_columns)
 
 # Function that will take a pdb dataframe and a new dataframe and, starting at the first "atom" value of "O", will iteratively do the following:
 # 1. Find the next "atom" value of "N" in the same "chain" value
@@ -1121,7 +1164,6 @@ def add_structure(df, pdb_file):
     # Remove any rows with only space characters for columns 'chain', 'residue1', 'resid1', 'residue2', or 'resid2'
     structure_df = structure_df[structure_df['chain'].str.strip().astype(bool)]
 
-    # print(structure_df.head(n=50))
     # Convert the 'str' values in the resid1 and resid2 columns to 'int'
     structure_df[['resid1', 'resid2']] = structure_df[['resid1', 'resid2']].astype(int)
 
@@ -1149,7 +1191,7 @@ def add_missing_coordinates(df):
 
     # Iterate over each row in the coordinate dataframe (df)
     for i, row in df.iterrows():
-        print(i)
+
         # check if the 8 neighboring locations have coordinates, and if not, save them to a list
         # Create a list of the 26 neighboring locations
         neighbors = [(row['X'] - 1, row['Y'] - 1, row['Z'] - 1),
@@ -1243,8 +1285,6 @@ def smooth_line(df):
     # Filter the dataframe for rows with an 'atom' column value of "N" and "CA"
     temp_df = df[df['atom'].isin(['N', 'CA'])]
 
-    # print(temp_df.head(n=10))
-
     # Calculate the 3D distance between the first coordinate with 'atom' value of "N" and the first coordinate with 'atom' value of "CA"
     distance = np.linalg.norm(temp_df.iloc[0][['X', 'Y', 'Z']] - temp_df.iloc[1][['X', 'Y', 'Z']])
     # Calculate the resolution value by rounding the distance up to the next integer
@@ -1254,8 +1294,6 @@ def smooth_line(df):
     # Filter the dataframe for rows with an 'atom' column value of "N", "CA", and "C"
     df = df[df['atom'].isin(['N', 'CA', 'C'])]
     # df = df[df['atom'].isin(['N', 'C'])]
-
-    # print(df.head(n=10))
 
     # Sort the dataframe by the 'resid' column
     df = df.sort_values(by=['resid'])
@@ -1275,19 +1313,14 @@ def smooth_line(df):
 
     # Create an empty list to store the new coordinates
     new_coordinates = []
-    # print(range(resolution))
 
     # Iterate over the coordinates list
     for i in range(len(coordinates) - 1):
         # Add the current coordinate to the new coordinates list
         new_coordinates.append(coordinates[i])
 
-        # print(type(i))
-        # print(type(resolution))
-
         # Calculate the difference between the current coordinate and the next coordinate
         diff = [coordinates[i + 1][j] - coordinates[i][j] for j in range(3)]
-        # print(diff)
         # Add the difference to the current coordinate and divide by 3 to get the step size
         step = [diff[j] / resolution for j in range(3)]
 
@@ -1316,10 +1349,6 @@ def smooth_line(df):
 
             # Add 'structure' value of the current row to the new coordinates list
             new_coordinates[-1].append(df['structure'].values[i])
-
-            # print(new_coordinates[-1])
-
-    # print(new_coordinates)
 
     # Add the last coordinate to the new coordinates list
     new_coordinates.append(coordinates[-1])
@@ -1362,7 +1391,6 @@ def sidechain(atom_df):
         # Iterate over the matching chain rows
         for _, chain_row in matching_chains.iterrows():
             # Find the next row in the atom dataframe that matches the residue and atom2 values
-            #print(row['residue'], row['resid'], row['chain'], chain_row['atom2'])
             next_row = atom_df[(atom_df['residue'] == row['residue']) & (atom_df['resid'] == row['resid']) & (
                     atom_df['chain'] == row['chain']) & (atom_df['atom'] == chain_row['atom2'])].iloc[0]
 
@@ -1395,8 +1423,6 @@ def remove_inside_spheres(sphere_df, coord_df, diameter):
     coord = rasterized_sphere(radius)
     center = sphere_center(radius)
     sphere_coords = add_sphere_coordinates(coord, center, sphere_df, mesh=False)
-
-    # print(sphere_coords.head(n=25))
 
     # Iterate over the rows of the coordinate dataframe
     for j, row2 in coord_df.iterrows():
@@ -1871,10 +1897,6 @@ def align_and_filter_dataframes(numpy_array, original_df):
     original_numpy_array[original_numpy_array >= 1] = 255
     save_3d_tiff(original_numpy_array, r'C:\Users\marku\Desktop\pdb_original_numpy_array.tif')
 
-    print("numpy rows: ", len(numpy_df))
-    print("aligned numpy rows: ", len(aligned_numpy_df))
-    print("original rows: ", len(merged_df))
-
     return merged_df
 
 
@@ -1890,8 +1912,6 @@ def filter_df_with_array(df, arr_3d):
 
     # Create an empty list to store the coordinates
     coordinates = []
-    print(arr_3d.shape)
-    print(df.max())
     # Iterate over the rows of the dataframe
     for i, row in df.iterrows():
         # Check if the coordinates are inside the array
@@ -1918,7 +1938,6 @@ def contour_outline2(voxel_array, smooth=False, smooth_factor=0.02, fill = False
 
         filled_list = []
         voxel_array = np.swapaxes(voxel_array, j, 0)
-        print(voxel_array.shape)
 
         # Iterate through each slice of the 3D image_array
         for i in range(voxel_array.shape[0]):
@@ -2046,8 +2065,6 @@ def contour_outlinetwo(voxel_array, smooth=False, smooth_factor=0.02):
             final_tif = np.swapaxes(final_tif, 1, 0)
             final_tif = np.swapaxes(final_tif, 2, 1)
 
-       #print("On cycle ", j, " the shape is: ", voxel_array.shape)
-
         # Iterate through each slice of the 3D image_array
         for i in range(voxel_array.shape[0]):
 
@@ -2082,8 +2099,6 @@ def contour_outlinetwo(voxel_array, smooth=False, smooth_factor=0.02):
             filled_list.append(filled_img)
 
         temp_tif = np.asarray(filled_list)
-
-        #print("temp_tif on cycle ", j, " is ", temp_tif.shape)
 
         # Ensure the final_tif contains only integers
         temp_tif = temp_tif.astype(np.uint8)
@@ -2163,8 +2178,6 @@ def paint_bucket_fill2old(voxel_array, original_dataframe):
         for i in range(output_np.shape[0]):
             tif.write(output_np[i])
 
-    print("printed :P")
-
     # Create a new DataFrame with selected rows
     selected_rows = original_dataframe[original_dataframe.index.isin(found_rows)]
 
@@ -2237,7 +2250,6 @@ def find_outer_surface(surface_array):
         slice_2d = surface_array[:, :, z]
         slice_2d = np.ravel(slice_2d)
         convolved = np.convolve(slice_2d < 1e6, np.array([1, 1, 1]), mode='same')
-        print(convolved)
         surface_mask[:, :, z] = (convolved > 0) & (convolved < 3)
 
     surface_array[surface_mask] = surface_array[surface_mask]
@@ -2328,8 +2340,6 @@ def rasterized_sphere(radius):
     # Convert the boolean mask to a 3D numpy array of integers
     sphere = np.zeros(shape, dtype=np.int32)
     sphere[mask] = 1
-
-    # print(sphere)
 
     return sphere
 
@@ -2431,19 +2441,16 @@ def shorten_atom_names(df):
 
 def change_mode(config):
     if config["mode"] == "Backbone":
-        print("Backbone")
         config["show_atoms"] = False
         config["sidechain"] = False
         config["backbone"] = True
     elif config["mode"] == "Skeleton":
-        print("Skeleton")
         config["show_atoms"] = False
         config["sidechain"] = True
         config["backbone"] = True
     elif config["mode"] == "Space Filling":
-        print("TODO")
+        print(":P")
     elif config["mode"] == "X-ray":
-        print("X-ray")
         config["show_atoms"] = True
         config["sidechain"] = True
         config["backbone"] = True
@@ -2454,7 +2461,6 @@ def change_mode(config):
         config["atoms"]["P"] = "lime_stained_glass"
         config["atoms"]["other_atom"] = "pink_stained_glass"
     elif config["mode"] == "X-ray Backbone":
-        print("X-ray Backbone")
         config["show_atoms"] = True
         config["sidechain"] = False
         config["backbone"] = True
