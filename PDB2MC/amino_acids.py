@@ -1,5 +1,6 @@
 from PDB2MC import pdb_manipulation as pdbm
 from PDB2MC import minecraft_functions as mcf
+from PDB2MC.variables import group, charge, hydrophobic
 import pandas as pd
 import re
 
@@ -29,9 +30,15 @@ def run_mode(rounded, config_data, pdb_name, mc_dir):
                  "C": "blue_wool",
                  "G": "black_wool",
                  "T": "red_wool"}
-
-    #append config_data['amino_acids'] to dna_bases and save to combined_dictionary
-    combined_dictionary = {**config_data['amino_acids'], **dna_bases}
+    dummy=True
+    # if config_data["by_res_group"]:
+    #     combined_dictionary = {**group, **dna_bases}
+    if dummy:
+        #combined_dictionary = {**charge, **dna_bases}
+        combined_dictionary = {**hydrophobic, **dna_bases}
+    else:
+        #append config_data['amino_acids'] to dna_bases and save to combined_dictionary
+        combined_dictionary = {**config_data['amino_acids'], **dna_bases}
 
     mcf.create_minecraft_functions(spheres, pdb_atoms, False, mc_dir, combined_dictionary,
                                    replace=True)
@@ -93,7 +100,7 @@ def run_mode(rounded, config_data, pdb_name, mc_dir):
         center = pdbm.sphere_center(config_data['atom_scale'])
         shortened = pdbm.shorten_atom_names(atom_df)
         spheres = pdbm.add_sphere_coordinates(coord, center, shortened, mesh=config_data['mesh'])
-        print(spheres.head())
+        #print(spheres.head())
 
         if config_data["mode"] == "X-ray":
             mcf.create_minecraft_functions(spheres, pdb_atoms, False, mc_dir, config_data['atoms'],

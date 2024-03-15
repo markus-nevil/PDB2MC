@@ -1,8 +1,8 @@
-from PyQt6.QtWidgets import QApplication, QMainWindow
-from PyQt6.QtGui import QDesktopServices, QIcon
+from PyQt6.QtWidgets import QApplication, QMainWindow, QCompleter
+from PyQt6.QtGui import QDesktopServices, QColor, QIcon, QPainter, QPixmap
 from PyQt6 import QtCore, QtGui, QtWidgets
 import os
-from PDB2MC.variables import decorative_blocks
+from PDB2MC.variables import decorative_blocks, hex_dict
 import pandas as pd
 from PDB2MC import minecraft_functions as mcf, pdb_manipulation as pdbm, space_filling
 
@@ -30,7 +30,7 @@ class spWindow(QMainWindow):
         self.centralwidget = QtWidgets.QWidget(parent=self)
         self.centralwidget.setObjectName("centralwidget")
         self.switchModeLabel = QtWidgets.QLabel(parent=self.centralwidget)
-        self.switchModeLabel.setGeometry(QtCore.QRect(0, 0, 101, 31))
+
         font = QtGui.QFont()
         font.setPointSize(10)
         font.setBold(True)
@@ -41,67 +41,67 @@ class spWindow(QMainWindow):
         self.switchModeLabel.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         self.switchModeLabel.setObjectName("switchModeLabel")
         self.vSepLine = QtWidgets.QFrame(parent=self.centralwidget)
-        self.vSepLine.setGeometry(QtCore.QRect(90, 0, 20, 431))
+
         self.vSepLine.setFrameShadow(QtWidgets.QFrame.Shadow.Sunken)
         self.vSepLine.setLineWidth(2)
         self.vSepLine.setFrameShape(QtWidgets.QFrame.Shape.VLine)
         self.vSepLine.setObjectName("vSepLine")
         self.CustomMode = QtWidgets.QPushButton(parent=self.centralwidget)
-        self.CustomMode.setGeometry(QtCore.QRect(10, 30, 75, 23))
+
         font = QtGui.QFont()
         font.setPointSize(11)
         self.CustomMode.setFont(font)
         self.CustomMode.setObjectName("CustomMode")
         self.SkeletonMode = QtWidgets.QPushButton(parent=self.centralwidget)
-        self.SkeletonMode.setGeometry(QtCore.QRect(10, 60, 75, 23))
+
         font = QtGui.QFont()
         font.setPointSize(11)
         self.SkeletonMode.setFont(font)
         self.SkeletonMode.setObjectName("SkeletonMode")
         self.XRayMode = QtWidgets.QPushButton(parent=self.centralwidget)
-        self.XRayMode.setGeometry(QtCore.QRect(10, 90, 75, 23))
+
         font = QtGui.QFont()
         font.setPointSize(11)
         self.XRayMode.setFont(font)
         self.XRayMode.setObjectName("XRayMode")
         self.SpaceFillingMode = QtWidgets.QPushButton(parent=self.centralwidget)
-        self.SpaceFillingMode.setGeometry(QtCore.QRect(10, 120, 75, 23))
+
         font = QtGui.QFont()
         font.setPointSize(8)
         self.SpaceFillingMode.setFont(font)
         self.SpaceFillingMode.setObjectName("SpaceFillingMode")
         self.AminoAcidMode = QtWidgets.QPushButton(parent=self.centralwidget)
-        self.AminoAcidMode.setGeometry(QtCore.QRect(10, 180, 75, 23))
+
         font = QtGui.QFont()
         font.setPointSize(8)
         self.AminoAcidMode.setFont(font)
         self.AminoAcidMode.setObjectName("AminoAcidMode")
         self.RibbonMode = QtWidgets.QPushButton(parent=self.centralwidget)
-        self.RibbonMode.setGeometry(QtCore.QRect(10, 150, 75, 23))
+
         font = QtGui.QFont()
         font.setPointSize(11)
         self.RibbonMode.setFont(font)
         self.RibbonMode.setObjectName("RibbonMode")
         self.github = QtWidgets.QPushButton(parent=self.centralwidget)
-        self.github.setGeometry(QtCore.QRect(10, 290, 75, 31))
+
         font = QtGui.QFont()
         font.setPointSize(10)
         self.github.setFont(font)
         self.github.setObjectName("github")
         self.help = QtWidgets.QPushButton(parent=self.centralwidget)
-        self.help.setGeometry(QtCore.QRect(10, 250, 75, 31))
+
         font = QtGui.QFont()
         font.setPointSize(10)
         self.help.setFont(font)
         self.help.setObjectName("help")
         self.rcsbButton = QtWidgets.QPushButton(parent=self.centralwidget)
-        self.rcsbButton.setGeometry(QtCore.QRect(10, 360, 75, 31))
+
         font = QtGui.QFont()
         font.setPointSize(9)
         self.rcsbButton.setFont(font)
         self.rcsbButton.setObjectName("rcsbButton")
         self.mc2pdbLabel = QtWidgets.QLabel(parent=self.centralwidget)
-        self.mc2pdbLabel.setGeometry(QtCore.QRect(10, 220, 71, 21))
+
         font = QtGui.QFont()
         font.setPointSize(10)
         font.setBold(False)
@@ -112,7 +112,7 @@ class spWindow(QMainWindow):
         self.mc2pdbLabel.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         self.mc2pdbLabel.setObjectName("mc2pdbLabel")
         self.pdbDatabaseLabel = QtWidgets.QLabel(parent=self.centralwidget)
-        self.pdbDatabaseLabel.setGeometry(QtCore.QRect(0, 330, 91, 21))
+
         font = QtGui.QFont()
         font.setPointSize(10)
         font.setBold(False)
@@ -123,12 +123,12 @@ class spWindow(QMainWindow):
         self.pdbDatabaseLabel.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         self.pdbDatabaseLabel.setObjectName("pdbDatabaseLabel")
         self.modeInfoHLine = QtWidgets.QFrame(parent=self.centralwidget)
-        self.modeInfoHLine.setGeometry(QtCore.QRect(10, 210, 71, 16))
+
         self.modeInfoHLine.setFrameShape(QtWidgets.QFrame.Shape.HLine)
         self.modeInfoHLine.setFrameShadow(QtWidgets.QFrame.Shadow.Sunken)
         self.modeInfoHLine.setObjectName("modeInfoHLine")
         self.infoDatabaseHLine = QtWidgets.QFrame(parent=self.centralwidget)
-        self.infoDatabaseHLine.setGeometry(QtCore.QRect(10, 320, 71, 16))
+
         self.infoDatabaseHLine.setFrameShape(QtWidgets.QFrame.Shape.HLine)
         self.infoDatabaseHLine.setFrameShadow(QtWidgets.QFrame.Shadow.Sunken)
         self.infoDatabaseHLine.setObjectName("infoDatabaseHLine")
@@ -141,197 +141,197 @@ class spWindow(QMainWindow):
         self.bg.setPixmap(QtGui.QPixmap("images/MC2PDB bg.png"))
         self.bg.setScaledContents(True)
         self.bg.setObjectName("bg")
-        icon1 = QtGui.QIcon()
-        icon1.addPixmap(QtGui.QPixmap("images/icons/black_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon2 = QtGui.QIcon()
-        icon2.addPixmap(QtGui.QPixmap("images/icons/red_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon3 = QtGui.QIcon()
-        icon3.addPixmap(QtGui.QPixmap("images/icons/orange_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon4 = QtGui.QIcon()
-        icon4.addPixmap(QtGui.QPixmap("images/icons/yellow_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon5 = QtGui.QIcon()
-        icon5.addPixmap(QtGui.QPixmap("images/icons/lime_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon6 = QtGui.QIcon()
-        icon6.addPixmap(QtGui.QPixmap("images/icons/green_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon7 = QtGui.QIcon()
-        icon7.addPixmap(QtGui.QPixmap("images/icons/cyan_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon8 = QtGui.QIcon()
-        icon8.addPixmap(QtGui.QPixmap("images/icons/light_blue_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon9 = QtGui.QIcon()
-        icon9.addPixmap(QtGui.QPixmap("images/icons/blue_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon10 = QtGui.QIcon()
-        icon10.addPixmap(QtGui.QPixmap("images/icons/purple_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon11 = QtGui.QIcon()
-        icon11.addPixmap(QtGui.QPixmap("images/icons/magenta_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon12 = QtGui.QIcon()
-        icon12.addPixmap(QtGui.QPixmap("images/icons/magenta_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon13 = QtGui.QIcon()
-        icon13.addPixmap(QtGui.QPixmap("images/icons/brown_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon14 = QtGui.QIcon()
-        icon14.addPixmap(QtGui.QPixmap("images/icons/gray_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon15 = QtGui.QIcon()
-        icon15.addPixmap(QtGui.QPixmap("images/icons/light_gray_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon16 = QtGui.QIcon()
-        icon16.addPixmap(QtGui.QPixmap("images/icons/white_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon17 = QtGui.QIcon()
-        icon17.addPixmap(QtGui.QPixmap("images/icons/red_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon18 = QtGui.QIcon()
-        icon18.addPixmap(QtGui.QPixmap("images/icons/orange_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon19 = QtGui.QIcon()
-        icon19.addPixmap(QtGui.QPixmap("images/icons/yellow_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon20 = QtGui.QIcon()
-        icon20.addPixmap(QtGui.QPixmap("images/icons/lime_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon21 = QtGui.QIcon()
-        icon21.addPixmap(QtGui.QPixmap("images/icons/green_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon22 = QtGui.QIcon()
-        icon22.addPixmap(QtGui.QPixmap("images/icons/cyan_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon23 = QtGui.QIcon()
-        icon23.addPixmap(QtGui.QPixmap("images/icons/light_blue_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon24 = QtGui.QIcon()
-        icon24.addPixmap(QtGui.QPixmap("images/icons/blue_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon25 = QtGui.QIcon()
-        icon25.addPixmap(QtGui.QPixmap("images/icons/purple_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon26 = QtGui.QIcon()
-        icon26.addPixmap(QtGui.QPixmap("images/icons/magenta_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon27 = QtGui.QIcon()
-        icon27.addPixmap(QtGui.QPixmap("images/icons/pink_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon28 = QtGui.QIcon()
-        icon28.addPixmap(QtGui.QPixmap("images/icons/brown_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon29 = QtGui.QIcon()
-        icon29.addPixmap(QtGui.QPixmap("images/icons/black_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon30 = QtGui.QIcon()
-        icon30.addPixmap(QtGui.QPixmap("images/icons/gray_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon31 = QtGui.QIcon()
-        icon31.addPixmap(QtGui.QPixmap("images/icons/light_gray_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon32 = QtGui.QIcon()
-        icon32.addPixmap(QtGui.QPixmap("images/icons/white_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon33 = QtGui.QIcon()
-        icon33.addPixmap(QtGui.QPixmap("images/icons/red_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon34 = QtGui.QIcon()
-        icon34.addPixmap(QtGui.QPixmap("images/icons/orange_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon35 = QtGui.QIcon()
-        icon35.addPixmap(QtGui.QPixmap("images/icons/yellow_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon36 = QtGui.QIcon()
-        icon36.addPixmap(QtGui.QPixmap("images/icons/lime_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon37 = QtGui.QIcon()
-        icon37.addPixmap(QtGui.QPixmap("images/icons/green_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon38 = QtGui.QIcon()
-        icon38.addPixmap(QtGui.QPixmap("images/icons/cyan_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon39 = QtGui.QIcon()
-        icon39.addPixmap(QtGui.QPixmap("images/icons/light_blue_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon40 = QtGui.QIcon()
-        icon40.addPixmap(QtGui.QPixmap("images/icons/blue_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon41 = QtGui.QIcon()
-        icon41.addPixmap(QtGui.QPixmap("images/icons/purple_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon42 = QtGui.QIcon()
-        icon42.addPixmap(QtGui.QPixmap("images/icons/magenta_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon43 = QtGui.QIcon()
-        icon43.addPixmap(QtGui.QPixmap("images/icons/pink_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon44 = QtGui.QIcon()
-        icon44.addPixmap(QtGui.QPixmap("images/icons/brown_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon45 = QtGui.QIcon()
-        icon45.addPixmap(QtGui.QPixmap("images/icons/black_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon46 = QtGui.QIcon()
-        icon46.addPixmap(QtGui.QPixmap("images/icons/gray_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon47 = QtGui.QIcon()
-        icon47.addPixmap(QtGui.QPixmap("images/icons/light_gray_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon48 = QtGui.QIcon()
-        icon48.addPixmap(QtGui.QPixmap("images/icons/white_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon49 = QtGui.QIcon()
-        icon49.addPixmap(QtGui.QPixmap("images/icons/red_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon50 = QtGui.QIcon()
-        icon50.addPixmap(QtGui.QPixmap("images/icons/orange_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon51 = QtGui.QIcon()
-        icon51.addPixmap(QtGui.QPixmap("images/icons/yellow_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon52 = QtGui.QIcon()
-        icon52.addPixmap(QtGui.QPixmap("images/icons/lime_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon53 = QtGui.QIcon()
-        icon53.addPixmap(QtGui.QPixmap("images/icons/green_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon54 = QtGui.QIcon()
-        icon54.addPixmap(QtGui.QPixmap("images/icons/cyan_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon55 = QtGui.QIcon()
-        icon55.addPixmap(QtGui.QPixmap("images/icons/light_blue_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon56 = QtGui.QIcon()
-        icon56.addPixmap(QtGui.QPixmap("images/icons/blue_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon57 = QtGui.QIcon()
-        icon57.addPixmap(QtGui.QPixmap("images/icons/purple_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon58 = QtGui.QIcon()
-        icon58.addPixmap(QtGui.QPixmap("images/icons/magenta_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon59 = QtGui.QIcon()
-        icon59.addPixmap(QtGui.QPixmap("images/icons/pink_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon60 = QtGui.QIcon()
-        icon60.addPixmap(QtGui.QPixmap("images/icons/brown_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon61 = QtGui.QIcon()
-        icon61.addPixmap(QtGui.QPixmap("images/icons/black_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon62 = QtGui.QIcon()
-        icon62.addPixmap(QtGui.QPixmap("images/icons/gray_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon63 = QtGui.QIcon()
-        icon63.addPixmap(QtGui.QPixmap("images/icons/light_gray_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon64 = QtGui.QIcon()
-        icon64.addPixmap(QtGui.QPixmap("images/icons/white_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        # icon1 = QtGui.QIcon()
+        # icon1.addPixmap(QtGui.QPixmap("images/icons/black_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon2 = QtGui.QIcon()
+        # icon2.addPixmap(QtGui.QPixmap("images/icons/red_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon3 = QtGui.QIcon()
+        # icon3.addPixmap(QtGui.QPixmap("images/icons/orange_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon4 = QtGui.QIcon()
+        # icon4.addPixmap(QtGui.QPixmap("images/icons/yellow_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon5 = QtGui.QIcon()
+        # icon5.addPixmap(QtGui.QPixmap("images/icons/lime_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon6 = QtGui.QIcon()
+        # icon6.addPixmap(QtGui.QPixmap("images/icons/green_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon7 = QtGui.QIcon()
+        # icon7.addPixmap(QtGui.QPixmap("images/icons/cyan_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon8 = QtGui.QIcon()
+        # icon8.addPixmap(QtGui.QPixmap("images/icons/light_blue_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon9 = QtGui.QIcon()
+        # icon9.addPixmap(QtGui.QPixmap("images/icons/blue_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon10 = QtGui.QIcon()
+        # icon10.addPixmap(QtGui.QPixmap("images/icons/purple_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon11 = QtGui.QIcon()
+        # icon11.addPixmap(QtGui.QPixmap("images/icons/magenta_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon12 = QtGui.QIcon()
+        # icon12.addPixmap(QtGui.QPixmap("images/icons/magenta_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon13 = QtGui.QIcon()
+        # icon13.addPixmap(QtGui.QPixmap("images/icons/brown_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon14 = QtGui.QIcon()
+        # icon14.addPixmap(QtGui.QPixmap("images/icons/gray_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon15 = QtGui.QIcon()
+        # icon15.addPixmap(QtGui.QPixmap("images/icons/light_gray_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon16 = QtGui.QIcon()
+        # icon16.addPixmap(QtGui.QPixmap("images/icons/white_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon17 = QtGui.QIcon()
+        # icon17.addPixmap(QtGui.QPixmap("images/icons/red_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon18 = QtGui.QIcon()
+        # icon18.addPixmap(QtGui.QPixmap("images/icons/orange_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon19 = QtGui.QIcon()
+        # icon19.addPixmap(QtGui.QPixmap("images/icons/yellow_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon20 = QtGui.QIcon()
+        # icon20.addPixmap(QtGui.QPixmap("images/icons/lime_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon21 = QtGui.QIcon()
+        # icon21.addPixmap(QtGui.QPixmap("images/icons/green_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon22 = QtGui.QIcon()
+        # icon22.addPixmap(QtGui.QPixmap("images/icons/cyan_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon23 = QtGui.QIcon()
+        # icon23.addPixmap(QtGui.QPixmap("images/icons/light_blue_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon24 = QtGui.QIcon()
+        # icon24.addPixmap(QtGui.QPixmap("images/icons/blue_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon25 = QtGui.QIcon()
+        # icon25.addPixmap(QtGui.QPixmap("images/icons/purple_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon26 = QtGui.QIcon()
+        # icon26.addPixmap(QtGui.QPixmap("images/icons/magenta_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon27 = QtGui.QIcon()
+        # icon27.addPixmap(QtGui.QPixmap("images/icons/pink_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon28 = QtGui.QIcon()
+        # icon28.addPixmap(QtGui.QPixmap("images/icons/brown_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon29 = QtGui.QIcon()
+        # icon29.addPixmap(QtGui.QPixmap("images/icons/black_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon30 = QtGui.QIcon()
+        # icon30.addPixmap(QtGui.QPixmap("images/icons/gray_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon31 = QtGui.QIcon()
+        # icon31.addPixmap(QtGui.QPixmap("images/icons/light_gray_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon32 = QtGui.QIcon()
+        # icon32.addPixmap(QtGui.QPixmap("images/icons/white_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon33 = QtGui.QIcon()
+        # icon33.addPixmap(QtGui.QPixmap("images/icons/red_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon34 = QtGui.QIcon()
+        # icon34.addPixmap(QtGui.QPixmap("images/icons/orange_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon35 = QtGui.QIcon()
+        # icon35.addPixmap(QtGui.QPixmap("images/icons/yellow_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon36 = QtGui.QIcon()
+        # icon36.addPixmap(QtGui.QPixmap("images/icons/lime_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon37 = QtGui.QIcon()
+        # icon37.addPixmap(QtGui.QPixmap("images/icons/green_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon38 = QtGui.QIcon()
+        # icon38.addPixmap(QtGui.QPixmap("images/icons/cyan_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon39 = QtGui.QIcon()
+        # icon39.addPixmap(QtGui.QPixmap("images/icons/light_blue_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon40 = QtGui.QIcon()
+        # icon40.addPixmap(QtGui.QPixmap("images/icons/blue_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon41 = QtGui.QIcon()
+        # icon41.addPixmap(QtGui.QPixmap("images/icons/purple_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon42 = QtGui.QIcon()
+        # icon42.addPixmap(QtGui.QPixmap("images/icons/magenta_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon43 = QtGui.QIcon()
+        # icon43.addPixmap(QtGui.QPixmap("images/icons/pink_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon44 = QtGui.QIcon()
+        # icon44.addPixmap(QtGui.QPixmap("images/icons/brown_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon45 = QtGui.QIcon()
+        # icon45.addPixmap(QtGui.QPixmap("images/icons/black_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon46 = QtGui.QIcon()
+        # icon46.addPixmap(QtGui.QPixmap("images/icons/gray_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon47 = QtGui.QIcon()
+        # icon47.addPixmap(QtGui.QPixmap("images/icons/light_gray_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon48 = QtGui.QIcon()
+        # icon48.addPixmap(QtGui.QPixmap("images/icons/white_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon49 = QtGui.QIcon()
+        # icon49.addPixmap(QtGui.QPixmap("images/icons/red_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon50 = QtGui.QIcon()
+        # icon50.addPixmap(QtGui.QPixmap("images/icons/orange_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon51 = QtGui.QIcon()
+        # icon51.addPixmap(QtGui.QPixmap("images/icons/yellow_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon52 = QtGui.QIcon()
+        # icon52.addPixmap(QtGui.QPixmap("images/icons/lime_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon53 = QtGui.QIcon()
+        # icon53.addPixmap(QtGui.QPixmap("images/icons/green_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon54 = QtGui.QIcon()
+        # icon54.addPixmap(QtGui.QPixmap("images/icons/cyan_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon55 = QtGui.QIcon()
+        # icon55.addPixmap(QtGui.QPixmap("images/icons/light_blue_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon56 = QtGui.QIcon()
+        # icon56.addPixmap(QtGui.QPixmap("images/icons/blue_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon57 = QtGui.QIcon()
+        # icon57.addPixmap(QtGui.QPixmap("images/icons/purple_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon58 = QtGui.QIcon()
+        # icon58.addPixmap(QtGui.QPixmap("images/icons/magenta_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon59 = QtGui.QIcon()
+        # icon59.addPixmap(QtGui.QPixmap("images/icons/pink_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon60 = QtGui.QIcon()
+        # icon60.addPixmap(QtGui.QPixmap("images/icons/brown_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon61 = QtGui.QIcon()
+        # icon61.addPixmap(QtGui.QPixmap("images/icons/black_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon62 = QtGui.QIcon()
+        # icon62.addPixmap(QtGui.QPixmap("images/icons/gray_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon63 = QtGui.QIcon()
+        # icon63.addPixmap(QtGui.QPixmap("images/icons/light_gray_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon64 = QtGui.QIcon()
+        # icon64.addPixmap(QtGui.QPixmap("images/icons/white_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
 
         self.cColorLabel = QtWidgets.QLabel(parent=self.centralwidget)
         self.cColorLabel.setGeometry(QtCore.QRect(110, 10, 106, 21))
@@ -445,7 +445,7 @@ class spWindow(QMainWindow):
             "black_wool": "icon61",
             "gray_wool": "icon62",
             "light_gray_wool": "icon63",
-            "wool": "icon64",
+            "white_wool": "icon64",
             "red_stained_glass": "icon2",
             "orange_stained_glass": "icon3",
             "yellow_stained_glass": "icon4",
@@ -460,7 +460,7 @@ class spWindow(QMainWindow):
             "brown_stained_glass": "icon13",
             "black_stained_glass": "icon1",
             "gray_stained_glass": "icon14",
-            "light_stained_glass": "icon15",
+            "light_gray_stained_glass": "icon15",
             "white_stained_glass": "icon16"
         }
 
@@ -470,11 +470,12 @@ class spWindow(QMainWindow):
 
         for color_box in color_boxes:
             for value, icon in icon_dict.items():
-                color_box.addItem(eval(icon), value)
-            color_box.insertSeparator(16)
-            color_box.insertSeparator(33)
-            color_box.insertSeparator(50)
-            color_box.insertSeparator(67)
+                #color_box.addItem(eval(icon), value)
+                color_box.addItem(create_icon(hex_dict[value]), value)
+        color_box.insertSeparator(16)
+        color_box.insertSeparator(33)
+        color_box.insertSeparator(50)
+        color_box.insertSeparator(67)
 
         self.oColorBox.setCurrentIndex(0)
         self.cColorBox.setCurrentIndex(12)
@@ -482,6 +483,51 @@ class spWindow(QMainWindow):
         self.sColorBox.setCurrentIndex(2)
         self.pColorBox.setCurrentIndex(3)
         self.otherColorBox.setCurrentIndex(10)
+
+        oCompleter = QCompleter(decorative_blocks)
+        oCompleter.setCaseSensitivity(QtCore.Qt.CaseSensitivity.CaseInsensitive)
+        self.otherColorBox.setCompleter(oCompleter)
+        cCompleter = QCompleter(decorative_blocks)
+        cCompleter.setCaseSensitivity(QtCore.Qt.CaseSensitivity.CaseInsensitive)
+        self.cColorBox.setCompleter(cCompleter)
+        nCompleter = QCompleter(decorative_blocks)
+        nCompleter.setCaseSensitivity(QtCore.Qt.CaseSensitivity.CaseInsensitive)
+        self.nColorBox.setCompleter(nCompleter)
+        sCompleter = QCompleter(decorative_blocks)
+        sCompleter.setCaseSensitivity(QtCore.Qt.CaseSensitivity.CaseInsensitive)
+        self.sColorBox.setCompleter(sCompleter)
+        pCompleter = QCompleter(decorative_blocks)
+        pCompleter.setCaseSensitivity(QtCore.Qt.CaseSensitivity.CaseInsensitive)
+        self.pColorBox.setCompleter(pCompleter)
+        otherCompleter = QCompleter(decorative_blocks)
+        otherCompleter.setCaseSensitivity(QtCore.Qt.CaseSensitivity.CaseInsensitive)
+        self.otherColorBox.setCompleter(otherCompleter)
+
+        self.tools = QtWidgets.QPushButton(parent=self.centralwidget)
+        font = QtGui.QFont()
+        font.setPointSize(10)
+        self.tools.setFont(font)
+        self.tools.setObjectName("tools")
+
+        self.vSepLine.setGeometry(QtCore.QRect(90, 0, 20, 431))
+
+        self.switchModeLabel.setGeometry(QtCore.QRect(0, 0, 101, 31))
+        self.CustomMode.setGeometry(QtCore.QRect(10, 30, 75, 23))
+        self.SkeletonMode.setGeometry(QtCore.QRect(10, 60, 75, 23))
+        self.XRayMode.setGeometry(QtCore.QRect(10, 90, 75, 23))
+        self.SpaceFillingMode.setGeometry(QtCore.QRect(10, 120, 75, 23))
+        self.RibbonMode.setGeometry(QtCore.QRect(10, 150, 75, 23))
+        self.AminoAcidMode.setGeometry(QtCore.QRect(10, 180, 75, 23))
+
+        self.modeInfoHLine.setGeometry(QtCore.QRect(10, 200, 71, 16))
+        self.mc2pdbLabel.setGeometry(QtCore.QRect(10, 210, 71, 21))
+        self.help.setGeometry(QtCore.QRect(10, 240, 75, 31))
+        self.tools.setGeometry(QtCore.QRect(10, 270, 75, 31))
+        self.github.setGeometry(QtCore.QRect(10, 300, 75, 31))
+
+        self.infoDatabaseHLine.setGeometry(QtCore.QRect(10, 325, 71, 16))
+        self.pdbDatabaseLabel.setGeometry(QtCore.QRect(0, 335, 91, 21))
+        self.rcsbButton.setGeometry(QtCore.QRect(10, 365, 75, 31))
 
         self.otherMoleculeCheck = QtWidgets.QCheckBox(parent=self.centralwidget)
         self.otherMoleculeCheck.setGeometry(QtCore.QRect(240, 220, 131, 17))
@@ -561,6 +607,7 @@ class spWindow(QMainWindow):
         self.RibbonMode.raise_()
         self.github.raise_()
         self.help.raise_()
+        self.tools.raise_()
         self.rcsbButton.raise_()
         self.mc2pdbLabel.raise_()
         self.pdbDatabaseLabel.raise_()
@@ -609,6 +656,7 @@ class spWindow(QMainWindow):
         self.selectPDBFileButton.clicked.connect(self.handle_select_pdb_file_button)
         self.selectMinecraftSaveButton.clicked.connect(self.handle_select_minecraft_button)
         self.createFunctionsButton.clicked.connect(self.handle_make_function_button)
+        self.tools.clicked.connect(self.handle_tool_mode)
 
         #self.oColorBox.focusOut.connect(self.check_input)
         self.oColorBox.focusOut.connect(lambda: self.check_input(self.oColorBox, decorative_blocks))
@@ -642,7 +690,11 @@ class spWindow(QMainWindow):
             #QMessageBox.warning(self, "Invalid Input", f"{text} is not a valid option.")
             combobox.setCurrentIndex(0)
         else:
+            if combobox.findText(text) <= 0:
+                icon = create_icon(hex_dict[text])
+                combobox.addItem(icon, text)
             combobox.setCurrentText(text)
+            combobox.setCurrentIndex(combobox.findText(text))
 
     # Slot methods to handle QPushButton clicks
     def handle_select_pdb_file_button(self):
@@ -838,6 +890,16 @@ class spWindow(QMainWindow):
         except Exception as e:
             print(f"Error in handle_space_filling_mode: {e}")
 
+
+    def handle_tool_mode(self):
+        try:
+            from UI.tool_window import ToolWindow
+            self.tool_window = ToolWindow()
+            self.tool_window.show()
+            self.hide()
+        except Exception as e:
+            print(f"Error in handle_space_filling_mode: {e}")
+
     def handle_amino_acid_mode(self):
         try:
             from UI.amino_acids_window import AAWindow
@@ -876,6 +938,7 @@ class spWindow(QMainWindow):
         self.RibbonMode.setText(_translate("sfWindow", "Ribbon"))
         self.github.setText(_translate("sfWindow", "Github"))
         self.help.setText(_translate("sfWindow", "Help"))
+        self.tools.setText(_translate("sfWindow", "Tools"))
         self.rcsbButton.setText(_translate("sfWindow", "RCSB.org"))
         self.mc2pdbLabel.setText(_translate("sfWindow", "PDB2MC"))
         self.pdbDatabaseLabel.setText(_translate("sfWindow", "PDB Database"))
@@ -898,6 +961,29 @@ class spWindow(QMainWindow):
         self.createFunctionsButton.setText(_translate("sfWindow", "Create Minecraft Functions"))
         self.orText.setText(_translate("sfWindow", "or"))
         self.andText.setText(_translate("sfWindow", "and"))
+
+def set_combobox_by_text(combobox, text):
+    index = combobox.findText(text)
+    if index >= 0:  # If the text is found
+        combobox.setCurrentIndex(index)
+
+def create_icon(hex_color: str, size: int = 100) -> QIcon:
+    #print(hex_color)
+
+    # Create a QPixmap object
+    pixmap = QPixmap(size, size)
+    # Create a QPainter object and begin painting on the QPixmap
+    painter = QPainter(pixmap)
+    # Set the brush color to the desired color
+    color = QColor(hex_color)
+    painter.setBrush(color)
+    # Draw a rectangle on the QPixmap
+    painter.drawRect(0, 0, size, size)
+    # End the painting process
+    painter.end()
+    # Create a QIcon object from the QPixmap
+    icon = QIcon(pixmap)
+    return icon
 
 def get_images_path():
     if getattr(sys, 'frozen', False):

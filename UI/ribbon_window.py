@@ -1,8 +1,8 @@
-from PyQt6.QtWidgets import QApplication, QMainWindow
-from PyQt6.QtGui import QDesktopServices, QIcon
+from PyQt6.QtWidgets import QApplication, QMainWindow, QCompleter
+from PyQt6.QtGui import QDesktopServices, QColor, QIcon, QPainter, QPixmap
 from PyQt6 import QtCore, QtGui, QtWidgets
 import os
-from PDB2MC.variables import decorative_blocks
+from PDB2MC.variables import decorative_blocks, hex_dict
 import pandas as pd
 from PDB2MC import minecraft_functions as mcf, pdb_manipulation as pdbm, ribbon
 from .utilities import InformationBox, MyComboBox, IncludedPDBPopup, MinecraftPopup, FileExplorerPopup
@@ -25,15 +25,15 @@ class RibbonWindow(QMainWindow):
 
         self.setWindowIcon(QIcon('images/icons/logo.png'))
 
-        self.setFixedSize(430, 405)
+        self.setFixedSize(430, 430)
         self.centralwidget = QtWidgets.QWidget(parent=self)
         self.centralwidget.setObjectName("centralwidget")
         self.switchModeLabel = QtWidgets.QLabel(parent=self.centralwidget)
         font = QtGui.QFont()
-        font.setPointSize(10)
+        font.setPointSize(11)
         font.setBold(True)
         font.setUnderline(True)
-        font.setWeight(75)
+        font.setWeight(100)
         font.setKerning(True)
         self.switchModeLabel.setFont(font)
         self.switchModeLabel.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
@@ -68,54 +68,57 @@ class RibbonWindow(QMainWindow):
         font.setPointSize(8)
         self.SpaceFillingMode.setFont(font)
         self.SpaceFillingMode.setObjectName("SpaceFillingMode")
-        self.AminoAcidMode = QtWidgets.QPushButton(parent=self.centralwidget)
 
+        self.AminoAcidMode = QtWidgets.QPushButton(parent=self.centralwidget)
         font = QtGui.QFont()
         font.setPointSize(8)
         self.AminoAcidMode.setFont(font)
         self.AminoAcidMode.setObjectName("AminoAcidMode")
-        self.RibbonMode = QtWidgets.QPushButton(parent=self.centralwidget)
 
+        self.RibbonMode = QtWidgets.QPushButton(parent=self.centralwidget)
         font = QtGui.QFont()
         font.setPointSize(11)
         self.RibbonMode.setFont(font)
         self.RibbonMode.setObjectName("RibbonMode")
-        self.github = QtWidgets.QPushButton(parent=self.centralwidget)
 
+        self.github = QtWidgets.QPushButton(parent=self.centralwidget)
         font = QtGui.QFont()
         font.setPointSize(10)
         self.github.setFont(font)
         self.github.setObjectName("github")
-        self.help = QtWidgets.QPushButton(parent=self.centralwidget)
 
+        self.tools = QtWidgets.QPushButton(parent=self.centralwidget)
+        font = QtGui.QFont()
+        font.setPointSize(10)
+        self.tools.setFont(font)
+        self.tools.setObjectName("tools")
+
+        self.help = QtWidgets.QPushButton(parent=self.centralwidget)
         font = QtGui.QFont()
         font.setPointSize(10)
         self.help.setFont(font)
         self.help.setObjectName("help")
         self.rcsbButton = QtWidgets.QPushButton(parent=self.centralwidget)
-
         font = QtGui.QFont()
         font.setPointSize(9)
         self.rcsbButton.setFont(font)
         self.rcsbButton.setObjectName("rcsbButton")
         self.mc2pdbLabel = QtWidgets.QLabel(parent=self.centralwidget)
-
         font = QtGui.QFont()
-        font.setPointSize(10)
+        font.setPointSize(11)
         font.setBold(False)
-        font.setUnderline(False)
-        font.setWeight(50)
+        font.setUnderline(True)
+        font.setWeight(100)
         font.setKerning(True)
         self.mc2pdbLabel.setFont(font)
         self.mc2pdbLabel.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         self.mc2pdbLabel.setObjectName("mc2pdbLabel")
         self.pdbDatabaseLabel = QtWidgets.QLabel(parent=self.centralwidget)
-
         font = QtGui.QFont()
-        font.setPointSize(10)
+        font.setPointSize(11)
         font.setBold(False)
-        font.setUnderline(False)
-        font.setWeight(50)
+        font.setUnderline(True)
+        font.setWeight(100)
         font.setKerning(True)
         self.pdbDatabaseLabel.setFont(font)
         self.pdbDatabaseLabel.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
@@ -134,202 +137,207 @@ class RibbonWindow(QMainWindow):
 
         font = QtGui.QFont()
         font.setPointSize(7)
+
+        self.bg = QtWidgets.QLabel(parent=self.centralwidget)
+        font = QtGui.QFont()
+        font.setPointSize(7)
         self.bg.setFont(font)
         self.bg.setText("")
         self.bg.setPixmap(QtGui.QPixmap("images/MC2PDB bg.png"))
         self.bg.setScaledContents(True)
         self.bg.setObjectName("bg")
-        icon1 = QtGui.QIcon()
-        icon1.addPixmap(QtGui.QPixmap("images/icons/black_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon2 = QtGui.QIcon()
-        icon2.addPixmap(QtGui.QPixmap("images/icons/red_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon3 = QtGui.QIcon()
-        icon3.addPixmap(QtGui.QPixmap("images/icons/orange_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon4 = QtGui.QIcon()
-        icon4.addPixmap(QtGui.QPixmap("images/icons/yellow_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon5 = QtGui.QIcon()
-        icon5.addPixmap(QtGui.QPixmap("images/icons/lime_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon6 = QtGui.QIcon()
-        icon6.addPixmap(QtGui.QPixmap("images/icons/green_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon7 = QtGui.QIcon()
-        icon7.addPixmap(QtGui.QPixmap("images/icons/cyan_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon8 = QtGui.QIcon()
-        icon8.addPixmap(QtGui.QPixmap("images/icons/light_blue_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon9 = QtGui.QIcon()
-        icon9.addPixmap(QtGui.QPixmap("images/icons/blue_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon10 = QtGui.QIcon()
-        icon10.addPixmap(QtGui.QPixmap("images/icons/purple_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon11 = QtGui.QIcon()
-        icon11.addPixmap(QtGui.QPixmap("images/icons/magenta_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon12 = QtGui.QIcon()
-        icon12.addPixmap(QtGui.QPixmap("images/icons/magenta_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon13 = QtGui.QIcon()
-        icon13.addPixmap(QtGui.QPixmap("images/icons/brown_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon14 = QtGui.QIcon()
-        icon14.addPixmap(QtGui.QPixmap("images/icons/gray_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon15 = QtGui.QIcon()
-        icon15.addPixmap(QtGui.QPixmap("images/icons/light_gray_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon16 = QtGui.QIcon()
-        icon16.addPixmap(QtGui.QPixmap("images/icons/white_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon17 = QtGui.QIcon()
-        icon17.addPixmap(QtGui.QPixmap("images/icons/red_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon18 = QtGui.QIcon()
-        icon18.addPixmap(QtGui.QPixmap("images/icons/orange_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon19 = QtGui.QIcon()
-        icon19.addPixmap(QtGui.QPixmap("images/icons/yellow_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon20 = QtGui.QIcon()
-        icon20.addPixmap(QtGui.QPixmap("images/icons/lime_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon21 = QtGui.QIcon()
-        icon21.addPixmap(QtGui.QPixmap("images/icons/green_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon22 = QtGui.QIcon()
-        icon22.addPixmap(QtGui.QPixmap("images/icons/cyan_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon23 = QtGui.QIcon()
-        icon23.addPixmap(QtGui.QPixmap("images/icons/light_blue_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon24 = QtGui.QIcon()
-        icon24.addPixmap(QtGui.QPixmap("images/icons/blue_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon25 = QtGui.QIcon()
-        icon25.addPixmap(QtGui.QPixmap("images/icons/purple_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon26 = QtGui.QIcon()
-        icon26.addPixmap(QtGui.QPixmap("images/icons/magenta_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon27 = QtGui.QIcon()
-        icon27.addPixmap(QtGui.QPixmap("images/icons/pink_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon28 = QtGui.QIcon()
-        icon28.addPixmap(QtGui.QPixmap("images/icons/brown_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon29 = QtGui.QIcon()
-        icon29.addPixmap(QtGui.QPixmap("images/icons/black_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon30 = QtGui.QIcon()
-        icon30.addPixmap(QtGui.QPixmap("images/icons/gray_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon31 = QtGui.QIcon()
-        icon31.addPixmap(QtGui.QPixmap("images/icons/light_gray_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon32 = QtGui.QIcon()
-        icon32.addPixmap(QtGui.QPixmap("images/icons/white_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon33 = QtGui.QIcon()
-        icon33.addPixmap(QtGui.QPixmap("images/icons/red_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon34 = QtGui.QIcon()
-        icon34.addPixmap(QtGui.QPixmap("images/icons/orange_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon35 = QtGui.QIcon()
-        icon35.addPixmap(QtGui.QPixmap("images/icons/yellow_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon36 = QtGui.QIcon()
-        icon36.addPixmap(QtGui.QPixmap("images/icons/lime_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon37 = QtGui.QIcon()
-        icon37.addPixmap(QtGui.QPixmap("images/icons/green_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon38 = QtGui.QIcon()
-        icon38.addPixmap(QtGui.QPixmap("images/icons/cyan_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon39 = QtGui.QIcon()
-        icon39.addPixmap(QtGui.QPixmap("images/icons/light_blue_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon40 = QtGui.QIcon()
-        icon40.addPixmap(QtGui.QPixmap("images/icons/blue_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon41 = QtGui.QIcon()
-        icon41.addPixmap(QtGui.QPixmap("images/icons/purple_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon42 = QtGui.QIcon()
-        icon42.addPixmap(QtGui.QPixmap("images/icons/magenta_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon43 = QtGui.QIcon()
-        icon43.addPixmap(QtGui.QPixmap("images/icons/pink_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon44 = QtGui.QIcon()
-        icon44.addPixmap(QtGui.QPixmap("images/icons/brown_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon45 = QtGui.QIcon()
-        icon45.addPixmap(QtGui.QPixmap("images/icons/black_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon46 = QtGui.QIcon()
-        icon46.addPixmap(QtGui.QPixmap("images/icons/gray_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon47 = QtGui.QIcon()
-        icon47.addPixmap(QtGui.QPixmap("images/icons/light_gray_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon48 = QtGui.QIcon()
-        icon48.addPixmap(QtGui.QPixmap("images/icons/white_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon49 = QtGui.QIcon()
-        icon49.addPixmap(QtGui.QPixmap("images/icons/red_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon50 = QtGui.QIcon()
-        icon50.addPixmap(QtGui.QPixmap("images/icons/orange_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon51 = QtGui.QIcon()
-        icon51.addPixmap(QtGui.QPixmap("images/icons/yellow_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon52 = QtGui.QIcon()
-        icon52.addPixmap(QtGui.QPixmap("images/icons/lime_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon53 = QtGui.QIcon()
-        icon53.addPixmap(QtGui.QPixmap("images/icons/green_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon54 = QtGui.QIcon()
-        icon54.addPixmap(QtGui.QPixmap("images/icons/cyan_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon55 = QtGui.QIcon()
-        icon55.addPixmap(QtGui.QPixmap("images/icons/light_blue_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon56 = QtGui.QIcon()
-        icon56.addPixmap(QtGui.QPixmap("images/icons/blue_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon57 = QtGui.QIcon()
-        icon57.addPixmap(QtGui.QPixmap("images/icons/purple_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon58 = QtGui.QIcon()
-        icon58.addPixmap(QtGui.QPixmap("images/icons/magenta_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon59 = QtGui.QIcon()
-        icon59.addPixmap(QtGui.QPixmap("images/icons/pink_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon60 = QtGui.QIcon()
-        icon60.addPixmap(QtGui.QPixmap("images/icons/brown_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon61 = QtGui.QIcon()
-        icon61.addPixmap(QtGui.QPixmap("images/icons/black_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon62 = QtGui.QIcon()
-        icon62.addPixmap(QtGui.QPixmap("images/icons/gray_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon63 = QtGui.QIcon()
-        icon63.addPixmap(QtGui.QPixmap("images/icons/light_gray_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
-        icon64 = QtGui.QIcon()
-        icon64.addPixmap(QtGui.QPixmap("images/icons/white_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon1 = QtGui.QIcon()
+        # icon1.addPixmap(QtGui.QPixmap("images/icons/black_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon2 = QtGui.QIcon()
+        # icon2.addPixmap(QtGui.QPixmap("images/icons/red_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon3 = QtGui.QIcon()
+        # icon3.addPixmap(QtGui.QPixmap("images/icons/orange_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon4 = QtGui.QIcon()
+        # icon4.addPixmap(QtGui.QPixmap("images/icons/yellow_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon5 = QtGui.QIcon()
+        # icon5.addPixmap(QtGui.QPixmap("images/icons/lime_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon6 = QtGui.QIcon()
+        # icon6.addPixmap(QtGui.QPixmap("images/icons/green_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon7 = QtGui.QIcon()
+        # icon7.addPixmap(QtGui.QPixmap("images/icons/cyan_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon8 = QtGui.QIcon()
+        # icon8.addPixmap(QtGui.QPixmap("images/icons/light_blue_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon9 = QtGui.QIcon()
+        # icon9.addPixmap(QtGui.QPixmap("images/icons/blue_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon10 = QtGui.QIcon()
+        # icon10.addPixmap(QtGui.QPixmap("images/icons/purple_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon11 = QtGui.QIcon()
+        # icon11.addPixmap(QtGui.QPixmap("images/icons/magenta_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon12 = QtGui.QIcon()
+        # icon12.addPixmap(QtGui.QPixmap("images/icons/magenta_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon13 = QtGui.QIcon()
+        # icon13.addPixmap(QtGui.QPixmap("images/icons/brown_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon14 = QtGui.QIcon()
+        # icon14.addPixmap(QtGui.QPixmap("images/icons/gray_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon15 = QtGui.QIcon()
+        # icon15.addPixmap(QtGui.QPixmap("images/icons/light_gray_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon16 = QtGui.QIcon()
+        # icon16.addPixmap(QtGui.QPixmap("images/icons/white_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon17 = QtGui.QIcon()
+        # icon17.addPixmap(QtGui.QPixmap("images/icons/red_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon18 = QtGui.QIcon()
+        # icon18.addPixmap(QtGui.QPixmap("images/icons/orange_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon19 = QtGui.QIcon()
+        # icon19.addPixmap(QtGui.QPixmap("images/icons/yellow_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon20 = QtGui.QIcon()
+        # icon20.addPixmap(QtGui.QPixmap("images/icons/lime_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon21 = QtGui.QIcon()
+        # icon21.addPixmap(QtGui.QPixmap("images/icons/green_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon22 = QtGui.QIcon()
+        # icon22.addPixmap(QtGui.QPixmap("images/icons/cyan_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon23 = QtGui.QIcon()
+        # icon23.addPixmap(QtGui.QPixmap("images/icons/light_blue_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon24 = QtGui.QIcon()
+        # icon24.addPixmap(QtGui.QPixmap("images/icons/blue_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon25 = QtGui.QIcon()
+        # icon25.addPixmap(QtGui.QPixmap("images/icons/purple_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon26 = QtGui.QIcon()
+        # icon26.addPixmap(QtGui.QPixmap("images/icons/magenta_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon27 = QtGui.QIcon()
+        # icon27.addPixmap(QtGui.QPixmap("images/icons/pink_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon28 = QtGui.QIcon()
+        # icon28.addPixmap(QtGui.QPixmap("images/icons/brown_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon29 = QtGui.QIcon()
+        # icon29.addPixmap(QtGui.QPixmap("images/icons/black_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon30 = QtGui.QIcon()
+        # icon30.addPixmap(QtGui.QPixmap("images/icons/gray_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon31 = QtGui.QIcon()
+        # icon31.addPixmap(QtGui.QPixmap("images/icons/light_gray_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon32 = QtGui.QIcon()
+        # icon32.addPixmap(QtGui.QPixmap("images/icons/white_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon33 = QtGui.QIcon()
+        # icon33.addPixmap(QtGui.QPixmap("images/icons/red_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon34 = QtGui.QIcon()
+        # icon34.addPixmap(QtGui.QPixmap("images/icons/orange_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon35 = QtGui.QIcon()
+        # icon35.addPixmap(QtGui.QPixmap("images/icons/yellow_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon36 = QtGui.QIcon()
+        # icon36.addPixmap(QtGui.QPixmap("images/icons/lime_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon37 = QtGui.QIcon()
+        # icon37.addPixmap(QtGui.QPixmap("images/icons/green_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon38 = QtGui.QIcon()
+        # icon38.addPixmap(QtGui.QPixmap("images/icons/cyan_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon39 = QtGui.QIcon()
+        # icon39.addPixmap(QtGui.QPixmap("images/icons/light_blue_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon40 = QtGui.QIcon()
+        # icon40.addPixmap(QtGui.QPixmap("images/icons/blue_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon41 = QtGui.QIcon()
+        # icon41.addPixmap(QtGui.QPixmap("images/icons/purple_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon42 = QtGui.QIcon()
+        # icon42.addPixmap(QtGui.QPixmap("images/icons/magenta_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon43 = QtGui.QIcon()
+        # icon43.addPixmap(QtGui.QPixmap("images/icons/pink_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon44 = QtGui.QIcon()
+        # icon44.addPixmap(QtGui.QPixmap("images/icons/brown_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon45 = QtGui.QIcon()
+        # icon45.addPixmap(QtGui.QPixmap("images/icons/black_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon46 = QtGui.QIcon()
+        # icon46.addPixmap(QtGui.QPixmap("images/icons/gray_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon47 = QtGui.QIcon()
+        # icon47.addPixmap(QtGui.QPixmap("images/icons/light_gray_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon48 = QtGui.QIcon()
+        # icon48.addPixmap(QtGui.QPixmap("images/icons/white_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon49 = QtGui.QIcon()
+        # icon49.addPixmap(QtGui.QPixmap("images/icons/red_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon50 = QtGui.QIcon()
+        # icon50.addPixmap(QtGui.QPixmap("images/icons/orange_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon51 = QtGui.QIcon()
+        # icon51.addPixmap(QtGui.QPixmap("images/icons/yellow_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon52 = QtGui.QIcon()
+        # icon52.addPixmap(QtGui.QPixmap("images/icons/lime_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon53 = QtGui.QIcon()
+        # icon53.addPixmap(QtGui.QPixmap("images/icons/green_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon54 = QtGui.QIcon()
+        # icon54.addPixmap(QtGui.QPixmap("images/icons/cyan_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon55 = QtGui.QIcon()
+        # icon55.addPixmap(QtGui.QPixmap("images/icons/light_blue_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon56 = QtGui.QIcon()
+        # icon56.addPixmap(QtGui.QPixmap("images/icons/blue_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon57 = QtGui.QIcon()
+        # icon57.addPixmap(QtGui.QPixmap("images/icons/purple_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon58 = QtGui.QIcon()
+        # icon58.addPixmap(QtGui.QPixmap("images/icons/magenta_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon59 = QtGui.QIcon()
+        # icon59.addPixmap(QtGui.QPixmap("images/icons/pink_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon60 = QtGui.QIcon()
+        # icon60.addPixmap(QtGui.QPixmap("images/icons/brown_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon61 = QtGui.QIcon()
+        # icon61.addPixmap(QtGui.QPixmap("images/icons/black_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon62 = QtGui.QIcon()
+        # icon62.addPixmap(QtGui.QPixmap("images/icons/gray_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon63 = QtGui.QIcon()
+        # icon63.addPixmap(QtGui.QPixmap("images/icons/light_gray_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        #
+        # icon64 = QtGui.QIcon()
+        # icon64.addPixmap(QtGui.QPixmap("images/icons/white_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
 
         self.ribbonColorLabel = QtWidgets.QLabel(parent=self.centralwidget)
         self.ribbonColorLabel.setObjectName("ribbonColorLabel")
@@ -340,363 +348,126 @@ class RibbonWindow(QMainWindow):
         self.sidechainColorLabel = QtWidgets.QLabel(parent=self.centralwidget)
         self.sidechainColorLabel.setObjectName("sidechainColorLabel")
 
-        self.otherColorLabel = QtWidgets.QLabel(parent=self.centralwidget)
-        self.otherColorLabel.setObjectName("otherColorLabel")
-        self.otherColorBox = MyComboBox(self.centralwidget)
-        self.otherColorBox.setObjectName("otherColorBox")
-        self.otherColorBox.setEditable(True)
-
-        self.otherColorBox.addItem(icon12, "pink_concrete")
-        self.otherColorBox.addItem(icon2, "red_concrete")
-        self.otherColorBox.addItem(icon3, "orange_concrete")
-        self.otherColorBox.addItem(icon4, "yellow_concrete")
-        self.otherColorBox.addItem(icon5, "lime_concrete")
-        self.otherColorBox.addItem(icon6, "green_concrete")
-        self.otherColorBox.addItem(icon7, "cyan_concrete")
-        self.otherColorBox.addItem(icon8, "light_blue_concrete")
-        self.otherColorBox.addItem(icon9, "blue_concrete")
-        self.otherColorBox.addItem(icon10, "purple_concrete")
-        self.otherColorBox.addItem(icon11, "magenta_concrete")
-        self.otherColorBox.addItem(icon13, "brown_concrete")
-        self.otherColorBox.addItem(icon1, "black_concrete")
-        self.otherColorBox.addItem(icon14, "gray_concrete")
-        self.otherColorBox.addItem(icon15, "light_gray_concrete")
-        self.otherColorBox.addItem(icon16, "white_concrete")
-        self.otherColorBox.addItem(icon17, "red_glazed_terracotta")
-        self.otherColorBox.addItem(icon18, "orange_glazed_terracotta")
-        self.otherColorBox.addItem(icon19, "yellow_glazed_terracotta")
-        self.otherColorBox.addItem(icon20, "lime_glazed_terracotta")
-        self.otherColorBox.addItem(icon21, "green_glazed_terracotta")
-        self.otherColorBox.addItem(icon22, "cyan_glazed_terracotta")
-        self.otherColorBox.addItem(icon23, "light_blue_glazed_terracotta")
-        self.otherColorBox.addItem(icon24, "blue_glazed_terracotta")
-        self.otherColorBox.addItem(icon25, "purple_glazed_terracotta")
-        self.otherColorBox.addItem(icon26, "magenta_glazed_terracotta")
-        self.otherColorBox.addItem(icon27, "pink_glazed_terracotta")
-        self.otherColorBox.addItem(icon28, "brown_glazed_terracotta")
-        self.otherColorBox.addItem(icon29, "black_glazed_terracotta")
-        self.otherColorBox.addItem(icon30, "gray_glazed_terracotta")
-        self.otherColorBox.addItem(icon31, "light_gray_glazed_terracotta")
-        self.otherColorBox.addItem(icon32, "white_glazed_terracotta")
-        self.otherColorBox.addItem(icon33, "red_terracotta")
-        self.otherColorBox.addItem(icon34, "orange_terracotta")
-        self.otherColorBox.addItem(icon35, "yellow_terracotta")
-        self.otherColorBox.addItem(icon36, "lime_terracotta")
-        self.otherColorBox.addItem(icon37, "green_terracotta")
-        self.otherColorBox.addItem(icon38, "cyan_terracotta")
-        self.otherColorBox.addItem(icon39, "light_blue_terracotta")
-        self.otherColorBox.addItem(icon40, "blue_terracotta")
-        self.otherColorBox.addItem(icon41, "purple_terracotta")
-        self.otherColorBox.addItem(icon42, "magenta_terracotta")
-        self.otherColorBox.addItem(icon43, "pink_terracotta")
-        self.otherColorBox.addItem(icon44, "brown_terracotta")
-        self.otherColorBox.addItem(icon45, "black_terracotta")
-        self.otherColorBox.addItem(icon46, "gray_terracotta")
-        self.otherColorBox.addItem(icon47, "light_gray_terracotta")
-        self.otherColorBox.addItem(icon48, "white_terracotta")
-        self.otherColorBox.addItem(icon49, "red_wool")
-        self.otherColorBox.addItem(icon50, "orange_wool")
-        self.otherColorBox.addItem(icon51, "yellow_wool")
-        self.otherColorBox.addItem(icon52, "lime_wool")
-        self.otherColorBox.addItem(icon53, "green_wool")
-        self.otherColorBox.addItem(icon54, "cyan_wool")
-        self.otherColorBox.addItem(icon55, "light_blue_wool")
-        self.otherColorBox.addItem(icon56, "blue_wool")
-        self.otherColorBox.addItem(icon57, "purple_wool")
-        self.otherColorBox.addItem(icon58, "magenta_wool")
-        self.otherColorBox.addItem(icon59, "pink_wool")
-        self.otherColorBox.addItem(icon60, "brown_wool")
-        self.otherColorBox.addItem(icon61, "black_wool")
-        self.otherColorBox.addItem(icon62, "gray_wool")
-        self.otherColorBox.addItem(icon63, "light_gray_wool")
-        self.otherColorBox.addItem(icon64, "wool")
-        self.otherColorBox.addItem(icon2, "red_stained_glass")
-        self.otherColorBox.addItem(icon3, "orange_stained_glass")
-        self.otherColorBox.addItem(icon4, "yellow_stained_glass")
-        self.otherColorBox.addItem(icon5, "lime_stained_glass")
-        self.otherColorBox.addItem(icon6, "green_stained_glass")
-        self.otherColorBox.addItem(icon7, "cyan_stained_glass")
-        self.otherColorBox.addItem(icon8, "light_blue_stained_glass")
-        self.otherColorBox.addItem(icon9, "blue_stained_glass")
-        self.otherColorBox.addItem(icon10, "purple_stained_glass")
-        self.otherColorBox.addItem(icon11, "magenta_stained_glass")
-        self.otherColorBox.addItem(icon12, "pink_stained_glass")
-        self.otherColorBox.addItem(icon13, "brown_stained_glass")
-        self.otherColorBox.addItem(icon1, "black_stained_glass")
-        self.otherColorBox.addItem(icon14, "gray_stained_glass")
-        self.otherColorBox.addItem(icon15, "light_stained_glass")
-        self.otherColorBox.addItem(icon16, "white_stained_glass")
-        self.otherColorBox.insertSeparator(16)
-        self.otherColorBox.insertSeparator(33)
-        self.otherColorBox.insertSeparator(50)
-        self.otherColorBox.insertSeparator(67)
 
         self.ribbonColorBox = MyComboBox(self.centralwidget)
         self.ribbonColorBox.setObjectName("ribbonColorBox")
         self.ribbonColorBox.setEditable(True)
 
-        self.ribbonColorBox.addItem(icon2, "red_concrete")
-        self.ribbonColorBox.addItem(icon3, "orange_concrete")
-        self.ribbonColorBox.addItem(icon4, "yellow_concrete")
-        self.ribbonColorBox.addItem(icon5, "lime_concrete")
-        self.ribbonColorBox.addItem(icon6, "green_concrete")
-        self.ribbonColorBox.addItem(icon7, "cyan_concrete")
-        self.ribbonColorBox.addItem(icon8, "light_blue_concrete")
-        self.ribbonColorBox.addItem(icon9, "blue_concrete")
-        self.ribbonColorBox.addItem(icon10, "purple_concrete")
-        self.ribbonColorBox.addItem(icon11, "magenta_concrete")
-        self.ribbonColorBox.addItem(icon12, "pink_concrete")
-        self.ribbonColorBox.addItem(icon13, "brown_concrete")
-        self.ribbonColorBox.addItem(icon1, "black_concrete")
-        self.ribbonColorBox.addItem(icon14, "gray_concrete")
-        self.ribbonColorBox.addItem(icon15, "light_gray_concrete")
-        self.ribbonColorBox.addItem(icon16, "white_concrete")
-        self.ribbonColorBox.addItem(icon17, "red_glazed_terracotta")
-        self.ribbonColorBox.addItem(icon18, "orange_glazed_terracotta")
-        self.ribbonColorBox.addItem(icon19, "yellow_glazed_terracotta")
-        self.ribbonColorBox.addItem(icon20, "lime_glazed_terracotta")
-        self.ribbonColorBox.addItem(icon21, "green_glazed_terracotta")
-        self.ribbonColorBox.addItem(icon22, "cyan_glazed_terracotta")
-        self.ribbonColorBox.addItem(icon23, "light_blue_glazed_terracotta")
-        self.ribbonColorBox.addItem(icon24, "blue_glazed_terracotta")
-        self.ribbonColorBox.addItem(icon25, "purple_glazed_terracotta")
-        self.ribbonColorBox.addItem(icon26, "magenta_glazed_terracotta")
-        self.ribbonColorBox.addItem(icon27, "pink_glazed_terracotta")
-        self.ribbonColorBox.addItem(icon28, "brown_glazed_terracotta")
-        self.ribbonColorBox.addItem(icon29, "black_glazed_terracotta")
-        self.ribbonColorBox.addItem(icon30, "gray_glazed_terracotta")
-        self.ribbonColorBox.addItem(icon31, "light_gray_glazed_terracotta")
-        self.ribbonColorBox.addItem(icon32, "white_glazed_terracotta")
-        self.ribbonColorBox.addItem(icon33, "red_terracotta")
-        self.ribbonColorBox.addItem(icon34, "orange_terracotta")
-        self.ribbonColorBox.addItem(icon35, "yellow_terracotta")
-        self.ribbonColorBox.addItem(icon36, "lime_terracotta")
-        self.ribbonColorBox.addItem(icon37, "green_terracotta")
-        self.ribbonColorBox.addItem(icon38, "cyan_terracotta")
-        self.ribbonColorBox.addItem(icon39, "light_blue_terracotta")
-        self.ribbonColorBox.addItem(icon40, "blue_terracotta")
-        self.ribbonColorBox.addItem(icon41, "purple_terracotta")
-        self.ribbonColorBox.addItem(icon42, "magenta_terracotta")
-        self.ribbonColorBox.addItem(icon43, "pink_terracotta")
-        self.ribbonColorBox.addItem(icon44, "brown_terracotta")
-        self.ribbonColorBox.addItem(icon45, "black_terracotta")
-        self.ribbonColorBox.addItem(icon46, "gray_terracotta")
-        self.ribbonColorBox.addItem(icon47, "light_gray_terracotta")
-        self.ribbonColorBox.addItem(icon48, "white_terracotta")
-        self.ribbonColorBox.addItem(icon49, "red_wool")
-        self.ribbonColorBox.addItem(icon50, "orange_wool")
-        self.ribbonColorBox.addItem(icon51, "yellow_wool")
-        self.ribbonColorBox.addItem(icon52, "lime_wool")
-        self.ribbonColorBox.addItem(icon53, "green_wool")
-        self.ribbonColorBox.addItem(icon54, "cyan_wool")
-        self.ribbonColorBox.addItem(icon55, "light_blue_wool")
-        self.ribbonColorBox.addItem(icon56, "blue_wool")
-        self.ribbonColorBox.addItem(icon57, "purple_wool")
-        self.ribbonColorBox.addItem(icon58, "magenta_wool")
-        self.ribbonColorBox.addItem(icon59, "pink_wool")
-        self.ribbonColorBox.addItem(icon60, "brown_wool")
-        self.ribbonColorBox.addItem(icon61, "black_wool")
-        self.ribbonColorBox.addItem(icon62, "gray_wool")
-        self.ribbonColorBox.addItem(icon63, "light_gray_wool")
-        self.ribbonColorBox.addItem(icon64, "wool")
-        self.ribbonColorBox.addItem(icon2, "red_stained_glass")
-        self.ribbonColorBox.addItem(icon3, "orange_stained_glass")
-        self.ribbonColorBox.addItem(icon4, "yellow_stained_glass")
-        self.ribbonColorBox.addItem(icon5, "lime_stained_glass")
-        self.ribbonColorBox.addItem(icon6, "green_stained_glass")
-        self.ribbonColorBox.addItem(icon7, "cyan_stained_glass")
-        self.ribbonColorBox.addItem(icon8, "light_blue_stained_glass")
-        self.ribbonColorBox.addItem(icon9, "blue_stained_glass")
-        self.ribbonColorBox.addItem(icon10, "purple_stained_glass")
-        self.ribbonColorBox.addItem(icon11, "magenta_stained_glass")
-        self.ribbonColorBox.addItem(icon12, "pink_stained_glass")
-        self.ribbonColorBox.addItem(icon13, "brown_stained_glass")
-        self.ribbonColorBox.addItem(icon1, "black_stained_glass")
-        self.ribbonColorBox.addItem(icon14, "gray_stained_glass")
-        self.ribbonColorBox.addItem(icon15, "light_stained_glass")
-        self.ribbonColorBox.addItem(icon16, "white_stained_glass")
-        self.ribbonColorBox.insertSeparator(16)
-        self.ribbonColorBox.insertSeparator(33)
-        self.ribbonColorBox.insertSeparator(50)
-        self.ribbonColorBox.insertSeparator(67)
-
         self.backboneColorBox = MyComboBox(self.centralwidget)
         self.backboneColorBox.setObjectName("backboneColorBox")
         self.backboneColorBox.setEditable(True)
-
-        self.backboneColorBox.addItem(icon14, "gray_concrete")
-        self.backboneColorBox.addItem(icon2, "red_concrete")
-        self.backboneColorBox.addItem(icon3, "orange_concrete")
-        self.backboneColorBox.addItem(icon4, "yellow_concrete")
-        self.backboneColorBox.addItem(icon5, "lime_concrete")
-        self.backboneColorBox.addItem(icon6, "green_concrete")
-        self.backboneColorBox.addItem(icon7, "cyan_concrete")
-        self.backboneColorBox.addItem(icon8, "light_blue_concrete")
-        self.backboneColorBox.addItem(icon9, "blue_concrete")
-        self.backboneColorBox.addItem(icon10, "purple_concrete")
-        self.backboneColorBox.addItem(icon11, "magenta_concrete")
-        self.backboneColorBox.addItem(icon12, "pink_concrete")
-        self.backboneColorBox.addItem(icon13, "brown_concrete")
-        self.backboneColorBox.addItem(icon1, "black_concrete")
-        self.backboneColorBox.addItem(icon15, "light_gray_concrete")
-        self.backboneColorBox.addItem(icon16, "white_concrete")
-        self.backboneColorBox.addItem(icon17, "red_glazed_terracotta")
-        self.backboneColorBox.addItem(icon18, "orange_glazed_terracotta")
-        self.backboneColorBox.addItem(icon19, "yellow_glazed_terracotta")
-        self.backboneColorBox.addItem(icon20, "lime_glazed_terracotta")
-        self.backboneColorBox.addItem(icon21, "green_glazed_terracotta")
-        self.backboneColorBox.addItem(icon22, "cyan_glazed_terracotta")
-        self.backboneColorBox.addItem(icon23, "light_blue_glazed_terracotta")
-        self.backboneColorBox.addItem(icon24, "blue_glazed_terracotta")
-        self.backboneColorBox.addItem(icon25, "purple_glazed_terracotta")
-        self.backboneColorBox.addItem(icon26, "magenta_glazed_terracotta")
-        self.backboneColorBox.addItem(icon27, "pink_glazed_terracotta")
-        self.backboneColorBox.addItem(icon28, "brown_glazed_terracotta")
-        self.backboneColorBox.addItem(icon29, "black_glazed_terracotta")
-        self.backboneColorBox.addItem(icon30, "gray_glazed_terracotta")
-        self.backboneColorBox.addItem(icon31, "light_gray_glazed_terracotta")
-        self.backboneColorBox.addItem(icon32, "white_glazed_terracotta")
-        self.backboneColorBox.addItem(icon33, "red_terracotta")
-        self.backboneColorBox.addItem(icon34, "orange_terracotta")
-        self.backboneColorBox.addItem(icon35, "yellow_terracotta")
-        self.backboneColorBox.addItem(icon36, "lime_terracotta")
-        self.backboneColorBox.addItem(icon37, "green_terracotta")
-        self.backboneColorBox.addItem(icon38, "cyan_terracotta")
-        self.backboneColorBox.addItem(icon39, "light_blue_terracotta")
-        self.backboneColorBox.addItem(icon40, "blue_terracotta")
-        self.backboneColorBox.addItem(icon41, "purple_terracotta")
-        self.backboneColorBox.addItem(icon42, "magenta_terracotta")
-        self.backboneColorBox.addItem(icon43, "pink_terracotta")
-        self.backboneColorBox.addItem(icon44, "brown_terracotta")
-        self.backboneColorBox.addItem(icon45, "black_terracotta")
-        self.backboneColorBox.addItem(icon46, "gray_terracotta")
-        self.backboneColorBox.addItem(icon47, "light_gray_terracotta")
-        self.backboneColorBox.addItem(icon48, "white_terracotta")
-        self.backboneColorBox.addItem(icon49, "red_wool")
-        self.backboneColorBox.addItem(icon50, "orange_wool")
-        self.backboneColorBox.addItem(icon51, "yellow_wool")
-        self.backboneColorBox.addItem(icon52, "lime_wool")
-        self.backboneColorBox.addItem(icon53, "green_wool")
-        self.backboneColorBox.addItem(icon54, "cyan_wool")
-        self.backboneColorBox.addItem(icon55, "light_blue_wool")
-        self.backboneColorBox.addItem(icon56, "blue_wool")
-        self.backboneColorBox.addItem(icon57, "purple_wool")
-        self.backboneColorBox.addItem(icon58, "magenta_wool")
-        self.backboneColorBox.addItem(icon59, "pink_wool")
-        self.backboneColorBox.addItem(icon60, "brown_wool")
-        self.backboneColorBox.addItem(icon61, "black_wool")
-        self.backboneColorBox.addItem(icon62, "gray_wool")
-        self.backboneColorBox.addItem(icon63, "light_gray_wool")
-        self.backboneColorBox.addItem(icon64, "wool")
-        self.backboneColorBox.addItem(icon2, "red_stained_glass")
-        self.backboneColorBox.addItem(icon3, "orange_stained_glass")
-        self.backboneColorBox.addItem(icon4, "yellow_stained_glass")
-        self.backboneColorBox.addItem(icon5, "lime_stained_glass")
-        self.backboneColorBox.addItem(icon6, "green_stained_glass")
-        self.backboneColorBox.addItem(icon7, "cyan_stained_glass")
-        self.backboneColorBox.addItem(icon8, "light_blue_stained_glass")
-        self.backboneColorBox.addItem(icon9, "blue_stained_glass")
-        self.backboneColorBox.addItem(icon10, "purple_stained_glass")
-        self.backboneColorBox.addItem(icon11, "magenta_stained_glass")
-        self.backboneColorBox.addItem(icon12, "pink_stained_glass")
-        self.backboneColorBox.addItem(icon13, "brown_stained_glass")
-        self.backboneColorBox.addItem(icon1, "black_stained_glass")
-        self.backboneColorBox.addItem(icon14, "gray_stained_glass")
-        self.backboneColorBox.addItem(icon15, "light_stained_glass")
-        self.backboneColorBox.addItem(icon16, "white_stained_glass")
-        self.backboneColorBox.insertSeparator(16)
-        self.backboneColorBox.insertSeparator(33)
-        self.backboneColorBox.insertSeparator(50)
-        self.backboneColorBox.insertSeparator(67)
 
         self.sidechainColorBox = MyComboBox(self.centralwidget)
         self.sidechainColorBox.setObjectName("sidechainColorBox")
         self.sidechainColorBox.setEditable(True)
 
-        self.sidechainColorBox.addItem(icon14, "gray_concrete")
-        self.sidechainColorBox.addItem(icon2, "red_concrete")
-        self.sidechainColorBox.addItem(icon3, "orange_concrete")
-        self.sidechainColorBox.addItem(icon4, "yellow_concrete")
-        self.sidechainColorBox.addItem(icon5, "lime_concrete")
-        self.sidechainColorBox.addItem(icon6, "green_concrete")
-        self.sidechainColorBox.addItem(icon7, "cyan_concrete")
-        self.sidechainColorBox.addItem(icon8, "light_blue_concrete")
-        self.sidechainColorBox.addItem(icon9, "blue_concrete")
-        self.sidechainColorBox.addItem(icon10, "purple_concrete")
-        self.sidechainColorBox.addItem(icon11, "magenta_concrete")
-        self.sidechainColorBox.addItem(icon12, "pink_concrete")
-        self.sidechainColorBox.addItem(icon13, "brown_concrete")
-        self.sidechainColorBox.addItem(icon1, "black_concrete")
-        self.sidechainColorBox.addItem(icon15, "light_gray_concrete")
-        self.sidechainColorBox.addItem(icon16, "white_concrete")
-        self.sidechainColorBox.addItem(icon17, "red_glazed_terracotta")
-        self.sidechainColorBox.addItem(icon18, "orange_glazed_terracotta")
-        self.sidechainColorBox.addItem(icon19, "yellow_glazed_terracotta")
-        self.sidechainColorBox.addItem(icon20, "lime_glazed_terracotta")
-        self.sidechainColorBox.addItem(icon21, "green_glazed_terracotta")
-        self.sidechainColorBox.addItem(icon22, "cyan_glazed_terracotta")
-        self.sidechainColorBox.addItem(icon23, "light_blue_glazed_terracotta")
-        self.sidechainColorBox.addItem(icon24, "blue_glazed_terracotta")
-        self.sidechainColorBox.addItem(icon25, "purple_glazed_terracotta")
-        self.sidechainColorBox.addItem(icon26, "magenta_glazed_terracotta")
-        self.sidechainColorBox.addItem(icon27, "pink_glazed_terracotta")
-        self.sidechainColorBox.addItem(icon28, "brown_glazed_terracotta")
-        self.sidechainColorBox.addItem(icon29, "black_glazed_terracotta")
-        self.sidechainColorBox.addItem(icon30, "gray_glazed_terracotta")
-        self.sidechainColorBox.addItem(icon31, "light_gray_glazed_terracotta")
-        self.sidechainColorBox.addItem(icon32, "white_glazed_terracotta")
-        self.sidechainColorBox.addItem(icon33, "red_terracotta")
-        self.sidechainColorBox.addItem(icon34, "orange_terracotta")
-        self.sidechainColorBox.addItem(icon35, "yellow_terracotta")
-        self.sidechainColorBox.addItem(icon36, "lime_terracotta")
-        self.sidechainColorBox.addItem(icon37, "green_terracotta")
-        self.sidechainColorBox.addItem(icon38, "cyan_terracotta")
-        self.sidechainColorBox.addItem(icon39, "light_blue_terracotta")
-        self.sidechainColorBox.addItem(icon40, "blue_terracotta")
-        self.sidechainColorBox.addItem(icon41, "purple_terracotta")
-        self.sidechainColorBox.addItem(icon42, "magenta_terracotta")
-        self.sidechainColorBox.addItem(icon43, "pink_terracotta")
-        self.sidechainColorBox.addItem(icon44, "brown_terracotta")
-        self.sidechainColorBox.addItem(icon45, "black_terracotta")
-        self.sidechainColorBox.addItem(icon46, "gray_terracotta")
-        self.sidechainColorBox.addItem(icon47, "light_gray_terracotta")
-        self.sidechainColorBox.addItem(icon48, "white_terracotta")
-        self.sidechainColorBox.addItem(icon49, "red_wool")
-        self.sidechainColorBox.addItem(icon50, "orange_wool")
-        self.sidechainColorBox.addItem(icon51, "yellow_wool")
-        self.sidechainColorBox.addItem(icon52, "lime_wool")
-        self.sidechainColorBox.addItem(icon53, "green_wool")
-        self.sidechainColorBox.addItem(icon54, "cyan_wool")
-        self.sidechainColorBox.addItem(icon55, "light_blue_wool")
-        self.sidechainColorBox.addItem(icon56, "blue_wool")
-        self.sidechainColorBox.addItem(icon57, "purple_wool")
-        self.sidechainColorBox.addItem(icon58, "magenta_wool")
-        self.sidechainColorBox.addItem(icon59, "pink_wool")
-        self.sidechainColorBox.addItem(icon60, "brown_wool")
-        self.sidechainColorBox.addItem(icon61, "black_wool")
-        self.sidechainColorBox.addItem(icon62, "gray_wool")
-        self.sidechainColorBox.addItem(icon63, "light_gray_wool")
-        self.sidechainColorBox.addItem(icon64, "wool")
-        self.sidechainColorBox.addItem(icon2, "red_stained_glass")
-        self.sidechainColorBox.addItem(icon3, "orange_stained_glass")
-        self.sidechainColorBox.addItem(icon4, "yellow_stained_glass")
-        self.sidechainColorBox.addItem(icon5, "lime_stained_glass")
-        self.sidechainColorBox.addItem(icon6, "green_stained_glass")
-        self.sidechainColorBox.addItem(icon7, "cyan_stained_glass")
-        self.sidechainColorBox.addItem(icon8, "light_blue_stained_glass")
-        self.sidechainColorBox.addItem(icon9, "blue_stained_glass")
-        self.sidechainColorBox.addItem(icon10, "purple_stained_glass")
-        self.sidechainColorBox.addItem(icon11, "magenta_stained_glass")
-        self.sidechainColorBox.addItem(icon12, "pink_stained_glass")
-        self.sidechainColorBox.addItem(icon13, "brown_stained_glass")
-        self.sidechainColorBox.addItem(icon1, "black_stained_glass")
-        self.sidechainColorBox.addItem(icon14, "gray_stained_glass")
-        self.sidechainColorBox.addItem(icon15, "light_stained_glass")
-        self.sidechainColorBox.addItem(icon16, "white_stained_glass")
-        self.sidechainColorBox.insertSeparator(16)
-        self.sidechainColorBox.insertSeparator(33)
-        self.sidechainColorBox.insertSeparator(50)
-        self.sidechainColorBox.insertSeparator(67)
+        icon_dict = {
+            "red_concrete": "icon2",
+            "orange_concrete": "icon3",
+            "yellow_concrete": "icon4",
+            "lime_concrete": "icon5",
+            "green_concrete": "icon6",
+            "cyan_concrete": "icon7",
+            "light_blue_concrete": "icon8",
+            "blue_concrete": "icon9",
+            "purple_concrete": "icon10",
+            "magenta_concrete": "icon11",
+            "pink_concrete": "icon12",
+            "brown_concrete": "icon13",
+            "black_concrete": "icon1",
+            "gray_concrete": "icon14",
+            "light_gray_concrete": "icon15",
+            "white_concrete": "icon16",
+            "red_glazed_terracotta": "icon17",
+            "orange_glazed_terracotta": "icon18",
+            "yellow_glazed_terracotta": "icon19",
+            "lime_glazed_terracotta": "icon20",
+            "green_glazed_terracotta": "icon21",
+            "cyan_glazed_terracotta": "icon22",
+            "light_blue_glazed_terracotta": "icon23",
+            "blue_glazed_terracotta": "icon24",
+            "purple_glazed_terracotta": "icon25",
+            "magenta_glazed_terracotta": "icon26",
+            "pink_glazed_terracotta": "icon27",
+            "brown_glazed_terracotta": "icon28",
+            "black_glazed_terracotta": "icon29",
+            "gray_glazed_terracotta": "icon30",
+            "light_gray_glazed_terracotta": "icon31",
+            "white_glazed_terracotta": "icon32",
+            "red_terracotta": "icon33",
+            "orange_terracotta": "icon34",
+            "yellow_terracotta": "icon35",
+            "lime_terracotta": "icon36",
+            "green_terracotta": "icon37",
+            "cyan_terracotta": "icon38",
+            "light_blue_terracotta": "icon39",
+            "blue_terracotta": "icon40",
+            "purple_terracotta": "icon41",
+            "magenta_terracotta": "icon42",
+            "pink_terracotta": "icon43",
+            "brown_terracotta": "icon44",
+            "black_terracotta": "icon45",
+            "gray_terracotta": "icon46",
+            "light_gray_terracotta": "icon47",
+            "white_terracotta": "icon48",
+            "red_wool": "icon49",
+            "orange_wool": "icon50",
+            "yellow_wool": "icon51",
+            "lime_wool": "icon52",
+            "green_wool": "icon53",
+            "cyan_wool": "icon54",
+            "light_blue_wool": "icon55",
+            "blue_wool": "icon56",
+            "purple_wool": "icon57",
+            "magenta_wool": "icon58",
+            "pink_wool": "icon59",
+            "brown_wool": "icon60",
+            "black_wool": "icon61",
+            "gray_wool": "icon62",
+            "light_gray_wool": "icon63",
+            "white_wool": "icon64",
+            "red_stained_glass": "icon2",
+            "orange_stained_glass": "icon3",
+            "yellow_stained_glass": "icon4",
+            "lime_stained_glass": "icon5",
+            "green_stained_glass": "icon6",
+            "cyan_stained_glass": "icon7",
+            "light_blue_stained_glass": "icon8",
+            "blue_stained_glass": "icon9",
+            "purple_stained_glass": "icon10",
+            "magenta_stained_glass": "icon11",
+            "pink_stained_glass": "icon12",
+            "brown_stained_glass": "icon13",
+            "black_stained_glass": "icon1",
+            "gray_stained_glass": "icon14",
+            "light_gray_stained_glass": "icon15",
+            "white_stained_glass": "icon16"
+        }
+
+        color_boxes = [self.ribbonColorBox, self.backboneColorBox, self.sidechainColorBox]
+
+        for color_box in color_boxes:
+            for value, icon in icon_dict.items():
+                color_box.addItem(create_icon(hex_dict[value]), value)
+                #color_box.addItem(eval(icon), value)
+            color_box.insertSeparator(16)
+            color_box.insertSeparator(33)
+            color_box.insertSeparator(50)
+            color_box.insertSeparator(67)
+
+        self.ribbonColorBox.setCurrentIndex(0)
+        self.sidechainColorBox.setCurrentIndex(13)
+        self.backboneColorBox.setCurrentIndex(13)
+
+        ribbonCompleter = QCompleter(decorative_blocks)
+        sidechainCompleter = QCompleter(decorative_blocks)
+        backboneCompleter = QCompleter(decorative_blocks)
+        ribbonCompleter.setCaseSensitivity(QtCore.Qt.CaseSensitivity.CaseInsensitive)
+        sidechainCompleter.setCaseSensitivity(QtCore.Qt.CaseSensitivity.CaseInsensitive)
+        backboneCompleter.setCaseSensitivity(QtCore.Qt.CaseSensitivity.CaseInsensitive)
+        self.ribbonColorBox.setCompleter(ribbonCompleter)
+        self.sidechainColorBox.setCompleter(sidechainCompleter)
+        self.backboneColorBox.setCompleter(backboneCompleter)
 
         self.aScaleLabel = QtWidgets.QLabel(parent=self.centralwidget)
 
@@ -745,13 +516,18 @@ class RibbonWindow(QMainWindow):
         self.selectMinecraftSaveButton = QtWidgets.QPushButton(parent=self.centralwidget)
 
         self.selectMinecraftSaveButton.setObjectName("selectMinecraftSaveButton")
-        self.simpleOutputCheck = QtWidgets.QCheckBox(parent=self.centralwidget)
 
+        self.barStyleCheck = QtWidgets.QCheckBox(parent=self.centralwidget)
+        self.barStyleCheck.setChecked(False)
+        self.barStyleCheck.setObjectName("barStyleCheck")
+        self.barStyleCheck.setToolTip("Check to show Alpha Helices as a rod or bar instead of a spiraling ribbon.")
+
+        self.simpleOutputCheck = QtWidgets.QCheckBox(parent=self.centralwidget)
         self.simpleOutputCheck.setChecked(True)
         self.simpleOutputCheck.setObjectName("simpleOutputCheck")
         self.simpleOutputCheck.setToolTip("Un-select to create individual commands for each molecule")
-        self.selectPDBFileButton = QtWidgets.QPushButton(parent=self.centralwidget)
 
+        self.selectPDBFileButton = QtWidgets.QPushButton(parent=self.centralwidget)
         font = QtGui.QFont()
         font.setBold(False)
         font.setWeight(50)
@@ -781,7 +557,7 @@ class RibbonWindow(QMainWindow):
         self.andText.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         self.andText.setObjectName("and")
 
-        self.bg.setGeometry(QtCore.QRect(-90, -50, 781, 461))
+        self.bg.setGeometry(QtCore.QRect(-90, -50, 881, 500))
 
         self.switchModeLabel.setGeometry(QtCore.QRect(0, 0, 101, 31))
         self.CustomMode.setGeometry(QtCore.QRect(10, 30, 75, 23))
@@ -790,47 +566,48 @@ class RibbonWindow(QMainWindow):
         self.SpaceFillingMode.setGeometry(QtCore.QRect(10, 120, 75, 23))
         self.RibbonMode.setGeometry(QtCore.QRect(10, 150, 75, 23))
         self.AminoAcidMode.setGeometry(QtCore.QRect(10, 180, 75, 23))
-        self.modeInfoHLine.setGeometry(QtCore.QRect(10, 210, 71, 16))
+        self.modeInfoHLine.setGeometry(QtCore.QRect(10, 205, 71, 16))
 
-        self.mc2pdbLabel.setGeometry(QtCore.QRect(10, 220, 71, 21))
-        self.help.setGeometry(QtCore.QRect(10, 250, 75, 31))
-        self.github.setGeometry(QtCore.QRect(10, 290, 75, 31))
-        self.infoDatabaseHLine.setGeometry(QtCore.QRect(10, 320, 71, 16))
-        self.pdbDatabaseLabel.setGeometry(QtCore.QRect(0, 330, 91, 21))
-        self.rcsbButton.setGeometry(QtCore.QRect(10, 360, 75, 31))
+        self.mc2pdbLabel.setGeometry(QtCore.QRect(10, 215, 71, 21))
+        self.help.setGeometry(QtCore.QRect(10, 240, 75, 31))
+        self.tools.setGeometry(QtCore.QRect(10, 280, 75, 31))
+        self.github.setGeometry(QtCore.QRect(10, 320, 75, 31))
+        self.infoDatabaseHLine.setGeometry(QtCore.QRect(10, 350, 71, 16))
+
+        self.pdbDatabaseLabel.setGeometry(QtCore.QRect(5, 360, 91, 21))
+        self.rcsbButton.setGeometry(QtCore.QRect(10, 385, 75, 31))
 
         self.vSepLine.setGeometry(QtCore.QRect(90, 0, 20, 431))
 
         self.pScaleLabel.setGeometry(QtCore.QRect(110, 10, 71, 21))
         self.pScaleSpinBox.setGeometry(QtCore.QRect(240, 10, 62, 22))
-
-        self.ribbonColorLabel.setGeometry(QtCore.QRect(110, 60, 120, 21))
-        self.ribbonColorBox.setGeometry(QtCore.QRect(240, 60, 175, 22))
         self.colorByBackboneCheck.setGeometry(QtCore.QRect(240, 35, 155, 21))
+        self.barStyleCheck.setGeometry(QtCore.QRect(240, 55, 155, 21))
 
-        self.backboneColorLabel.setGeometry(QtCore.QRect(110, 115, 120, 21))
-        self.backboneColorBox.setGeometry(QtCore.QRect(240, 115, 175, 22))
-        self.showBackboneCheck.setGeometry(QtCore.QRect(240, 93, 121, 17))
+        self.ribbonColorLabel.setGeometry(QtCore.QRect(110, 80, 120, 21))
+        self.ribbonColorBox.setGeometry(QtCore.QRect(240, 80, 175, 22))
 
-        self.sidechainColorLabel.setGeometry(QtCore.QRect(110, 170, 120, 21))
-        self.sidechainColorBox.setGeometry(QtCore.QRect(240, 170, 175, 22))
-        self.showSidechainCheck.setGeometry(QtCore.QRect(240, 148, 121, 17))
+        self.showBackboneCheck.setGeometry(QtCore.QRect(240, 112, 121, 17))
+        self.backboneColorLabel.setGeometry(QtCore.QRect(110, 135, 120, 21))
+        self.backboneColorBox.setGeometry(QtCore.QRect(240, 135, 175, 22))
 
-        self.otherMoleculeCheck.setGeometry(QtCore.QRect(240, 208, 131, 17))
-        self.otherColorLabel.setGeometry(QtCore.QRect(110, 230, 121, 21))
-        self.otherColorBox.setGeometry(QtCore.QRect(240, 230, 175, 22))
-        self.aScaleLabel.setGeometry(QtCore.QRect(110, 255, 61, 21))
-        self.aScaleSpinBox.setGeometry(QtCore.QRect(240, 255, 62, 22))
+        self.showSidechainCheck.setGeometry(QtCore.QRect(240, 168, 121, 17))
+        self.sidechainColorLabel.setGeometry(QtCore.QRect(110, 191, 120, 21))
+        self.sidechainColorBox.setGeometry(QtCore.QRect(240, 191, 175, 22))
 
-        self.selectPDBFileButton.setGeometry(QtCore.QRect(110, 290, 91, 23))
-        self.orText.setGeometry(QtCore.QRect(210, 290, 31, 21))
-        self.selectIncludedPDBButton.setGeometry(QtCore.QRect(250, 290, 141, 23))
+        self.otherMoleculeCheck.setGeometry(QtCore.QRect(240, 234, 131, 17))
+        self.aScaleLabel.setGeometry(QtCore.QRect(110, 257, 61, 21))
+        self.aScaleSpinBox.setGeometry(QtCore.QRect(240, 257, 62, 22))
 
-        self.andText.setGeometry(QtCore.QRect(210, 325, 31, 21))
-        self.selectMinecraftSaveButton.setGeometry(QtCore.QRect(250, 325, 141, 23))
+        self.selectPDBFileButton.setGeometry(QtCore.QRect(110, 315, 91, 23))
+        self.orText.setGeometry(QtCore.QRect(210, 315, 31, 21))
+        self.selectIncludedPDBButton.setGeometry(QtCore.QRect(250, 315, 141, 23))
 
-        self.simpleOutputCheck.setGeometry(QtCore.QRect(110, 360, 100, 31))
-        self.createFunctionsButton.setGeometry(QtCore.QRect(230, 360, 181, 31))
+        self.andText.setGeometry(QtCore.QRect(210, 350, 31, 21))
+        self.selectMinecraftSaveButton.setGeometry(QtCore.QRect(250, 350, 141, 23))
+
+        self.simpleOutputCheck.setGeometry(QtCore.QRect(110, 385, 100, 31))
+        self.createFunctionsButton.setGeometry(QtCore.QRect(230, 385, 181, 31))
 
         self.bg.raise_()
         self.switchModeLabel.raise_()
@@ -844,16 +621,17 @@ class RibbonWindow(QMainWindow):
         self.github.raise_()
         self.help.raise_()
         self.rcsbButton.raise_()
+        self.tools.raise_()
         self.mc2pdbLabel.raise_()
         self.pdbDatabaseLabel.raise_()
         self.modeInfoHLine.raise_()
         self.infoDatabaseHLine.raise_()
         self.backboneColorLabel.raise_()
         self.sidechainColorLabel.raise_()
-        self.otherColorLabel.raise_()
+        self.barStyleCheck.raise_()
         self.ribbonColorLabel.raise_()
         self.ribbonColorBox.raise_()
-        self.otherColorBox.raise_()
+        #self.otherColorBox.raise_()
         self.backboneColorBox.raise_()
         self.sidechainColorBox.raise_()
         self.aScaleLabel.raise_()
@@ -890,8 +668,9 @@ class RibbonWindow(QMainWindow):
         self.selectPDBFileButton.clicked.connect(self.handle_select_pdb_file_button)
         self.selectMinecraftSaveButton.clicked.connect(self.handle_select_minecraft_button)
         self.createFunctionsButton.clicked.connect(self.handle_make_function_button)
+        self.tools.clicked.connect(self.handle_tool_mode)
 
-        self.otherColorBox.focusOut.connect(lambda: self.check_input(self.otherColorBox, decorative_blocks))
+        #self.otherColorBox.focusOut.connect(lambda: self.check_input(self.otherColorBox, decorative_blocks))
         self.backboneColorBox.focusOut.connect(lambda: self.check_input(self.backboneColorBox, decorative_blocks))
         self.sidechainColorBox.focusOut.connect(lambda: self.check_input(self.sidechainColorBox, decorative_blocks))
         self.ribbonColorBox.focusOut.connect(lambda: self.check_input(self.ribbonColorBox, decorative_blocks))
@@ -909,7 +688,7 @@ class RibbonWindow(QMainWindow):
         self.sidechainColorBox.setEnabled(state == 0)
 
     def on_otherMoleculeCheck_changed(self, state):
-        self.otherColorBox.setEnabled(state != 0)
+        #self.otherColorBox.setEnabled(state != 0)
         self.aScaleSpinBox.setEnabled(state != 0)
 
     def check_input(self, combobox, valid_options):
@@ -922,7 +701,11 @@ class RibbonWindow(QMainWindow):
                                       icon_path="images/icons/icon_bad.png")
             combobox.setCurrentIndex(0)
         else:
+            if combobox.findText(text) <= 0:
+                icon = create_icon(hex_dict[text])
+                combobox.addItem(icon, text)
             combobox.setCurrentText(text)
+            combobox.setCurrentIndex(combobox.findText(text))
 
     # Slot methods to handle QPushButton clicks
     def handle_select_pdb_file_button(self):
@@ -958,7 +741,7 @@ class RibbonWindow(QMainWindow):
         config_data['atoms']['S'] = 'yellow_wool'
         config_data['atoms']['C'] = 'black_wool'
         config_data['atoms']['FE'] = 'iron_block'
-        config_data['atoms']['other_atom'] = self.otherColorBox.currentText()
+        config_data['atoms']['other_atom'] = 'pink_concrete'
         config_data['atoms']['backbone_atom'] = self.backboneColorBox.currentText()
         config_data['atoms']['sidechain_atom'] = self.sidechainColorBox.currentText()
         config_data['backbone_size'] = 1.0
@@ -971,6 +754,7 @@ class RibbonWindow(QMainWindow):
         config_data['sidechain'] = self.showSidechainCheck.isChecked()
         config_data['by_chain'] = self.colorByBackboneCheck.isChecked()
         config_data['simple'] = self.simpleOutputCheck.isChecked()
+        config_data['bar_style'] = True
 
         # Add the current paths of the files and directories to the dictionary
         # Replace 'file_path' and 'save_path' with the actual paths
@@ -1078,6 +862,15 @@ class RibbonWindow(QMainWindow):
         except Exception as e:
             print(f"Error in handle_skeleton_mode: {e}")
 
+    def handle_tool_mode(self):
+        try:
+            from UI.tool_window import ToolWindow
+            self.tool_window = ToolWindow()
+            self.tool_window.show()
+            self.hide()
+        except Exception as e:
+            print(f"Error in handle_space_filling_mode: {e}")
+
     def handle_xray_mode(self):
         try:
             from UI.xray_window import XrayWindow
@@ -1128,6 +921,7 @@ class RibbonWindow(QMainWindow):
         self.AminoAcidMode.setText(_translate("RibbonWindow", "Amino Acids"))
         self.RibbonMode.setText(_translate("RibbonWindow", "Ribbon"))
         self.github.setText(_translate("RibbonWindow", "Github"))
+        self.tools.setText(_translate("RibbonWindow", "Tools"))
         self.help.setText(_translate("RibbonWindow", "Help"))
         self.rcsbButton.setText(_translate("RibbonWindow", "RCSB.org"))
         self.mc2pdbLabel.setText(_translate("RibbonWindow", "PDB2MC"))
@@ -1135,12 +929,13 @@ class RibbonWindow(QMainWindow):
         self.ribbonColorLabel.setText(_translate("RibbonWindow", "Select ribbon color:"))
         self.backboneColorLabel.setText(_translate("RibbonWindow", "Select backbone color:"))
         self.sidechainColorLabel.setText(_translate("RibbonWindow", "Select sidechain color:"))
-        self.otherColorLabel.setText(_translate("RibbonWindow", "Select other color:"))
+        #self.otherColorLabel.setText(_translate("RibbonWindow", "Select other color:"))
         self.aScaleLabel.setText(_translate("RibbonWindow", "Atom scale:"))
         self.otherMoleculeCheck.setText(_translate("RibbonWindow", "Show other molecules"))
         self.showBackboneCheck.setText(_translate("RibbonWindow", "Show backbone"))
         self.showSidechainCheck.setText(_translate("RibbonWindow", "Show sidechain"))
         self.colorByBackboneCheck.setText(_translate("RibbonWindow", "Color backbone by chain"))
+        self.barStyleCheck.setText(_translate("RibbonWindow", "Alpha helices as rods"))
         self.pScaleLabel.setText(_translate("RibbonWindow", "Protein scale:"))
         self.selectIncludedPDBButton.setText(_translate("RibbonWindow", "Select Included PDB File"))
         self.selectMinecraftSaveButton.setText(_translate("RibbonWindow", "Select Minecraft Save"))
@@ -1149,6 +944,29 @@ class RibbonWindow(QMainWindow):
         self.createFunctionsButton.setText(_translate("RibbonWindow", "Create Minecraft Functions"))
         self.orText.setText(_translate("RibbonWindow", "or"))
         self.andText.setText(_translate("RibbonWindow", "and"))
+
+def set_combobox_by_text(combobox, text):
+    index = combobox.findText(text)
+    if index >= 0:  # If the text is found
+        combobox.setCurrentIndex(index)
+
+def create_icon(hex_color: str, size: int = 100) -> QIcon:
+    #print(hex_color)
+
+    # Create a QPixmap object
+    pixmap = QPixmap(size, size)
+    # Create a QPainter object and begin painting on the QPixmap
+    painter = QPainter(pixmap)
+    # Set the brush color to the desired color
+    color = QColor(hex_color)
+    painter.setBrush(color)
+    # Draw a rectangle on the QPixmap
+    painter.drawRect(0, 0, size, size)
+    # End the painting process
+    painter.end()
+    # Create a QIcon object from the QPixmap
+    icon = QIcon(pixmap)
+    return icon
 
 def get_images_path():
     if getattr(sys, 'frozen', False):
