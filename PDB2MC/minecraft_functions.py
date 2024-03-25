@@ -1,7 +1,37 @@
 import pandas as pd
 import os
 from PDB2MC import variables
+from shutil import copy
+from zipfile import ZipFile
+import re
 
+def extract_remarks_from_pdb(pdb_file, pdb_name):
+    pdb_title = ""
+    book_title = pdb_name
+    pdb_authors = ""
+    pdb_molecule = ""
+    newline = r"\\n"
+
+    with open(pdb_file, 'r') as file:
+        for line in file:
+            if line.startswith("AUTHOR"):
+                parts = line.split("AUTHOR ")
+                if len(parts) > 1:
+                    pdb_authors = parts[1].strip()
+
+            if line.startswith("TITLE"):
+                parts = line.split("TITLE ")
+                if len(parts) > 1:
+                    pdb_title = parts[1].strip()
+
+            match = re.match(r"COMPND\s+\d+\s+MOLECULE:", line)
+            if match:
+                parts = line.split("MOLECULE: ")
+                if len(parts) > 1:
+                    pdb_molecule += parts[1].strip() + r"\\n"
+
+    book = f"give @p written_book{{pages:['{{\"text\":\"Title: {pdb_title}{newline}{newline}Authors: {pdb_authors}{newline}{newline}Molecule(s): {pdb_molecule}\"}}'],title:{book_title},author:PDB2MC}}"
+    return book
 
 def create_minecraft_functions(df, name, air, dir, blocks, replace=False):
     block_dict = blocks
@@ -67,8 +97,37 @@ def find_mcfunctions(directory, name):
             if len(parts) > 1:
                 file_list.append(full[0])
     df = pd.DataFrame({"group": file_list})
-    print(df)
     return df
+
+#Function that will move the PDB2MC directory from within the program directory into the Minecraft save directory
+def copy_blank_world(mc_dir):
+    # Get the current directory of the program
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+
+    # Construct the path to the PDB2MC directory
+    pdb2mc_zip = os.path.join(current_dir, 'PDB2MC.zip')
+
+    copy(pdb2mc_zip, mc_dir)
+
+    dst_file = os.path.join(mc_dir, 'PDB2MC.zip')
+
+    # Unzip the file
+    with ZipFile(dst_file, 'r') as zip_ref:
+        zip_ref.extractall(mc_dir)
+
+def check_permissions(directory):
+    # Check read permissions
+    if os.access(directory, os.R_OK):
+        print(f"You have read permission for {directory}")
+    else:
+        print(f"You do not have read permission for {directory}")
+
+    # Check write permissions
+    if os.access(directory, os.W_OK):
+        print(f"You have write permission for {directory}")
+    else:
+        print(f"You do not have write permission for {directory}")
+
 
 def create_clear_function(mc_dir, pdb_name):
     # find all files in the directory that start with "z" + pdb_name and copy all the lines into a list
@@ -94,8 +153,9 @@ def create_clear_function(mc_dir, pdb_name):
         #f.write('execute as @a[scores={}] run teleport @s[scores={X=1.., Y=1.., Z=1..}] ~ ~ ~\n')
         f.writelines(functions)
 
-def create_master_function(df, name, directory):
+def create_master_function(df, name, directory, pdb_file):
     name = name.lower()
+    print(extract_remarks_from_pdb(pdb_file, name))
 
     # sort df by the naming convention
     df = df.sort_values('group', key=lambda x: x.str.split('_').str[1])
@@ -110,13 +170,15 @@ def create_master_function(df, name, directory):
     # create a make_{name}.mcfunction file with the commands
     with open(os.path.join(directory, f"build_{name}.mcfunction"), 'w') as f:
         f.write(f'gamerule maxCommandChainLength 1000000\n')
+        f.write(extract_remarks_from_pdb(pdb_file, name))
+        f.write('\n')
         f.write(f'tp @s ~ ~ ~ facing {first_block[0]} {first_block[1]} {first_block[2]}\n')
         #f.write(f'summon armor_stand ~ ~ ~ {Invisible:true, Invulnerable:true, CustomName:'"{name}"', CustomNameVisible:false, ShowArms:false} ')
 
         for i in range(0, len(commands)):
             f.write(f'{commands[i]}\n')
 
-def create_simple_function(name, directory):
+def create_simple_function(name, directory, pdb_file):
     functions = []
     pdb_name = name.lower()
 
@@ -135,6 +197,8 @@ def create_simple_function(name, directory):
     # create a make_{name}.mcfunction file with the commands
     with open(os.path.join(directory, f"build_{pdb_name}.mcfunction"), 'w') as f:
         f.write(f'gamerule maxCommandChainLength 1000000\n')
+        f.write(extract_remarks_from_pdb(pdb_file, name))
+        f.write('\n')
         f.write(f'tp @s ~ ~ ~ facing {first_block[0]} {first_block[1]} {first_block[2]}\n')
         f.write(f'setblock ~ ~-1 ~ minecraft:obsidian replace\n')
         f.writelines(functions)

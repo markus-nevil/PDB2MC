@@ -4,6 +4,7 @@ from PyQt6.QtGui import QDesktopServices, QIcon
 from PyQt6 import QtCore, QtGui, QtWidgets
 
 from UI.utilities import InformationBox, IncludedPDBPopup, MinecraftPopup, FileExplorerPopup
+from PDB2MC import minecraft_functions as mcf
 
 
 class ToolWindow(QMainWindow):
@@ -146,6 +147,13 @@ class ToolWindow(QMainWindow):
         self.openIncludedDir.setText("Open 'Presets' Directory")
         self.openIncludedDir.setObjectName("removeFunctionFiles")
 
+        self.movePreset = QtWidgets.QPushButton(parent=self.centralwidget)
+        font = QtGui.QFont()
+        font.setPointSize(11)
+        self.movePreset.setFont(font)
+        self.movePreset.setText("Copy Blank World to Minecraft")
+        self.movePreset.setObjectName("movePreset")
+
         font = QtGui.QFont()
         font.setPointSize(7)
         self.bg.setFont(font)
@@ -177,6 +185,7 @@ class ToolWindow(QMainWindow):
         self.removeFunctionFiles.setGeometry(QtCore.QRect(150, 20, 240, 50))
         self.openFunctionDir.setGeometry(QtCore.QRect(150, 80, 240, 50))
         self.openIncludedDir.setGeometry(QtCore.QRect(150, 140, 240, 50))
+        self.movePreset.setGeometry(QtCore.QRect(150, 200, 240, 50))
 
         self.bg.raise_()
         self.switchModeLabel.raise_()
@@ -198,6 +207,7 @@ class ToolWindow(QMainWindow):
         self.removeFunctionFiles.raise_()
         self.openIncludedDir.raise_()
         self.openFunctionDir.raise_()
+        self.movePreset.raise_()
 
         self.retranslateUi(self)
         QtCore.QMetaObject.connectSlotsByName(self)
@@ -215,6 +225,8 @@ class ToolWindow(QMainWindow):
         self.removeFunctionFiles.clicked.connect(self.handle_remove_function_files)
         self.openFunctionDir.clicked.connect(self.handle_open_function_dir)
         self.openIncludedDir.clicked.connect(self.handle_open_included_dir)
+        self.movePreset.clicked.connect(self.handle_move_preset_button)
+
 
     def handle_remove_function_files(self):
         self.selectMinecraft = MinecraftPopup()
@@ -237,7 +249,17 @@ class ToolWindow(QMainWindow):
 
         for file in files_to_delete:
             os.remove(file)
-            print(f"Removed {file}")
+
+    def handle_move_preset_button(self):
+        home_dir = os.path.expanduser("~")
+        wd = os.path.join(home_dir, "AppData\Roaming\.minecraft\saves")
+        mcf.copy_blank_world(wd)
+        self.show_information_box(title_text=f"Blank World Copied!",
+                                  text=f"The blank world will now be found in your saves.\nRun again to overwrite with this world.",
+                                  icon_path="images/icons/icon_good.png")
+
+        #self.user_minecraft_save = self.selectMinecraft.selected_directory
+
 
     def handle_open_function_dir(self):
         self.selectMinecraft = MinecraftPopup()
@@ -248,7 +270,6 @@ class ToolWindow(QMainWindow):
         self.explore = FileExplorerPopup(self.user_minecraft_save)
 
     def handle_open_included_dir(self):
-        print("Open included directory button clicked")
         # Get the directory of the current Python file
         start_dir = os.path.dirname(os.path.abspath(__file__))
         start_dir = os.path.join(start_dir, "presets")
@@ -257,13 +278,10 @@ class ToolWindow(QMainWindow):
 
     # Slot methods to handle QPushButton clicks
     def handle_select_pdb_file_button(self):
-        print("Selecting PDB file")
         self.selectPDB = FileExplorerPopup()
         self.user_pdb_file = self.selectPDB.selected_file
-        print(f"The user has this file: {self.user_pdb_file}")
 
     def handle_included_pdb_button(self):
-        print("Included PDB button clicked")
         self.includedPDB = IncludedPDBPopup()
         self.includedPDB.show()
         self.includedPDB.selected.connect(self.save_selected_text)
@@ -276,7 +294,6 @@ class ToolWindow(QMainWindow):
         self.info_box.show()
 
     def handle_github_button(self):
-        print("Github button clicked")
         QDesktopServices.openUrl(QtCore.QUrl("https://github.com/markus-nevil/mcpdb"))
 
     def handle_help_button(self):
@@ -297,7 +314,6 @@ class ToolWindow(QMainWindow):
         help_window.move(frame_geometry.topLeft())
 
     def handle_rscb_button(self):
-        print("RSCB button clicked")
         QDesktopServices.openUrl(QtCore.QUrl("https://www.rcsb.org/"))
 
     def handle_custom_mode(self):

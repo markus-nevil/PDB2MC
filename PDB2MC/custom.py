@@ -4,10 +4,8 @@ import pandas as pd
 import re
 
 def run_mode(config_data, pdb_name, pdb_file, rounded, mc_dir, atom_df, hetatom_df, hetatm_bonds):
-    print(config_data)
     # Deal with the backbone
     if config_data["backbone"]:
-        print("making backbone")
         pdb_backbone = pdb_name + "_backbone"
         backbone = pdbm.atom_subset(rounded, ['C', 'N', 'CA', 'P', "O5'", "C5'", "C4'", "C3'", "O3'"],
                                     include=True)

@@ -7,7 +7,9 @@ import re
 
 def run_mode(pdb_name, pdb_file, rounded, mc_dir, config_data, hetatom_df, hetatm_bonds):
     ribbon_master_df = pdbm.add_structure(rounded, pdb_file)
-    bar_helix = True
+    bar_helix = config_data['bar_style']
+
+    #pdbm.extract_remarks_from_pdb(pdb_file, pdb_name)
 
     #Remove any rows with 'row' starting with 'HETATM'
     ribbon_master_df = ribbon_master_df[~ribbon_master_df['row'].str.startswith('HETATM')]

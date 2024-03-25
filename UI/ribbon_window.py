@@ -754,7 +754,8 @@ class RibbonWindow(QMainWindow):
         config_data['sidechain'] = self.showSidechainCheck.isChecked()
         config_data['by_chain'] = self.colorByBackboneCheck.isChecked()
         config_data['simple'] = self.simpleOutputCheck.isChecked()
-        config_data['bar_style'] = True
+        config_data['bar_style'] = self.barStyleCheck.isChecked()
+        #config_data['bar_style'] = True
 
         # Add the current paths of the files and directories to the dictionary
         # Replace 'file_path' and 'save_path' with the actual paths
@@ -810,11 +811,11 @@ class RibbonWindow(QMainWindow):
             mcfiles = mcf.find_mcfunctions(mc_dir, pdb_name.lower())
 
             if config_data["simple"]:
-                mcf.create_simple_function(pdb_name, mc_dir)
+                mcf.create_simple_function(pdb_name, mc_dir, config_data['pdb_file'])
                 mcf.create_clear_function(mc_dir, pdb_name)
                 mcf.delete_mcfunctions(mc_dir, "z" + pdb_name.lower())
             else:
-                mcf.create_master_function(mcfiles, pdb_name, mc_dir)
+                mcf.create_master_function(mcfiles, pdb_name, mc_dir, config_data['pdb_file'])
                 mcf.create_clear_function(mc_dir, pdb_name)
 
             lower = pdb_name.lower()

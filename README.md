@@ -21,6 +21,7 @@
    - [Default atom colors](#default-atom-colors)
  - [Glossary of terms](#glossary-of-terms)
  - [Program Flowchart](#generalized-flowchart-of-program-procedure)
+ - [Acknowledgements](#acknowledgements)
  - [Citation](#citation)
  - [License](#license)
 
@@ -447,6 +448,9 @@ flowchart TD
         U --> W
         V --> W
 ```
+## Acknowledgements
+Thanks to Max Canoodt (@mcndt) for the Minecraft block color data.
+
 ## Citation
 *PDB2MC is not yet published with an associated paper, however if you use PDB2MC in your research, please cite the following:* <br>
 
