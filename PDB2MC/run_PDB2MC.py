@@ -131,11 +131,14 @@ class MainWindow(QMainWindow):
         repo_owner = "markus-nevil"
         repo_name = "PDB2MC"
 
-
         # Get the latest release from GitHub
-        response = requests.get(f"https://api.github.com/repos/{repo_owner}/{repo_name}/releases/latest")
-        response.raise_for_status()  # Raise an exception if the request failed
-        latest_release = response.json()["tag_name"]
+        try:
+            response = requests.get(f"https://api.github.com/repos/{repo_owner}/{repo_name}/releases/latest")
+            response.raise_for_status()  # Raise an exception if the request failed
+            latest_release = response.json()["tag_name"]
+        except requests.ConnectionError:
+            return
+
 
 
         # Compare the local version with the latest release

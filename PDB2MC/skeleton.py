@@ -34,8 +34,8 @@ def run_mode(config_data, pdb_name, pdb_file, rounded, mc_dir, atom_df, hetatom_
         else:
             intermediate = pdbm.find_intermediate_points(backbone)
             #intermediate = pdbm.interpolate_dataframe(intermediate, 5000)
-        mcf.create_minecraft_functions(intermediate, pdb_backbone, False, mc_dir, config_data['atoms'], replace=False)
-
+        #mcf.create_minecraft_functions(intermediate, pdb_backbone, False, mc_dir, config_data['atoms'], replace=False)
+        mcf.create_nbt(intermediate, pdb_backbone, air=False, dir=mc_dir, blocks=config_data['atoms'])
         if config_data["sidechain"]:
             if config_data["by_chain"]:
                 # Create a cycle from 1 to 10 to aid in chain coloring
@@ -49,13 +49,15 @@ def run_mode(config_data, pdb_name, pdb_file, rounded, mc_dir, atom_df, hetatom_
                     chain_skeleton_df = pdbm.get_chain(rounded, chain[1])
                     branches = pdbm.sidechain(chain_skeleton_df)
                     branches['atom'] = num
-                    mcf.create_minecraft_functions(branches, pdb_sidechain, False, mc_dir, config_data['atoms'], replace=True)
+                    #mcf.create_minecraft_functions(branches, pdb_sidechain, False, mc_dir, config_data['atoms'], replace=True)
+                    mcf.create_nbt(branches, pdb_sidechain, air=False, dir=mc_dir, blocks=config_data['atoms'])
             else:
                 pdb_sidechain = pdb_name + "_sidechain"
                 branches = pdbm.sidechain(rounded)
                 branches['atom'] = 'sidechain_atom'
-                mcf.create_minecraft_functions(branches, pdb_sidechain, False, mc_dir, config_data['atoms'],
-                                               replace=False)
+                #mcf.create_minecraft_functions(branches, pdb_sidechain, False, mc_dir, config_data['atoms'],
+                #                               replace=False)
+                mcf.create_nbt(branches, pdb_sidechain, air=False, dir=mc_dir, blocks=config_data['atoms'])
 
         if config_data["show_hetatm"]:
             if hetatom_df is not None:
@@ -70,7 +72,9 @@ def run_mode(config_data, pdb_name, pdb_file, rounded, mc_dir, atom_df, hetatom_
                 #     mcf.create_minecraft_functions(spheres, pdb_hetatm, False, mc_dir, config_data['atoms'],
                 #                                    replace=False)
                 # else:
-                mcf.create_minecraft_functions(spheres, pdb_hetatm, False, mc_dir, config_data['atoms'],
-                                                   replace=True)
+                #mcf.create_minecraft_functions(spheres, pdb_hetatm, False, mc_dir, config_data['atoms'],
+                #                                   replace=True)
+                mcf.create_nbt(spheres, pdb_hetatm, air=False, dir=mc_dir, blocks=config_data['atoms'])
                 pdb_hetatm_bonds = pdb_name + "_hetatm_bonds"
-                mcf.create_minecraft_functions(hetatm_bonds, pdb_hetatm_bonds, False, mc_dir, config_data['atoms'])
+                #mcf.create_minecraft_functions(hetatm_bonds, pdb_hetatm_bonds, False, mc_dir, config_data['atoms'])
+                mcf.create_nbt(hetatm_bonds, pdb_hetatm_bonds, air=False, dir=mc_dir, blocks=config_data['atoms'])

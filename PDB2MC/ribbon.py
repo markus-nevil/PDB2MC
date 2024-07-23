@@ -7,9 +7,11 @@ import re
 
 def run_mode(pdb_name, pdb_file, rounded, mc_dir, config_data, hetatom_df, hetatm_bonds):
     ribbon_master_df = pdbm.add_structure(rounded, pdb_file)
+    intermediate = pd.DataFrame()
+
     bar_helix = config_data['bar_style']
 
-    #pdbm.extract_remarks_from_pdb(pdb_file, pdb_name)
+    #mcf.extract_remarks_from_pdb(pdb_file, pdb_name)
 
     #Remove any rows with 'row' starting with 'HETATM'
     ribbon_master_df = ribbon_master_df[~ribbon_master_df['row'].str.startswith('HETATM')]
@@ -26,6 +28,7 @@ def run_mode(pdb_name, pdb_file, rounded, mc_dir, config_data, hetatom_df, hetat
     # Iterate through each chain and count the number of loops
     for chain, num in zip(enumerate(pdbm.enumerate_chains(ribbon_master_df)), cycle_sequence):
         pdb_ribbon = pdb_name + "_" + chain[1] + "_ribbon"
+        pdb_bonds = pdb_name + "_" + chain[1] + "_bonds"
 
         ribbon_df = pdbm.get_chain(ribbon_master_df, chain[1])
         # Check that the dataframe contains amino acids
@@ -34,7 +37,9 @@ def run_mode(pdb_name, pdb_file, rounded, mc_dir, config_data, hetatom_df, hetat
                                       "TYR", "VAL"]).any():
             vectors_df = pdbm.get_chain(vectors_master_df, chain[1])
             ribbon_intermediate_df = pdbm.find_intermediate_points(ribbon_df, keep_columns=True, atoms=["CA", "C", "N"])
-            mcf.create_minecraft_functions(ribbon_intermediate_df, "Intermediate", False, mc_dir, config_data['atoms'], replace=True)
+            #mcf.create_minecraft_functions(ribbon_intermediate_df, "Intermediate", False, mc_dir, config_data['atoms'], replace=True)
+            #mcf.create_nbt(ribbon_intermediate_df, pdb_bonds, air=False, dir=mc_dir, blocks=config_data['atoms'])
+
             ribbon_interpolated_df = pdbm.interpolate_dataframe(ribbon_intermediate_df, smoothness=5000)
             #check if any rows in 'structure' contain 'helix' or 'sheet'
             if ribbon_df['structure'].str.contains('helix').any() or ribbon_df['structure'].str.contains('sheet').any():
@@ -81,7 +86,8 @@ def run_mode(pdb_name, pdb_file, rounded, mc_dir, config_data, hetatom_df, hetat
         else:
             flanked_df['atom'] = num
 
-        mcf.create_minecraft_functions(flanked_df, pdb_ribbon, False, mc_dir, config_data['atoms'], replace=True)
+        #mcf.create_minecraft_functions(flanked_df, pdb_ribbon, False, mc_dir, config_data['atoms'], replace=True)
+        mcf.create_nbt(flanked_df, pdb_ribbon, air=False, dir=mc_dir, blocks=config_data['atoms'])
 
         # Deal with the backbone
         pdb_backbone = pdb_name + "_" + chain[1] + "_backbone"
@@ -91,6 +97,7 @@ def run_mode(pdb_name, pdb_file, rounded, mc_dir, config_data, hetatom_df, hetat
         #Remove rows that start with 'HETATM' or have a different chain in 'chain' column from the first row
         backbone = backbone[~backbone['row'].str.startswith('HETATM')]
         backbone = backbone[~backbone['chain'].isin(backbone['chain'].unique()[1:])]
+
         if ribbon_df["residue"].isin(["ALA", "ARG", "ASN", "ASP", "CYS", "GLN", "GLU", "GLY", "HIS",
                                       "ILE", "LEU", "LYS", "MET", "PHE", "PRO", "SER", "THR", "TRP",
                                       "TYR", "VAL"]).any():
@@ -115,7 +122,10 @@ def run_mode(pdb_name, pdb_file, rounded, mc_dir, config_data, hetatom_df, hetat
             intermediate = intermediate.filter(['X', 'Y', 'Z'])
 
         #Convert all values in intermediate to int from float64
-        intermediate = intermediate.astype(int)
+        #intermediate = intermediate.astype(int)
+
+        #Convert the columns X, Y, Z in intermediate to int from float64
+        intermediate[['X', 'Y', 'Z']] = intermediate[['X', 'Y', 'Z']].astype(int)
 
         #Add a column to intermediate called 'atom' with values of num, if 'atom' exists, then add the values of num to the column
         if config_data["by_chain"] == False:
@@ -123,7 +133,8 @@ def run_mode(pdb_name, pdb_file, rounded, mc_dir, config_data, hetatom_df, hetat
         else:
             intermediate['atom'] = num
 
-        mcf.create_minecraft_functions(intermediate, pdb_backbone, False, mc_dir, config_data['atoms'], replace=False)
+        #mcf.create_minecraft_functions(intermediate, pdb_backbone, False, mc_dir, config_data['atoms'], replace=False)
+        mcf.create_nbt(intermediate, pdb_backbone, air=False, dir=mc_dir, blocks=config_data['atoms'])
 
     if config_data["show_hetatm"] == True:
         if hetatom_df is not None:
@@ -134,7 +145,9 @@ def run_mode(pdb_name, pdb_file, rounded, mc_dir, config_data, hetatom_df, hetat
             spheres = pdbm.add_sphere_coordinates(coord, center, shortened)
             #If 'atom' is 'P' plus another character, shorten it to just 'P'
             spheres['atom'] = spheres['atom'].apply(lambda x: re.sub(r'P[A-Z]', 'P', x, count=1))
-            mcf.create_minecraft_functions(spheres, pdb_hetatm, False, mc_dir, config_data['atoms'], replace=True)
+            #mcf.create_minecraft_functions(spheres, pdb_hetatm, False, mc_dir, config_data['atoms'], replace=True)
+            mcf.create_nbt(spheres, pdb_hetatm, air=False, dir=mc_dir, blocks=config_data['atoms'])
 
             pdb_hetatm_bonds = pdb_name + "_hetatm_bonds"
-            mcf.create_minecraft_functions(hetatm_bonds, pdb_hetatm_bonds, False, mc_dir, config_data['atoms'])
+            #mcf.create_minecraft_functions(hetatm_bonds, pdb_hetatm_bonds, False, mc_dir, config_data['atoms'])
+            mcf.create_nbt(hetatm_bonds, pdb_hetatm_bonds, air=False, dir=mc_dir, blocks=config_data['atoms'])

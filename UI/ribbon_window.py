@@ -8,6 +8,7 @@ from PDB2MC import minecraft_functions as mcf, pdb_manipulation as pdbm, ribbon
 from .utilities import InformationBox, MyComboBox, IncludedPDBPopup, MinecraftPopup, FileExplorerPopup
 import sys
 import pkg_resources
+import shutil
 
 class RibbonWindow(QMainWindow):
     def __init__(self):
@@ -799,7 +800,7 @@ class RibbonWindow(QMainWindow):
 
             # Delete the old mcfunctions if they match the current one
             mc_dir = config_data['save_path']
-            mcf.delete_mcfunctions(mc_dir, "z" + pdb_name.lower())
+            mcf.delete_old_files(mc_dir, pdb_name)
 
             try:
                 ribbon.run_mode(pdb_name, pdb_file, rounded, mc_dir, config_data, hetatom_df, hetatm_bonds)
@@ -808,18 +809,14 @@ class RibbonWindow(QMainWindow):
                                           text=f"Model has not generated! \nError: {e}",
                                           icon_path="images/icons/icon_bad.png")
 
-            mcfiles = mcf.find_mcfunctions(mc_dir, pdb_name.lower())
+            #Collect and finish up NBT files
+            mcf.finish_nbts(mc_dir, config_data, pdb_name)
 
-            if config_data["simple"]:
-                mcf.create_simple_function(pdb_name, mc_dir, config_data['pdb_file'])
-                mcf.create_clear_function(mc_dir, pdb_name)
-                mcf.delete_mcfunctions(mc_dir, "z" + pdb_name.lower())
-            else:
-                mcf.create_master_function(mcfiles, pdb_name, mc_dir, config_data['pdb_file'])
-                mcf.create_clear_function(mc_dir, pdb_name)
+            # Create and collect the NBT and mcfunction files to delete models
+            mcf.create_nbt_delete(pdb_name, mc_dir)
+            mcf.finish_delete_nbts(mc_dir, pdb_name)
 
             lower = pdb_name.lower()
-
             self.show_information_box(title_text = f"Model generated", text = f"Finished! \n Remember to use /reload\n Make your model with: /function protein:build_" + lower, icon_path ="images/icons/icon_good.png")
 
     def handle_github_button(self):
@@ -982,6 +979,7 @@ def get_images_path():
         # Construct the path to the UI/images directory
         images_dir = os.path.join(current_dir, '..', 'UI')
         return images_dir
+
 
 if __name__ == "__main__":
     app = QApplication([])

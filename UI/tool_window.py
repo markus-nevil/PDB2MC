@@ -234,21 +234,9 @@ class ToolWindow(QMainWindow):
             return
         self.user_minecraft_save = self.selectMinecraft.selected_directory
 
-        #make an empty list to store paths to files that will be deleted
-        files_to_delete = []
+        #Find and delete all mcfunction and nbt files from directory
+        mcf.delete_nbt_mcfunctions_from_dir(self.user_minecraft_save)
 
-        # Take the directory and remove any files that end in .mcfunction
-        for filename in os.listdir(self.user_minecraft_save):
-            if filename.endswith(".mcfunction"):
-                # Open the file to see if it has the word 'setblock'. if so delete it
-                with open(os.path.join(self.user_minecraft_save, filename), 'r') as f:
-                    if "setblock" in f.read():
-                        files_to_delete.append(os.path.join(self.user_minecraft_save, filename))
-            else:
-                continue
-
-        for file in files_to_delete:
-            os.remove(file)
 
     def handle_move_preset_button(self):
         home_dir = os.path.expanduser("~")

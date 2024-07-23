@@ -698,10 +698,8 @@ class spWindow(QMainWindow):
 
     # Slot methods to handle QPushButton clicks
     def handle_select_pdb_file_button(self):
-        print("Selecting PDB file")
         self.selectPDB = FileExplorerPopup()
         self.user_pdb_file = self.selectPDB.selected_file
-        print(f"The user has this file: {self.user_pdb_file}")
 
     def handle_select_minecraft_button(self):
         self.selectMinecraft = MinecraftPopup()
@@ -713,17 +711,15 @@ class spWindow(QMainWindow):
             return
         self.user_minecraft_save = self.selectMinecraft.selected_directory
     def handle_included_pdb_button(self):
-        print("Included PDB button clicked")
+
         self.includedPDB = IncludedPDBPopup()
         self.includedPDB.show()
         self.includedPDB.selected.connect(self.save_selected_text)
 
     def save_selected_text(self, text):
         self.selected_text = text
-        print(f"This is what was selectd: {text}")
         #make global variable for pdb file
         self.user_pdb_file = f"presets/{text}.pdb"
-        print(f"The user has this file: {self.user_pdb_file}")
 
     def handle_make_function_button(self):
         # Create a dictionary to store the user options
@@ -737,6 +733,7 @@ class spWindow(QMainWindow):
         config_data['atoms']['S'] = self.sColorBox.currentText()
         config_data['atoms']['C'] = self.cColorBox.currentText()
         config_data['atoms']['FE'] = 'iron_block'
+        config_data['atoms']['H'] = 'white_concrete'
         config_data['atoms']['other_atom'] = self.otherColorBox.currentText()
         config_data['atoms']['backbone_atom'] = 'backbone_atom'
         config_data['atoms']['sidechain_atom'] = 'sidechain_atom'
@@ -774,7 +771,6 @@ class spWindow(QMainWindow):
 
             # Read in the PDB file and process it
             pdb_file = config_data['pdb_file']
-            #print(pdb_file)
             pdb_df = pdbm.read_pdb(pdb_file)
             pdb_name = pdbm.get_pdb_code(pdb_file)
             scalar = config_data['scale']
@@ -783,13 +779,11 @@ class spWindow(QMainWindow):
             moved = pdbm.rotate_to_y(moved)
             rounded = pdbm.round_df(moved)
 
-            print("Here!")
             hetatom_df = pd.DataFrame()
             hetatm_bonds = pd.DataFrame()
 
             # Check if the user wants het-atoms, if so, process them
             if config_data["show_hetatm"] == True:
-                print("Hetatm TRUE")
                 # check if the first column of rounded contains any "HETATM" values
 
                 if "HETATM" in rounded.iloc[:, 0].values:
@@ -805,7 +799,7 @@ class spWindow(QMainWindow):
 
             # Delete the old mcfunctions if they match the current one
             mc_dir = config_data['save_path']
-            mcf.delete_mcfunctions(mc_dir, "z" + pdb_name.lower())
+            mcf.delete_old_files(mc_dir, pdb_name)
 
             try:
                 space_filling.run_mode(config_data, pdb_name, rounded, mc_dir, atom_df, hetatom_df, hetatm_bonds)
@@ -814,25 +808,31 @@ class spWindow(QMainWindow):
                                           text=f"Model has not generated! \nError: {e}",
                                           icon_path="images/icons/icon_bad.png")
 
-            mcfiles = mcf.find_mcfunctions(mc_dir, pdb_name.lower())
-
-            if config_data["simple"]:
-                mcf.create_simple_function(pdb_name, mc_dir)
-                mcf.create_clear_function(mc_dir, pdb_name)
-                mcf.delete_mcfunctions(mc_dir, "z" + pdb_name.lower())
-            else:
-                mcf.create_master_function(mcfiles, pdb_name, mc_dir)
-                mcf.create_clear_function(mc_dir, pdb_name)
+            # mcfiles = mcf.find_mcfunctions(mc_dir, pdb_name.lower())
+            #
+            # if config_data["simple"]:
+            #     mcf.create_simple_function(pdb_name, mc_dir)
+            #     mcf.create_clear_function(mc_dir, pdb_name)
+            #     mcf.delete_mcfunctions(mc_dir, "z" + pdb_name.lower())
+            # else:
+            #     mcf.create_master_function(mcfiles, pdb_name, mc_dir)
+            #     mcf.create_clear_function(mc_dir, pdb_name)
 
             lower = pdb_name.lower()
-            mcf.adjust_y_coords(mc_dir, lower)
+            mcf.adjust_y_coords(mc_dir, lower, nbtFile=True)
+
+            # Collect and finish up NBT files
+            mcf.finish_nbts(mc_dir, config_data, pdb_name)
+
+            # Create and collect the NBT and mcfunction files to delete models
+            mcf.create_nbt_delete(pdb_name, mc_dir)
+            mcf.finish_delete_nbts(mc_dir, pdb_name)
+
             self.show_information_box(title_text = f"Model generated", text = f"Finished! \n Remember to use /reload\n Make your model with: /function protein:build_" + lower, icon_path ="images/icons/icon_good.png")
 
             #QMessageBox.information(None, "Model generated", f"Finished!\nRemember to /reload in your world and /function protein:build_{lower}")
 
-
     def handle_github_button(self):
-        print("Github button clicked")
         QDesktopServices.openUrl(QtCore.QUrl("https://github.com/markus-nevil/mcpdb"))
 
     def handle_help_button(self):
@@ -854,7 +854,6 @@ class spWindow(QMainWindow):
         #QDesktopServices.openUrl(QtCore.QUrl("https://github.com/markus-nevil/mcpdb/blob/main/README.md"))
 
     def handle_rscb_button(self):
-        print("RSCB button clicked")
         QDesktopServices.openUrl(QtCore.QUrl("https://www.rcsb.org/"))
 
     def handle_custom_mode(self):
@@ -968,7 +967,6 @@ def set_combobox_by_text(combobox, text):
         combobox.setCurrentIndex(index)
 
 def create_icon(hex_color: str, size: int = 100) -> QIcon:
-    #print(hex_color)
 
     # Create a QPixmap object
     pixmap = QPixmap(size, size)

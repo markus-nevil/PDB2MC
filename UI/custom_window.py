@@ -891,12 +891,8 @@ class CustomWindow(QMainWindow):
             config_data['pdb_file'] = self.user_pdb_file
             config_data['save_path'] = self.user_minecraft_save
 
-
-
-
             # Read in the PDB file and process it
             pdb_file = config_data['pdb_file']
-            #print(pdb_file)
             pdb_df = pdbm.read_pdb(pdb_file)
             pdb_name = pdbm.get_pdb_code(pdb_file)
             scalar = config_data['scale']
@@ -931,7 +927,8 @@ class CustomWindow(QMainWindow):
 
             # Delete the old mcfunctions if they match the current one
             mc_dir = config_data['save_path']
-            mcf.delete_mcfunctions(mc_dir, "z" + pdb_name.lower())
+            mcf.delete_old_files(mc_dir, pdb_name)
+            #mcf.delete_mcfunctions(mc_dir, "z" + pdb_name.lower())
 
             try:
                 custom.run_mode(config_data, pdb_name, pdb_file, rounded, mc_dir, atom_df, hetatom_df, hetatm_bonds)
@@ -940,15 +937,22 @@ class CustomWindow(QMainWindow):
                                           text=f"Model has not generated! \nError: {e}",
                                           icon_path="images/icons/icon_bad.png")
 
-            mcfiles = mcf.find_mcfunctions(mc_dir, pdb_name.lower())
+            # mcfiles = mcf.find_mcfunctions(mc_dir, pdb_name.lower())
+            #
+            # if config_data["simple"]:
+            #     mcf.create_simple_function(pdb_name, mc_dir)
+            #     mcf.create_clear_function(mc_dir, pdb_name)
+            #     mcf.delete_mcfunctions(mc_dir, "z" + pdb_name.lower())
+            # else:
+            #     mcf.create_master_function(mcfiles, pdb_name, mc_dir)
+            #     mcf.create_clear_function(mc_dir, pdb_name)
 
-            if config_data["simple"]:
-                mcf.create_simple_function(pdb_name, mc_dir)
-                mcf.create_clear_function(mc_dir, pdb_name)
-                mcf.delete_mcfunctions(mc_dir, "z" + pdb_name.lower())
-            else:
-                mcf.create_master_function(mcfiles, pdb_name, mc_dir)
-                mcf.create_clear_function(mc_dir, pdb_name)
+            # Collect and finish up NBT files
+            mcf.finish_nbts(mc_dir, config_data, pdb_name)
+
+            # Create and collect the NBT and mcfunction files to delete models
+            mcf.create_nbt_delete(pdb_name, mc_dir)
+            mcf.finish_delete_nbts(mc_dir, pdb_name)
 
             lower = pdb_name.lower()
             self.show_information_box(title_text = f"Model generated",
