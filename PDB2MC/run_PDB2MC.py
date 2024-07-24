@@ -21,13 +21,6 @@ class MainWindow(QMainWindow):
         self.setFixedSize(929, 621)
         os.chdir(get_images_path())
 
-        # print(os.getcwd())
-        #
-        # current_directory = os.path.basename(os.getcwd())
-        # if current_directory == "PDB2MC":
-        #     mcpdb_directory = os.path.join(os.getcwd(), "..", "UI")
-        #     os.chdir(mcpdb_directory)
-
         self.setWindowIcon(QIcon('images/icons/logo.png'))
 
         self.centralwidget = QtWidgets.QWidget(parent=self)
@@ -44,8 +37,6 @@ class MainWindow(QMainWindow):
         self.label.setMovie(movie)
         movie.start()
 
-        # Get the version number
-        #version = get_version('PDB2MC')
         self.version_label = QLabel(f'Version: {version}', self)
         self.version_label.setGeometry(0, 0, 130, 30)
         self.version_label.move(5, 590)
@@ -139,13 +130,12 @@ class MainWindow(QMainWindow):
         except requests.ConnectionError:
             return
 
-
-
         # Compare the local version with the latest release
-        if pkg_resources.parse_version(user_version) < pkg_resources.parse_version(latest_release):
-            self.show_information_box(title_text=f"New Version Available!",
-                                      text=f"There is a new PDB2MC version available.\n Download Release v{pkg_resources.parse_version(latest_release)} from Github.\nhttps://github.com/markus-nevil/PDB2MC",
-                                      icon_path="images/icons/icon_good.png")
+        if latest_release is not None:
+            if pkg_resources.parse_version(user_version) < pkg_resources.parse_version(latest_release):
+                self.show_information_box(title_text=f"New Version Available!",
+                                          text=f"There is a new PDB2MC version available.\n Download Release v{pkg_resources.parse_version(latest_release)} from Github.\nhttps://github.com/markus-nevil/PDB2MC",
+                                          icon_path="images/icons/icon_good.png")
 
     def show_information_box(self, title_text, text, icon_path):
         self.info_box = InformationBox()

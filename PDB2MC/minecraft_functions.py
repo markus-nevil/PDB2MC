@@ -117,6 +117,8 @@ def delete_mcfunctions(directory, name):
 def delete_old_files(mc_dir, pdb_name):
     # Delete the old mcfunctions if they match the current one
     delete_mcfunctions(mc_dir, "z" + pdb_name.lower())
+    delete_mcfunctions(mc_dir, "build_" + pdb_name.lower())
+    delete_mcfunctions(mc_dir, "clear_" + pdb_name.lower())
 
     # Split the path into parts
     normalized_path = os.path.normpath(mc_dir)
@@ -381,6 +383,19 @@ def create_nbt_function(mcfiles, pdb_name, directory):
         for item in mcfiles['group']:
             f.write(f'place template mc:{item}\n')
 
+
+def create_individual_nbt_functions(mcfiles, directory):
+    print(mcfiles)
+    mcfiles_list = mcfiles.values.flatten().tolist()
+    print(mcfiles_list)
+    for file in mcfiles_list:
+        basename = os.path.splitext(file)[0]
+        with open(os.path.join(directory, f"build_{basename}.mcfunction"), 'w') as f:
+            f.write(f'setblock ~ ~-1 ~ minecraft:obsidian replace\n')
+            f.write(f'say Loading {basename}... please wait. May take some time.\n')
+            f.write(f'place template mc:{file}\n')
+
+
 def create_nbt_delete(pdb_name, mc_dir):
     nbt_dir = mc_dir.split("\datapacks/mcPDB/data/protein/functions")[0]
     nbt_dir = nbt_dir + "/generated/mc/structures/"
@@ -499,7 +514,7 @@ def finish_nbts(mc_dir, config_data, pdb_name):
     if config_data["simple"]:
         create_nbt_function(mcfiles, pdb_name, mc_dir)
     else:
-        create_nbt_function(mcfiles, pdb_name, mc_dir)
+        create_individual_nbt_functions(mcfiles, mc_dir)
 
     base_dir = os.path.dirname(mc_dir)  # Get the directory containing the "functions" directory
     new_dir = os.path.join(base_dir, "function")  # Path for the new "function" directory

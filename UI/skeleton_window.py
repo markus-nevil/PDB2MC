@@ -829,8 +829,6 @@ class SkeletonWindow(QMainWindow):
             #     mcf.create_master_function(mcfiles, pdb_name, mc_dir)
             #     mcf.create_clear_function(mc_dir, pdb_name)
 
-
-
             # Collect and finish up NBT files
             mcf.finish_nbts(mc_dir, config_data, pdb_name)
 

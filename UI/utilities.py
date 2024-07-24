@@ -142,8 +142,7 @@ class IncludedPDBPopup(QMainWindow):
     def ListAvailableModels(self):
         cwd = os.getcwd()
         #available = os.listdir(os.path.join(cwd, "presets"))
-        print(os.getcwd())
-        print(get_presets_path())
+
         available = os.listdir(get_presets_path())
         listOutput = ['-none-']
         for file in available:
@@ -230,7 +229,6 @@ class IncludedPDBPopup(QMainWindow):
             self.close()
             return selected_text
     def cancelSelected(self):
-        print('close window')
         self.close()
 
 #A new popup that will show the system file explorer starting from a specific path

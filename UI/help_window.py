@@ -31,8 +31,7 @@ class HelpWindow(QMainWindow):
         #     os.chdir(mcpdb_directory)
         os.chdir(get_images_path())
         test = os.path.isfile(os.path.join(os.getcwd(), 'images/icons/logo.png'))
-        print(os.path.join(os.getcwd(), 'images/icons/logo.png'))
-        print(test)
+
         self.setWindowIcon(QIcon('images/icons/logo.png'))
 
         self.centralwidget = QtWidgets.QWidget(parent=self)
@@ -97,9 +96,6 @@ class HelpWindow(QMainWindow):
             # Convert the markdown to HTML
             html = markdown.markdown(markdown_text, extensions=['tables', 'toc', 'fenced_code', 'nl2br', 'extra'])
 
-            # print(os.getcwd())
-            # print(html)
-
             html = adjust_image_paths(html)
             return html
 
@@ -115,7 +111,6 @@ class HelpWindow(QMainWindow):
 #     if getattr(sys, 'frozen', False):
 #         # Define a regular expression pattern for the img tags
 #         pattern = r'<img src="(UI/images/[^"]+)"'
-#         print("changing paths")
 #         # Define a function that takes a match object and returns the replacement string
 #         def replacer(match):
 #             # Get the relative path to the image from the match object
@@ -139,11 +134,9 @@ def adjust_image_paths(html):
     def replacer(match):
         # Get the relative path to the image from the match object
         relative_path = match.group(1)
-        #print(relative_path)
 
         # Replace 'UI/images' with 'images' in the relative path
         new_path = relative_path.replace('UI/images', 'images')
-        #print(new_path)
 
         # Return the img tag with the src attribute replaced with the new path
         return f'<img src="{new_path}"'
@@ -209,9 +202,7 @@ def get_images_path():
         # The program is running as a compiled executable
         images_dir = sys._MEIPASS
         images_dir = os.path.join(images_dir, "UI")
-        print(images_dir)
-        # test_path = os.path.join(images_dir, 'UI', 'images')
-        # print(test_path)
+
         #images_dir = os.path.join(images_dir, '..')
         return images_dir
     else:
