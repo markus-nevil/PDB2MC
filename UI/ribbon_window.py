@@ -801,8 +801,10 @@ class RibbonWindow(QMainWindow):
             # Delete the old mcfunctions if they match the current one
             mc_dir = config_data['save_path']
             mcf.delete_old_files(mc_dir, pdb_name)
+            #ribbon.run_mode(pdb_name, pdb_file, rounded, mc_dir, config_data, hetatom_df, hetatm_bonds)
 
             try:
+                #print(":P")
                 ribbon.run_mode(pdb_name, pdb_file, rounded, mc_dir, config_data, hetatom_df, hetatm_bonds)
             except Exception as e:
                 self.show_information_box(title_text=f"Error encountered",

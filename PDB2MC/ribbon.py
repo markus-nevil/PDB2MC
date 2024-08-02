@@ -11,8 +11,6 @@ def run_mode(pdb_name, pdb_file, rounded, mc_dir, config_data, hetatom_df, hetat
 
     bar_helix = config_data['bar_style']
 
-    #mcf.extract_remarks_from_pdb(pdb_file, pdb_name)
-
     #Remove any rows with 'row' starting with 'HETATM'
     ribbon_master_df = ribbon_master_df[~ribbon_master_df['row'].str.startswith('HETATM')]
     vectors_master_df = pdbm.CO_vectors(ribbon_master_df, width=1)
@@ -27,6 +25,7 @@ def run_mode(pdb_name, pdb_file, rounded, mc_dir, config_data, hetatom_df, hetat
 
     # Iterate through each chain and count the number of loops
     for chain, num in zip(enumerate(pdbm.enumerate_chains(ribbon_master_df)), cycle_sequence):
+        print("Working on chain ", chain[1])
         pdb_ribbon = pdb_name + "_" + chain[1] + "_ribbon"
         pdb_bonds = pdb_name + "_" + chain[1] + "_bonds"
 
@@ -43,7 +42,10 @@ def run_mode(pdb_name, pdb_file, rounded, mc_dir, config_data, hetatom_df, hetat
             ribbon_interpolated_df = pdbm.interpolate_dataframe(ribbon_intermediate_df, smoothness=5000)
             #check if any rows in 'structure' contain 'helix' or 'sheet'
             if ribbon_df['structure'].str.contains('helix').any() or ribbon_df['structure'].str.contains('sheet').any():
-                flanked_df = pdbm.flank_coordinates(ribbon_interpolated_df, vectors_df, bar=bar_helix)
+                try:
+                    flanked_df = pdbm.flank_coordinates(ribbon_interpolated_df, vectors_df, bar=bar_helix)
+                except:
+                    flanked_df = ribbon_interpolated_df
             else:
                 flanked_df = ribbon_interpolated_df
         # check if the dataframe contains nucleic acids

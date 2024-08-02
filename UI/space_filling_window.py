@@ -802,7 +802,8 @@ class spWindow(QMainWindow):
             mcf.delete_old_files(mc_dir, pdb_name)
 
             try:
-                space_filling.run_mode(config_data, pdb_name, rounded, mc_dir, atom_df, hetatom_df, hetatm_bonds)
+                #space_filling.run_mode(config_data, pdb_name, rounded, mc_dir, atom_df, hetatom_df, hetatm_bonds)
+                space_filling.run_mode(config_data, pdb_name, atom_df, mc_dir, atom_df, hetatom_df, hetatm_bonds)
             except Exception as e:
                 self.show_information_box(title_text=f"Error encountered",
                                           text=f"Model has not generated! \nError: {e}",

@@ -83,6 +83,7 @@ def create_minecraft_functions(df, name, air, dir, blocks, replace=False):
         with open(filepath, 'w') as f:
             f.writelines(functions[start:end])
 
+
 def delete_nbt_mcfunctions_from_dir(save_directory):
     parent_directory = os.path.dirname(save_directory)
 
@@ -97,13 +98,14 @@ def delete_nbt_mcfunctions_from_dir(save_directory):
             for filename in os.listdir(directory):
                 if filename.endswith(".mcfunction"):
                     with open(os.path.join(directory, filename), 'r') as f:
-                        if "setblock" in f.read():
+                        if "setblock" or "place" in f.read():
                             files_to_delete.append(os.path.join(directory, filename))
                 if filename.endswith(".nbt"):
                     files_to_delete.append(os.path.join(directory, filename))
 
     for file in files_to_delete:
         os.remove(file)
+
 
 def delete_mcfunctions(directory, name):
     for filename in os.listdir(directory):
@@ -114,11 +116,19 @@ def delete_mcfunctions(directory, name):
         if filename.startswith(name) and filename.endswith(".nbt"):
             os.remove(os.path.join(directory, filename))
 
+
 def delete_old_files(mc_dir, pdb_name):
     # Delete the old mcfunctions if they match the current one
     delete_mcfunctions(mc_dir, "z" + pdb_name.lower())
     delete_mcfunctions(mc_dir, "build_" + pdb_name.lower())
     delete_mcfunctions(mc_dir, "clear_" + pdb_name.lower())
+
+    # In the parallel directory named "function", delete the old mcfunction
+    base_dir = os.path.dirname(mc_dir)  # Get the directory containing the "functions" directory
+    new_dir = os.path.join(base_dir, "function")  # Path for the new "function" directory
+    delete_mcfunctions(new_dir, "z" + pdb_name.lower())
+    delete_mcfunctions(new_dir, "build_" + pdb_name.lower())
+    delete_mcfunctions(new_dir, "clear_" + pdb_name.lower())
 
     # Split the path into parts
     normalized_path = os.path.normpath(mc_dir)
@@ -137,6 +147,7 @@ def delete_old_files(mc_dir, pdb_name):
                                                 "generated/mc/structures"))
         delete_mcfunctions(nbt_dir, pdb_name.lower())
         delete_mcfunctions(nbt_dir, "delete_" + pdb_name.lower())
+
 
 def construct_save_paths(source_dir):
     # Normalize the path to ensure consistent directory separators
@@ -163,6 +174,7 @@ def construct_save_paths(source_dir):
 
     return paths
 
+
 def find_mcfunctions(directory, name):
     file_list = []
     for filename in os.listdir(directory):
@@ -173,6 +185,7 @@ def find_mcfunctions(directory, name):
                 file_list.append(full[0])
     df = pd.DataFrame({"group": file_list})
     return df
+
 
 def find_nbt(directory, name):
     file_list = []
@@ -198,7 +211,7 @@ def find_delete_nbt(directory, name):
     return df
 
 
-#Function that will move the PDB2MC directory from within the program directory into the Minecraft save directory
+# Function that will move the PDB2MC directory from within the program directory into the Minecraft save directory
 def copy_blank_world(mc_dir):
     # Get the current directory of the program
     current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -213,6 +226,7 @@ def copy_blank_world(mc_dir):
     # Unzip the file
     with ZipFile(dst_file, 'r') as zip_ref:
         zip_ref.extractall(mc_dir)
+
 
 def check_permissions(directory):
     # Check read permissions
@@ -236,21 +250,20 @@ def create_clear_function(mc_dir, pdb_name):
     for filename in os.listdir(mc_dir):
         if filename.startswith("z" + pdb_name) and filename.endswith(".mcfunction"):
             with open(os.path.join(mc_dir, filename), 'r') as f:
-                #skip any lines that start with setblock ~ ~-1 ~
+                # skip any lines that start with setblock ~ ~-1 ~
                 functions += [x for x in f.readlines() if not x.startswith("setblock ~ ~-1 ~")]
-
 
     for i in range(len(functions)):
         if 'minecraft' in functions[i]:
             functions[i] = functions[i].split('minecraft', 1)[0] + 'minecraft:air replace\n'
 
-    #remove duplicate lines
+    # remove duplicate lines
     functions = list(dict.fromkeys(functions))
 
     # create a clear_{name}.mcfunction file with the commands
     with open(os.path.join(mc_dir, f"clear_{pdb_name}.mcfunction"), 'w') as f:
-        #f.write('execute as @a[scores={}] run teleport @s[scores={X=1.., Y=1.., Z=1..}] ~ ~ ~\n')
         f.writelines(functions)
+
 
 def create_master_function(df, name, directory, pdb_file):
     name = name.lower()
@@ -271,10 +284,10 @@ def create_master_function(df, name, directory, pdb_file):
         #f.write(extract_remarks_from_pdb(pdb_file, name))
         f.write('\n')
         f.write(f'tp @s ~ ~ ~ facing {first_block[0]} {first_block[1]} {first_block[2]}\n')
-        #f.write(f'summon armor_stand ~ ~ ~ {Invisible:true, Invulnerable:true, CustomName:'"{name}"', CustomNameVisible:false, ShowArms:false} ')
 
         for i in range(0, len(commands)):
             f.write(f'{commands[i]}\n')
+
 
 def create_simple_function(name, directory):
     functions = []
@@ -300,9 +313,10 @@ def create_simple_function(name, directory):
         f.write(f'tp @s ~ ~ ~ facing {first_block[0]} {first_block[1]} {first_block[2]}\n')
         f.write(f'setblock ~ ~-1 ~ minecraft:obsidian replace\n')
         f.writelines(functions)
-    #create_structure_from_mcfunction(pdb_name, directory, functions)
+    # create_structure_from_mcfunction(pdb_name, directory, functions)
 
-#function that reads a .mcfunction file and uses nbt-structure-utils to make a structure from the setblock lines
+
+# function that reads a .mcfunction file and uses nbt-structure-utils to make a structure from the setblock lines
 def create_structure_from_mcfunction(name, directory, functions):
     pdb_name = name.lower()
     nbtstructure = NBTStructure()
@@ -310,7 +324,7 @@ def create_structure_from_mcfunction(name, directory, functions):
     directory = directory.split("\datapacks/mcPDB/data/protein/functions")[0]
     directory = directory + "/generated/mc/structures/"
 
-    #iterate through each line in functions
+    # iterate through each line in functions
     for line in functions:
         block_type = line.split(' ')[4]
         block_type = str(block_type.split(':')[1])
@@ -323,6 +337,7 @@ def create_structure_from_mcfunction(name, directory, functions):
     nbt_file = nbt_file.replace("/", "\\")
 
     nbtstructure.get_nbt(pressurize=False, align_to_origin=False).write_file(filename=nbt_file)
+
 
 def create_nbt(df, name, air, dir, blocks):
 
@@ -350,7 +365,7 @@ def create_nbt(df, name, air, dir, blocks):
             else:
                 if str(row['atom']).isdigit():
                     block = variables.chain_blocks.get(str(row['atom']), 'gray_concrete')
-                #Check if the str in the 'atom' is a digit and 'b'
+                # Check if the str in the 'atom' is a digit and 'b'
                 elif str(row['atom']).endswith('b'):
                     block = variables.dark_skeleton_blocks.get(str(row['atom']), 'gray_concrete')
                 else:
@@ -373,6 +388,14 @@ def create_nbt_function(mcfiles, pdb_name, directory):
 
     # sort df by the naming convention
     mcfiles = mcfiles.sort_values('group', key=lambda x: x.str.split('_').str[1])
+
+    sidechain_backbone = mcfiles[mcfiles['group'].str.contains("sidechain|backbone")]
+
+    # Remove these rows from the original DataFrame
+    mcfiles = mcfiles[~mcfiles['group'].str.contains("sidechain|backbone")]
+
+    # Append the extracted rows to the end of the DataFrame
+    mcfiles = pd.concat([mcfiles, sidechain_backbone], ignore_index=True)
 
     with open(os.path.join(directory, f"build_{lower_pdb_name}.mcfunction"), 'w') as f:
         #f.write(extract_remarks_from_pdb(pdb_file, lower_pdb_name))

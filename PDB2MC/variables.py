@@ -21,17 +21,17 @@ block_colors = {(143, 61, 46), (224, 97, 0), (57, 42, 35), (218, 224, 162), (186
                 (142, 32, 32), (116, 167, 253), (189, 68, 179), (136, 136, 136), (220, 220, 220), (98, 237, 228),
                 (54, 57, 61)}
 
-chain_blocks = {"0" : "white_wool",
-                "1" : "red_wool",
-                "2" : "blue_wool",
-                "3" : "yellow_wool",
-                "4" : "lime_wool",
-                "5" : "pink_wool",
-                "6" : "light_gray_wool",
-                "7" : "purple_wool",
-                "8" : "light_blue_wool",
-                "9" : "green_wool",
-                "10": "orange_wool"}
+chain_blocks = {"0" : "white_concrete",
+                "1" : "red_concrete",
+                "2" : "blue_concrete",
+                "3" : "yellow_concrete",
+                "4" : "lime_concrete",
+                "5" : "pink_concrete",
+                "6" : "light_concrete",
+                "7" : "purple_concrete",
+                "8" : "light_concrete",
+                "9" : "green_concrete",
+                "10": "orange_concrete"}
 
 dark_skeleton_blocks = {"0b": "white_terracotta",
                         "1b": "red_terracotta",

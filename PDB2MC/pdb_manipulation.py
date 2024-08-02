@@ -14,6 +14,7 @@ from scipy.spatial import cKDTree
 import pkg_resources
 import sys
 
+import logging
 
 
 def assign_atom_values(surface_df, branch_df):
@@ -158,13 +159,22 @@ def read_pdb(filename):
                           'atom_num': line[6:11].strip(),
                           'atom': line[12:16].strip(),
                           'residue': line[17:20].strip(),
-                          'chain': line[21],
+                          #'chain': line[21],
+                          'chain': line[20:22].strip(),
                           'resid': int(line[22:26]),
                           'X': pd.to_numeric(line[30:38].strip()),
                           'Y': pd.to_numeric(line[38:46].strip()),
                           'Z': pd.to_numeric(line[46:54].strip())}
-                atom_data.append(record)
+                # Check if the current record is the same as the last one in atom_data
+                if not atom_data or (atom_data[-1]['row'] != record['row'] or
+                                     atom_data[-1]['atom'] != record['atom'] or
+                                     atom_data[-1]['residue'] != record['residue'] or
+                                     atom_data[-1]['chain'] != record['chain'] or
+                                     atom_data[-1]['resid'] != record['resid']):
+                    atom_data.append(record)
+                #atom_data.append(record)
     pdb_df = pd.DataFrame(atom_data)
+
     return pdb_df
 
 
@@ -349,6 +359,7 @@ def CO_vectors(df, width=1):
 
 # Function that will take the coordinates from a dataframe, match them with the vectors of another dataframe by "resid" column, and make two dataframes of each coordinate transformed by either the positive or negative of the matched vector. Then call bresenham_line function to fill the gaps. combine all 3 dataframes and return them.
 def flank_coordinates(df, vector_df, bar=False):
+    print(df.head(n=2))
     # Create an empty list to store the positive coordinates
     positive_coordinates = []
 
@@ -927,11 +938,13 @@ def bresenham_line(x0, y0, z0, x1, y1, z1):
     return np.array(points)
 
 
-def atom_subset(df, atoms, include=True):
+def atom_subset(df, atoms, ignore_het=False, include=True):
     if include:
         subset = df[df['atom'].isin(atoms)]
     else:
         subset = df[~df['atom'].isin(atoms)]
+    if ignore_het:
+        subset = subset[~subset['row'].str.contains("HETATM")]
     return subset.reset_index(drop=True)
 
 def process_bars(df, size = 1):
@@ -1015,7 +1028,7 @@ def find_intermediate_points(replot_df, keep_columns=False, atoms=None, fill_col
 
     if len(other_atoms_df) > 0:
         new_data = pd.concat([new_data, other_atoms_df], ignore_index=True)
-
+    #print(new_data.tail())
     return new_data
 
 # def find_intermediate_points_old(replot_df, keep_columns=False, atoms=None):
@@ -1151,18 +1164,50 @@ def add_structure(df, pdb_file):
         for line in f:
             if line.startswith("HELIX"):
                 # Add the chain, residue, and resid values to the structure dataframe
-                data = {'chain': line[19], 'residue1': line[15:19].strip(), 'resid1': line[22:26].strip(),
-                        'residue2': line[27:31].strip(), 'resid2': line[34:38].strip(), 'structure': "helix"}
+                # data = {'chain': line[19],
+                #         'residue1': line[15:19].strip(),
+                #         'resid1': line[22:26].strip(),
+                #         'residue2': line[27:31].strip(),
+                #         'resid2': line[34:38].strip(),
+                #         'structure': "helix"}
+                data = {'chain': line[18:20].strip(),
+                        'residue1': line[15:18].strip(),
+                        'resid1': line[22:26].strip(),
+                        'residue2': line[27:30].strip(),
+                        'resid2': line[34:38].strip(),
+                        'structure': "helix"}
                 structure_df = pd.concat([structure_df, pd.DataFrame(data, index=[0])], ignore_index=True)
             elif line.startswith("SHEET"):
                 # Add the chain, residue, and resid values to the structure dataframe
-                data1 = {'chain': line[21], 'residue1': line[17:21].strip(), 'resid1': line[22:27].strip(),
-                         'residue2': line[28:32].strip(), 'resid2': line[34:38].strip(), 'structure': "sheet"}
-                data2 = {'chain': line[49], 'residue1': line[44:48].strip(), 'resid1': line[52:55].strip(),
-                         'residue2': line[59:63].strip(), 'resid2': line[67:70].strip(), 'structure': "sheet"}
+                # data1 = {'chain': line[21],
+                #          'residue1': line[17:21].strip(),
+                #          'resid1': line[22:27].strip(),
+                #          'residue2': line[28:32].strip(),
+                #          'resid2': line[34:38].strip(),
+                #          'structure': "sheet"}
+                # data2 = {'chain': line[49],
+                #          'residue1': line[44:48].strip(),
+                #          'resid1': line[52:55].strip(),
+                #          'residue2': line[59:63].strip(),
+                #          'resid2': line[67:70].strip(),
+                #          'structure': "sheet"}
+                data1 = {'chain': line[20:22].strip(),
+                         'residue1': line[17:20].strip(),
+                         'resid1': line[22:27].strip(),
+                         'residue2': line[28:31].strip(),
+                         'resid2': line[34:38].strip(),
+                         'structure': "sheet"}
+                data2 = {'chain': line[48:50].strip(),
+                         'residue1': line[44:48].strip(),
+                         'resid1': line[51:55].strip(),
+                         'residue2': line[59:63].strip(),
+                         'resid2': line[66:70].strip(),
+                         'structure': "sheet"}
                 structure_df = pd.concat([structure_df, pd.DataFrame(data1, index=[0]), pd.DataFrame(data2, index=[0])],
                                          ignore_index=True)
-
+        print(structure_df.head(n=5))
+        print(structure_df.iloc[1200:1220])
+        print(structure_df.tail(n=5))
     # Remove any rows with only space characters for columns 'chain', 'residue1', 'resid1', 'residue2', or 'resid2'
     structure_df = structure_df[structure_df['chain'].str.strip().astype(bool)]
 
@@ -1179,6 +1224,9 @@ def add_structure(df, pdb_file):
         if len(matching_rows) > 0:
             df.at[i, 'structure'] = matching_rows['structure'].values[0]
 
+    print(df.head())
+    print(df['structure'].unique())
+    print(df['chain'].unique())
     # Return the coordinate dataframe (df)
     return df
 
@@ -1366,6 +1414,8 @@ def add_structure(df, pdb_file):
 #     return new_df
 
 def sidechain(atom_df):
+    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+
     if getattr(sys, 'frozen', False):
         # The program is running as a compiled executable
         base_path = sys._MEIPASS
@@ -1387,14 +1437,22 @@ def sidechain(atom_df):
 
     # Iterate over the rows of the atom dataframe
     for i, row in atom_df.iterrows():
+        #print(i, " ", row)
+
         # Find the matching row(s) in the chains dataframe
         matching_chains = chains_df[(chains_df['residue'] == row['residue']) & (chains_df['atom'] == row['atom'])]
+        #print(matching_chains)
 
         # Iterate over the matching chain rows
         for _, chain_row in matching_chains.iterrows():
             # Find the next row in the atom dataframe that matches the residue and atom2 values
-            next_row = atom_df[(atom_df['residue'] == row['residue']) & (atom_df['resid'] == row['resid']) & (
+            try:
+                next_row = atom_df[(atom_df['residue'] == row['residue']) & (atom_df['resid'] == row['resid']) & (
                     atom_df['chain'] == row['chain']) & (atom_df['atom'] == chain_row['atom2'])].iloc[0]
+            except IndexError:
+                logging.error(f"Failed to find next_row for row: {row} and chain_row: {chain_row}")
+                logging.debug(f"Filtered DataFrame: {atom_df[(atom_df['residue'] == row['residue']) & (atom_df['resid'] == row['resid']) & (atom_df['chain'] == row['chain']) & (atom_df['atom'] == chain_row['atom2'])]}")
+                continue
 
             # Call the bresenham_line function and append the coordinates to the list
             if not next_row.empty:

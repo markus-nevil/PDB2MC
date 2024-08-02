@@ -30,11 +30,12 @@ def run_mode(rounded, config_data, pdb_name, mc_dir, atom_df, hetatm_df, hetatm_
                  "C": "blue_wool",
                  "G": "black_wool",
                  "T": "red_wool"}
-    dummy=True
-    # if config_data["by_res_group"]:
-    #     combined_dictionary = {**group, **dna_bases}
-    if dummy:
-        #combined_dictionary = {**charge, **dna_bases}
+
+    if config_data["color_style"] == "group":
+        combined_dictionary = {**group, **dna_bases}
+    elif config_data["color_style"] == "charge":
+        combined_dictionary = {**charge, **dna_bases}
+    elif config_data["color_style"] == "hydrophobic":
         combined_dictionary = {**hydrophobic, **dna_bases}
     else:
         #append config_data['amino_acids'] to dna_bases and save to combined_dictionary
@@ -42,7 +43,8 @@ def run_mode(rounded, config_data, pdb_name, mc_dir, atom_df, hetatm_df, hetatm_
 
     # mcf.create_minecraft_functions(spheres, pdb_atoms, False, mc_dir, combined_dictionary,
     #                                replace=True)
-    mcf.create_nbt(spheres, pdb_atoms, air=False, dir=mc_dir, blocks=config_data['atoms'])
+    #print("Amino acids atoms: ", config_data['atoms'])
+    mcf.create_nbt(spheres, pdb_atoms, air=False, dir=mc_dir, blocks=combined_dictionary)
 
     if config_data["backbone"]:
         pdb_backbone = pdb_name + "_backbone"

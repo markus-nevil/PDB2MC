@@ -42,6 +42,7 @@ HIS CD2 CG
 HIS CE1 ND1
 HIS NE2 CD2
 HIS NE2 CE1
+ILE O   C
 ILE CB  CA
 ILE CG1 CB
 ILE CG2 CB
@@ -130,6 +131,8 @@ U   P   OP2
 U   C3' C4'
 U   O4' C4'
 U   C2' C3'
+U   C4' O4'
+U   C3' C2'
 U   O2' C2'
 U   C1' C2'
 U   O4' C1'
@@ -164,7 +167,10 @@ A   P   OP1
 A   P   OP2
 A   C3' C4'
 A   O4' C4'
+A   C4' O4'
+A   O3' C3'
 A   C2' C3'
+A   C3' C2'
 A   O2' C2'
 A   C1' C2'
 A   O4' C1'
@@ -184,7 +190,9 @@ G   P   OP1
 G   P   OP2
 G   C3' C4'
 G   O4' C4'
+G   C4' O4'
 G   C2' C3'
+G   C3' C2'
 G   O2' C2'
 G   C1' C2'
 G   O4' C1'

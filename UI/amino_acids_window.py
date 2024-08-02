@@ -1100,6 +1100,8 @@ class AAWindow(QMainWindow):
         config_data['amino_acids']['TYR'] = self.TyrColorBox.currentText()
         config_data['amino_acids']['VAL'] = self.ValColorBox.currentText()
 
+        config_data['color_style'] = self.colorStyleBox.currentText()
+
         config_data['backbone_size'] = self.backboneScaleSpinBox.value()
         config_data['atom_scale'] = self.aScaleSpinBox.value()
         config_data['scale'] = self.pScaleSpinBox.value()
@@ -1185,7 +1187,9 @@ class AAWindow(QMainWindow):
             mcf.finish_delete_nbts(mc_dir, pdb_name)
 
             lower = pdb_name.lower()
-            self.show_information_box(title_text = f"Model generated", text = f"Finished! \n Remember to use /reload\n Make your model with: /function protein:build_" + lower, icon_path ="images/icons/icon_good.png")
+            self.show_information_box(title_text=f"Model generated",
+                                      text=f"Finished! \n Remember to use /reload\n Make your model with: /function protein:build_" + lower,
+                                      icon_path="images/icons/icon_good.png")
 
             #QMessageBox.information(None, "Model generated", f"Finished!\nRemember to /reload in your world and /function protein:build_{lower}")
 
@@ -1213,7 +1217,6 @@ class AAWindow(QMainWindow):
         #QDesktopServices.openUrl(QtCore.QUrl("https://github.com/markus-nevil/mcpdb/blob/main/README.md"))
 
     def handle_rscb_button(self):
-        print("RSCB button clicked")
         QDesktopServices.openUrl(QtCore.QUrl("https://www.rcsb.org/"))
 
     def handle_custom_mode(self):

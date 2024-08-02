@@ -2,6 +2,7 @@ from PDB2MC import pdb_manipulation as pdbm
 from PDB2MC import minecraft_functions as mcf
 import pandas as pd
 import re
+from itertools import cycle
 
 def run_mode(config_data, pdb_name, pdb_file, rounded, mc_dir, atom_df, hetatom_df, hetatm_bonds):
     # Deal with the backbone
@@ -32,54 +33,49 @@ def run_mode(config_data, pdb_name, pdb_file, rounded, mc_dir, atom_df, hetatom_
             intermediate = by_chain_df
         else:
             intermediate = pdbm.find_intermediate_points(backbone)
-            #intermediate = pdbm.interpolate_dataframe(intermediate, 5000)
 
-        # if config_data["mode"] == "X-ray":
-        #     mcf.create_minecraft_functions(intermediate, pdb_backbone, False, mc_dir, config_data['atoms'],
-        #                                    replace=True)
-        # else:
-        #     mcf.create_minecraft_functions(intermediate, pdb_backbone, False, mc_dir, config_data['atoms'],
-        #                                    replace=False)
             mcf.create_nbt(intermediate, pdb_backbone, air=False, dir=mc_dir, blocks=config_data['atoms'])
-
     if config_data["sidechain"]:
-        branches = pdbm.sidechain(rounded)
+        if config_data["by_chain"]:
+            # Create a cycle from 1 to 10 to aid in chain coloring
+            cycle_sequence = cycle(range(1, 11))
 
-        if not config_data["by_chain"]:
-            branches = branches.drop("atom", axis=1)
-
-        pdb_sidechain = pdb_name + "_sidechain"
-
-        # if config_data["mode"] == "X-ray":
-        #     mcf.create_minecraft_functions(branches, pdb_sidechain, False, mc_dir, config_data['atoms'],
-        #                                    replace=True)
-        # else:
-        # mcf.create_minecraft_functions(branches, pdb_sidechain, False, mc_dir, config_data['atoms'],
-        #                                    replace=False)
-        mcf.create_nbt(branches, pdb_sidechain, air=False, dir=mc_dir, blocks=config_data['atoms'])
+            # Iterate through each chain and count the number of loops
+            for chain, num in zip(enumerate(pdbm.enumerate_chains(rounded)), cycle_sequence):
+                pdb_sidechain = pdb_name + "_" + chain[1] + "_sidechain"
+                chain_df = pdbm.get_chain(rounded, chain[1])
+                branches = pdbm.sidechain(chain_df)
+                branches['atom'] = num
+                mcf.create_nbt(branches, pdb_sidechain, air=False, dir=mc_dir, blocks=config_data['atoms'])
+        else:
+            pdb_sidechain = pdb_name + "_sidechain"
+            branches = pdbm.sidechain(rounded)
+            branches['atom'] = 'sidechain_atom'
+            mcf.create_nbt(branches, pdb_sidechain, air=False, dir=mc_dir, blocks=config_data['atoms'])
 
     if config_data["show_atoms"]:
         pdb_atoms = pdb_name + "_atoms"
-        coord = pdbm.rasterized_sphere(config_data['atom_scale'])
-        center = pdbm.sphere_center(config_data['atom_scale'])
+        if config_data['mesh'] and config_data['atom_scale'] < 2:
+            coord = pdbm.rasterized_sphere(2)
+            center = pdbm.sphere_center(2)
+        else:
+            coord = pdbm.rasterized_sphere(config_data['atom_scale'])
+            center = pdbm.sphere_center(config_data['atom_scale'])
         shortened = pdbm.shorten_atom_names(atom_df)
         spheres = pdbm.add_sphere_coordinates(coord, center, shortened, mesh=config_data['mesh'])
-        # if config_data["mode"] == "X-ray":
-        #     mcf.create_minecraft_functions(spheres, pdb_atoms, False, mc_dir, config_data['atoms'],
-        #                                    replace=False)
-        # else:
-        # mcf.create_minecraft_functions(spheres, pdb_atoms, False, mc_dir, config_data['atoms'],
-        #                                    replace=True)
         mcf.create_nbt(spheres, pdb_atoms, air=False, dir=mc_dir, blocks=config_data['atoms'])
+
     if config_data["show_hetatm"]:
         pdb_hetatm = pdb_name + "_hetatm"
-        coord = pdbm.rasterized_sphere(config_data['atom_scale'])
-        center = pdbm.sphere_center(config_data['atom_scale'])
+        if config_data['mesh'] and config_data['atom_scale'] < 2:
+            coord = pdbm.rasterized_sphere(2)
+            center = pdbm.sphere_center(2)
+        else:
+            coord = pdbm.rasterized_sphere(config_data['atom_scale'])
+            center = pdbm.sphere_center(config_data['atom_scale'])
         shortened = pdbm.shorten_atom_names(hetatom_df)
         spheres = pdbm.add_sphere_coordinates(coord, center, shortened, mesh=config_data['mesh'])
         spheres['atom'] = spheres['atom'].apply(lambda x: re.sub(r'P[A-Z]', 'P', x, count=1))
-        # mcf.create_minecraft_functions(spheres, pdb_hetatm, False, mc_dir, config_data['atoms'],
-        #                                    replace=True)
         mcf.create_nbt(spheres, pdb_hetatm, air=False, dir=mc_dir, blocks=config_data['atoms'])
         pdb_hetatm_bonds = pdb_name + "_hetatm_bonds"
         #mcf.create_minecraft_functions(hetatm_bonds, pdb_hetatm_bonds, False, mc_dir, config_data['atoms'])

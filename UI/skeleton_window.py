@@ -675,6 +675,8 @@ class SkeletonWindow(QMainWindow):
         self.backboneColorBox.focusOut.connect(lambda: self.check_input(self.backboneColorBox, decorative_blocks))
         self.sidechainColorBox.focusOut.connect(lambda: self.check_input(self.sidechainColorBox, decorative_blocks))
 
+        #self.showSidechainCheck.stateChanged.connect(lambda: self.check_input(self.sidechainColorBox, decorative_blocks))
+        #self.showBackboneCheck.stateChanged.connect(lambda: self.check_input(self.backboneColorBox, decorative_blocks))
         self.showBackboneCheck.stateChanged.connect(self.on_showBackboneCheck_changed)
         self.showSidechainCheck.stateChanged.connect(self.on_showSidechainCheck_changed)
         self.colorByBackboneCheck.stateChanged.connect(self.on_colorByBackboneCheck_changed)
@@ -683,12 +685,13 @@ class SkeletonWindow(QMainWindow):
     def on_showBackboneCheck_changed(self, state):
         if not self.colorByBackboneCheck.isChecked():
             self.backboneColorBox.setEnabled(state != 0)
-
+            #self.backboneColorBox.setCurrentText("gray_concrete")
         self.backboneScaleSpinBox.setEnabled(state !=0)
 
     def on_showSidechainCheck_changed(self, state):
         if not self.colorByBackboneCheck.isChecked():
             self.sidechainColorBox.setEnabled(state != 0)
+            #self.sidechainColorBox.setCurrentText("gray_concrete")
 
     def on_colorByBackboneCheck_changed(self, state):
         self.backboneColorBox.setEnabled(state == 0)

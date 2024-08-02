@@ -698,7 +698,7 @@ class XrayWindow(QMainWindow):
         config_data['mesh'] = self.meshCheck.isChecked()
         config_data['backbone'] = self.showBackboneCheck.isChecked()
         config_data['sidechain'] = self.showSidechainCheck.isChecked()
-        config_data['by_chain'] = False
+        config_data['by_chain'] = self.colorByBackboneCheck.isChecked()
         config_data['simple'] = self.simpleOutputCheck.isChecked()
 
         # Add the current paths of the files and directories to the dictionary
@@ -743,15 +743,9 @@ class XrayWindow(QMainWindow):
                     config_data["show_hetatm"] = False
 
             atom_df = pdbm.filter_type_atom(rounded, remove_type="HETATM", remove_atom="H")
-
             # Delete the old mcfunctions if they match the current one
             mc_dir = config_data['save_path']
             mcf.delete_old_files(mc_dir, pdb_name)
-
-            # Create and collect the NBT and mcfunction files to delete models
-            mcf.create_nbt_delete(pdb_name, mc_dir)
-            mcf.finish_delete_nbts(mc_dir, pdb_name)
-
             try:
                 xray.run_mode(config_data, pdb_name, pdb_file, rounded, mc_dir, atom_df, hetatom_df, hetatm_bonds)
             except Exception as e:
@@ -759,18 +753,12 @@ class XrayWindow(QMainWindow):
                                           text=f"Model has not generated! \nError: {e}",
                                           icon_path="images/icons/icon_bad.png")
 
-            # mcfiles = mcf.find_mcfunctions(mc_dir, pdb_name.lower())
-            #
-            # if config_data["simple"]:
-            #     mcf.create_simple_function(pdb_name, mc_dir)
-            #     mcf.create_clear_function(mc_dir, pdb_name)
-            #     mcf.delete_mcfunctions(mc_dir, "z" + pdb_name.lower())
-            # else:
-            #     mcf.create_master_function(mcfiles, pdb_name, mc_dir)
-            #     mcf.create_clear_function(mc_dir, pdb_name)
-
             # Collect and finish up NBT files
             mcf.finish_nbts(mc_dir, config_data, pdb_name)
+
+            # Create and collect the NBT and mcfunction files to delete models
+            mcf.create_nbt_delete(pdb_name, mc_dir)
+            mcf.finish_delete_nbts(mc_dir, pdb_name)
 
             lower = pdb_name.lower()
             self.show_information_box(title_text = f"Model generated", text = f"Finished! \n Remember to use /reload\n Make your model with: /function protein:build_" + lower, icon_path ="images/icons/icon_good.png")
