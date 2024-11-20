@@ -5,7 +5,10 @@ from PyQt6.QtGui import QDesktopServices, QIcon
 from PyQt6 import QtCore, QtGui, QtWidgets
 from UI import help_window, custom_window, skeleton_window, xray_window, space_filling_window, ribbon_window, amino_acids_window, tool_window
 import sys
-import pkg_resources
+#import pkg_resources
+import importlib_resources
+from packaging import version
+from importlib_metadata import version, PackageNotFoundError
 from PDB2MC.version import version
 from UI.utilities import InformationBox
 import requests
@@ -118,7 +121,8 @@ class MainWindow(QMainWindow):
         self.timer.singleShot(1000, self.is_outdated)
 
     def is_outdated(self):
-        user_version = version
+
+        #user_version = version.parse(version)
         repo_owner = "markus-nevil"
         repo_name = "PDB2MC"
 
@@ -127,15 +131,17 @@ class MainWindow(QMainWindow):
             response = requests.get(f"https://api.github.com/repos/{repo_owner}/{repo_name}/releases/latest")
             response.raise_for_status()  # Raise an exception if the request failed
             latest_release = response.json()["tag_name"]
+            print(latest_release)
         except requests.ConnectionError:
             return
 
-        # Compare the local version with the latest release
-        if latest_release is not None:
-            if pkg_resources.parse_version(user_version) < pkg_resources.parse_version(latest_release):
-                self.show_information_box(title_text=f"New Version Available!",
-                                          text=f"There is a new PDB2MC version available.\n Download Release v{pkg_resources.parse_version(latest_release)} from Github.\nhttps://github.com/markus-nevil/PDB2MC",
-                                          icon_path="images/icons/icon_good.png")
+        ## TODO: Implement the version check
+        # # Compare the local version with the latest release
+        # if latest_release is not None:
+        #     if version.parse(user_version) < version.parse(latest_release):
+        #         self.show_information_box(title_text=f"New Version Available!",
+        #                                   text=f"There is a new PDB2MC version available.\n Download Release v{version.parse(latest_release)} from Github.\nhttps://github.com/markus-nevil/PDB2MC",
+        #                                   icon_path="images/icons/icon_good.png")
 
     def show_information_box(self, title_text, text, icon_path):
         self.info_box = InformationBox()
@@ -203,8 +209,9 @@ class MainWindow(QMainWindow):
 def get_images_path():
     if getattr(sys, 'frozen', False):
         # The program is running as a compiled executable
-        images_dir = pkg_resources.resource_filename('UI', 'images')
-        images_dir = os.path.join(images_dir, '..')
+        images_dir = importlib_resources.files('UI').joinpath('images')
+        #images_dir = pkg_resources.resource_filename('UI', 'images')
+        #images_dir = os.path.join(images_dir, '..')
         return images_dir
     else:
         # The program is running as a Python script or it's installed in the Python environment
@@ -214,10 +221,16 @@ def get_images_path():
         images_dir = os.path.join(current_dir, '..', 'UI')
         return images_dir
 
+# def get_version(package_name):
+#     try:
+#         return pkg_resources.get_distribution(package_name).version
+#     except pkg_resources.DistributionNotFound:
+#         return None
+
 def get_version(package_name):
     try:
-        return pkg_resources.get_distribution(package_name).version
-    except pkg_resources.DistributionNotFound:
+        return version(package_name)
+    except PackageNotFoundError:
         return None
 
 def main():

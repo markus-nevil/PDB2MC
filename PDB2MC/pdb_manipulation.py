@@ -1423,7 +1423,7 @@ def sidechain(atom_df):
     else:
         chains_file_path = pkg_resources.resource_filename('PDB2MC', 'chains.txt')
 
-    chains_df = pd.read_csv(chains_file_path, sep='\s+', header=None, names=['residue', 'atom', 'atom2'],
+    chains_df = pd.read_csv(chains_file_path, sep=r'\s+', header=None, names=['residue', 'atom', 'atom2'],
                             engine='python')
     #chains_df = pd.read_csv("chains.txt", sep='\s+', header=None, names=['residue', 'atom', 'atom2'], engine='python')
 
