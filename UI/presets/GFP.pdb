@@ -617,19 +617,20 @@ HELIX   18  18 PRO D   56  VAL D   61  5                                   6
 HELIX   19  19 VAL D   68  SER D   72  5                                   5    
 HELIX   20  20 PRO D   75  HIS D   81  5                                   7    
 HELIX   21  21 ASP D   82  ALA D   87  1                                   6    
-SHEET    1   A12 VAL A  11  VAL A  22  0                                        
-SHEET    2   A12 HIS A  25  ASP A  36 -1  O  GLY A  31   N  VAL A  16           
-SHEET    3   A12 LYS A  41  CYS A  48 -1  O  ILE A  47   N  SER A  30           
-SHEET    4   A12 HIS A 217  ALA A 227 -1  O  LEU A 220   N  LEU A  44           
-SHEET    5   A12 HIS A 199  SER A 208 -1  N  SER A 202   O  THR A 225           
-SHEET    6   A12 HIS A 148  ASP A 155 -1  N  ILE A 152   O  HIS A 199           
-SHEET    7   A12 GLY A 160  ASN A 170 -1  O  GLY A 160   N  ASP A 155           
-SHEET    8   A12 VAL A 176  PRO A 187 -1  O  ALA A 179   N  ILE A 167           
-SHEET    9   A12 TYR A  92  PHE A 100 -1  N  GLU A  95   O  GLN A 184           
-SHEET   10   A12 ASN A 105  GLU A 115 -1  O  TYR A 106   N  ILE A  98           
-SHEET   11   A12 THR A 118  ILE A 128 -1  O  ARG A 122   N  GLU A 111           
-SHEET   12   A12 VAL A  11  VAL A  22  1  N  GLU A  17   O  ILE A 123           
-SHEET    1   B12 VAL B  11  VAL B  22  0                                        
+#SHEET    1   A12 VAL A  11  VAL A  22  0
+#SHEET    2   A12 HIS A  25  ASP A  36 -1  O  GLY A  31   N  VAL A  16
+#SHEET    3   A12 LYS A  41  CYS A  48 -1  O  ILE A  47   N  SER A  30
+#SHEET    4   A12 HIS A 217  ALA A 227 -1  O  LEU A 220   N  LEU A  44
+SHEET    5   A12 HIS A 199  SER A 208 0
+#SHEET    5   A12 HIS A 199  SER A 208 -1  N  SER A 202   O  THR A 225
+#SHEET    6   A12 HIS A 148  ASP A 155 -1  N  ILE A 152   O  HIS A 199
+#SHEET    7   A12 GLY A 160  ASN A 170 -1  O  GLY A 160   N  ASP A 155
+#SHEET    8   A12 VAL A 176  PRO A 187 -1  O  ALA A 179   N  ILE A 167
+#SHEET    9   A12 TYR A  92  PHE A 100 -1  N  GLU A  95   O  GLN A 184
+#SHEET   10   A12 ASN A 105  GLU A 115 -1  O  TYR A 106   N  ILE A  98
+#SHEET   11   A12 THR A 118  ILE A 128 -1  O  ARG A 122   N  GLU A 111
+#SHEET   12   A12 VAL A  11  VAL A  22  1  N  GLU A  17   O  ILE A 123
+SHEET    1   B12 VAL B  11  VAL B  22  0
 SHEET    2   B12 HIS B  25  ASP B  36 -1  O  GLY B  31   N  VAL B  16           
 SHEET    3   B12 LYS B  41  CYS B  48 -1  O  LYS B  41   N  ASP B  36           
 SHEET    4   B12 HIS B 217  ALA B 227 -1  O  LEU B 220   N  LEU B  44           
