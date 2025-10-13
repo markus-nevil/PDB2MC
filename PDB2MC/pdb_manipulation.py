@@ -20,20 +20,11 @@ import logging
 def assign_atom_values(surface_df, branch_df):
     # Build a k-d tree from branch_df
     tree = cKDTree(branch_df[['X', 'Y', 'Z']].values)
-
-    # For each point in surface_df, find the nearest point(s) in branch_df
-    for i, surface_row in surface_df.iterrows():
-        dist, indices = tree.query(surface_row[['X', 'Y', 'Z']], k=1, distance_upper_bound=np.inf)
-        closest_atoms = branch_df.iloc[indices]['atom']
-        #breakpoint()
-        # If there are multiple points in branch_df with the same minimum distance, check if they all have the same 'atom' value
-        if isinstance(closest_atoms, pd.Series):
-            #if closest_atoms.nunique() == 1:
-            surface_df.at[i, 'atom'] = 0
-        else:
-            #if closest_atoms != surface_df.at[i, 'atom']:
-            surface_df.at[i, 'atom'] = closest_atoms
-
+    # Query all surface points at once
+    coords = surface_df[['X', 'Y', 'Z']].values
+    dists, indices = tree.query(coords, k=1)
+    # Assign atom values directly
+    surface_df['atom'] = branch_df.iloc[indices]['atom'].values
     return surface_df
 
 def remove_random_rows(df, percent):
@@ -45,11 +36,6 @@ def remove_random_rows(df, percent):
 
     return df_sample
 
-# def choose_file():
-#     root = tk.Tk()
-#     root.withdraw()
-#     file_path = filedialog.askopenfilename()
-#     return file_path
 
 def calculate_centroid(df):
     return df[['X', 'Y', 'Z']].mean()
@@ -59,16 +45,13 @@ def shift_dataframe(df, vector):
     return df
 
 def align_dataframes(*dfs):
-    # Calculate the centroid of the first DataFrame
     target_centroid = calculate_centroid(dfs[0])
-
-    # Align all DataFrames to the target centroid
+    aligned = [dfs[0]]
     for df in dfs[1:]:
         centroid = calculate_centroid(df)
         shift_vector = centroid - target_centroid
-        df = shift_dataframe(df, shift_vector)
-
-    return dfs
+        aligned.append(shift_dataframe(df.copy(), shift_vector))
+    return tuple(aligned)
 
 def add_corner_points(df, corner_points):
     # Create a DataFrame from the corner points
@@ -122,15 +105,21 @@ def check_model_size(file_path, world_max):
 
 # Function that takes a pdb file, reads the coordinates of a single chain, determines the shortest edge of the bounding box, and determines the muliplication required to make that >= ymax.
 def check_max_size(file_path, world_max):
-    pdb_df = read_pdb(file_path)
-    #chain = pdb_df.loc[pdb_df['chain'] == 'A']
-    #chain = clip_coords(chain)
-    chain = clip_coords(pdb_df)
-    chain = rotate_to_y(chain)
-    ymin = chain['Y'].min()
-    ymax = chain['Y'].max()
+    y_values = []
+    with open(file_path, 'r') as f:
+        for line in f:
+            if line.startswith(('ATOM', 'HETATM')):
+                try:
+                    y = float(line[31:38].strip())
+                    y_values.append(y)
+                except ValueError:
+                    continue
+    if not y_values:
+        return 1  # or handle as needed
+    ymin = min(y_values)
+    ymax = max(y_values)
     ydiff = ymax - ymin
-    multiplier = math.ceil(world_max / ydiff)
+    multiplier = math.ceil(world_max / ydiff) if ydiff > 0 else 1
     return multiplier
 
 
@@ -358,114 +347,45 @@ def CO_vectors(df, width=1):
 
 
 # Function that will take the coordinates from a dataframe, match them with the vectors of another dataframe by "resid" column, and make two dataframes of each coordinate transformed by either the positive or negative of the matched vector. Then call bresenham_line function to fill the gaps. combine all 3 dataframes and return them.
+
+
 def flank_coordinates(df, vector_df, bar=False):
-    print(df.head(n=2))
-    # Create an empty list to store the positive coordinates
-    positive_coordinates = []
+    # Build a lookup for vectors by resid
+    vector_dict = vector_df.set_index('resid')[['X', 'Y', 'Z']].to_dict('index')
+    max_resid = df['resid'].max()
 
-    # Create an empty list to store the negative coordinates
-    negative_coordinates = []
+    # Prepare output
+    ribbon_rows = []
 
-    # Create an empty list to store the non-flanked coordinates
-    non_flanked_coordinates = []
-
-    vector_iter_count = 1
-    columns = ["atom_num", "atom", "residue", "chain", "resid", "X", "Y", "Z", "structure"]
-
-    # Iterate over the rows of the dataframe
+    # Only process backbone atoms in helix/sheet (unless bar is True)
     for i, row in df.iterrows():
-        if df.loc[i, 'resid'] < df['resid'].max() - 1:
-            # Find the matching row in the vector dataframe
-            matching_vector = vector_df[vector_df['resid'] == row['resid']]
-
-            # subset df by rows that match the current row's resid
-            match_len = len(df[df['resid'] == row['resid']])
-
-            # Find the next row in the vector dataframe
-            #next_vector = vector_df[vector_df['resid'] == row['resid'] + 1]
-            # Iterate over the matching vector rows
-            for j, vector_row in matching_vector.iterrows():
-                if row['atom'] == 'CA' or row['atom'] == 'C' or row['atom'] == 'N':
-                    if (row['structure'] == 'helix' and not bar) or row['structure'] == 'sheet':
-                        # Add the positive coordinates to the positive coordinates list
-                        positive_coordinates.append(
-                            [row['atom_num'], row['atom'], row['residue'], row['resid'], row['chain'],
-                             row['X'] + vector_row['X'], row['Y'] + vector_row['Y'], row['Z'] + vector_row['Z']])
-
-                        # Add the negative coordinates to the negative coordinates list
-                        negative_coordinates.append(
-                            [row['atom_num'], row['atom'], row['residue'], row['resid'], row['chain'],
-                             row['X'] - vector_row['X'], row['Y'] - vector_row['Y'], row['Z'] - vector_row['Z']])
-                    else:
-                        non_flanked_coordinates.append(
-                            [row['atom_num'], row['atom'], row['residue'], row['resid'], row['chain'], row['X'],
-                             row['Y'], row['Z']])
-                else:
-                    continue
-            if vector_iter_count > match_len:
-                vector_iter_count = 1
-            else:
-                vector_iter_count += 1
-    #check if positive_coordinates has data
-    if positive_coordinates:
-        # Create a new dataframe with the positive coordinates
-        positive_df = pd.DataFrame(positive_coordinates,
-                                   columns=['atom_num', 'atom', 'residue', 'resid', 'chain', 'X', 'Y', 'Z'])
-
-        # Create a new dataframe with the negative coordinates
-        negative_df = pd.DataFrame(negative_coordinates,
-                                   columns=['atom_num', 'atom', 'residue', 'resid', 'chain', 'X', 'Y', 'Z'])
-
-        # Create a new dataframe with the non-flanked coordinates
-        non_flanked_df = pd.DataFrame(non_flanked_coordinates,
-                                      columns=['atom_num', 'atom', 'residue', 'resid', 'chain', 'X', 'Y', 'Z'])
-
-        # Ensure all the values in the X, Y, Z columns are integers
-        positive_df['X'] = positive_df['X'].astype(int)
-        positive_df['Y'] = positive_df['Y'].astype(int)
-        positive_df['Z'] = positive_df['Z'].astype(int)
-
-        negative_df['X'] = negative_df['X'].astype(int)
-        negative_df['Y'] = negative_df['Y'].astype(int)
-        negative_df['Z'] = negative_df['Z'].astype(int)
-
-        non_flanked_df['X'] = non_flanked_df['X'].astype(int)
-        non_flanked_df['Y'] = non_flanked_df['Y'].astype(int)
-        non_flanked_df['Z'] = non_flanked_df['Z'].astype(int)
-
-        # Round the coordinates to the nearest whole number
-        positive_df = positive_df.round()
-        negative_df = negative_df.round()
-        non_flanked_df = non_flanked_df.round()
-
-        # iterate through each dataframe and call the bresenham_line function to fill in the gaps between each coordinate, add the new coordinates to a new dataframe, and return the new dataframe
-        for i, row in positive_df.iterrows():
-
-            # assume that positive_df and negative_df have the same number of rows and order of rows
-
-            new_coordinates = bresenham_line(negative_df['X'][i], negative_df['Y'][i], negative_df['Z'][i], row['X'],
-                                             row['Y'], row['Z'])
-            new_df = pd.DataFrame(new_coordinates, columns=['X', 'Y', 'Z'])
-            new_df['resid'] = row['resid']
-            new_df['residue'] = row['residue']
-            new_df['chain'] = row['chain']
-            new_df['atom_num'] = row['atom_num']
-            new_df['atom'] = row['atom']
-            if i == 0:
-                final_df = new_df
-            else:
-                final_df = pd.concat([final_df, new_df], ignore_index=True)
-
-        # add the non-flanked coordinates to the final dataframe
-        # final_df = pd.concat([final_df, non_flanked_df], ignore_index=True)
-
-        # reorder the columns
-        columns = ["atom_num", "atom", "residue", "resid", "chain", "X", "Y", "Z"]
-        final_df = final_df[columns]
-
-        return final_df
+        if row['resid'] < max_resid - 1 and row['atom'] in ('CA', 'C', 'N'):
+            if (row['structure'] == 'helix' and not bar) or row['structure'] == 'sheet':
+                vector = vector_dict.get(row['resid'])
+                if vector is not None:
+                    # Positive and negative flank points
+                    pos = np.array([row['X'], row['Y'], row['Z']]) + np.array([vector['X'], vector['Y'], vector['Z']])
+                    neg = np.array([row['X'], row['Y'], row['Z']]) - np.array([vector['X'], vector['Y'], vector['Z']])
+                    # Fill in the ribbon between flanks
+                    ribbon_coords = bresenham_line(int(round(neg[0])), int(round(neg[1])), int(round(neg[2])),
+                                                   int(round(pos[0])), int(round(pos[1])), int(round(pos[2])))
+                    for x, y, z in ribbon_coords:
+                        ribbon_rows.append({
+                            'atom_num': row['atom_num'],
+                            'atom': row['atom'],
+                            'residue': row['residue'],
+                            'resid': row['resid'],
+                            'chain': row['chain'],
+                            'X': x,
+                            'Y': y,
+                            'Z': z
+                        })
+    # Return as DataFrame
+    if ribbon_rows:
+        return pd.DataFrame(ribbon_rows, columns=['atom_num', 'atom', 'residue', 'resid', 'chain', 'X', 'Y', 'Z'])
     else:
         return pd.DataFrame(columns=['atom_num', 'atom', 'residue', 'resid', 'chain', 'X', 'Y', 'Z'])
+
 
 
 # Function that takes a dataframe of coordinates and a integer, "width", and returns a dataframe of vectors calculated as the vector between each dataframe row with "atom" value of "C" to the next row with matching "resid" and "atom" value of "O".
@@ -975,60 +895,47 @@ def process_bars(df, size = 1):
     return result_df
 
 def find_intermediate_points(replot_df, keep_columns=False, atoms=None, fill_columns=False):
+    # Filter atoms if needed
     other_atoms_df = pd.DataFrame(columns=replot_df.columns)
-
-    # If atoms was passed a value, filter the dataframe by the atoms saving the filtered-out atoms in other_atoms_df
     if atoms:
         other_atoms_df = atom_subset(replot_df, atoms, include=False)
         replot_df = atom_subset(replot_df, atoms, include=True)
 
-    # Initialize the new dataframe
     columns = ['X', 'Y', 'Z']
-
     if keep_columns:
         other_columns = replot_df.columns.drop(columns)
         final_columns = replot_df.columns
     else:
         final_columns = columns
 
-    # initialize a new dataframe, new_data, with columns = final_columns
-    new_data = pd.DataFrame(columns=final_columns)
+    # Convert to numpy for fast access
+    coords = replot_df[columns].values
+    chains = replot_df['chain'].values if 'chain' in replot_df.columns else np.repeat(None, len(replot_df))
 
-    # Iterate over each row of the input dataframe
+    dfs = []
     for i in range(1, len(replot_df)):
-        # Get the current and previous points
-        point1 = replot_df.iloc[i - 1][columns].values
-        point2 = replot_df.iloc[i][columns].values
-        if replot_df.iloc[i - 1]['chain'] == replot_df.iloc[i]['chain']:
-            # Use Bresenham's line algorithm to find the intermediate points
-            intermediate_points = bresenham_line(*point1, *point2)
-
-            # Convert to a small dataframe if intermediate_points is not empty
+        if chains[i - 1] == chains[i]:
+            intermediate_points = bresenham_line(*coords[i - 1], *coords[i])
             if intermediate_points.size > 0:
                 df_small = pd.DataFrame(intermediate_points, columns=columns)
-
-                # Add the missing columns from replot_df.iloc[i] to df_small
                 if keep_columns:
                     for col in other_columns:
                         df_small[col] = replot_df.iloc[i][col]
-
-                # If fill_columns is True, copy the non-x, y, z columns from the start and end rows to the intermediate points
-                if fill_columns:
+                if fill_columns and keep_columns:
                     half_point = len(df_small) // 2
-                    for j in range(len(df_small)):
-                        if j < half_point:
-                            for col in other_columns:
-                                df_small.loc[j, col] = replot_df.iloc[i - 1][col]
-                        else:
-                            for col in other_columns:
-                                df_small.loc[j, col] = replot_df.iloc[i][col]
+                    for col in other_columns:
+                        df_small.loc[:half_point-1, col] = replot_df.iloc[i - 1][col]
+                        df_small.loc[half_point:, col] = replot_df.iloc[i][col]
+                dfs.append(df_small)
 
-                # Add the df_small dataframe to the new_data dataframe
-                new_data = pd.concat([new_data, df_small], ignore_index=True)
+    if dfs:
+        new_data = pd.concat(dfs, ignore_index=True)
+    else:
+        new_data = pd.DataFrame(columns=final_columns)
 
     if len(other_atoms_df) > 0:
         new_data = pd.concat([new_data, other_atoms_df], ignore_index=True)
-    #print(new_data.tail())
+
     return new_data
 
 # def find_intermediate_points_old(replot_df, keep_columns=False, atoms=None):
@@ -1414,61 +1321,57 @@ def add_structure(df, pdb_file):
 #     return new_df
 
 def sidechain(atom_df):
-    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+
+    logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
 
     if getattr(sys, 'frozen', False):
-        # The program is running as a compiled executable
         base_path = sys._MEIPASS
         chains_file_path = os.path.join(base_path, 'PDB2MC', 'chains.txt')
     else:
         chains_file_path = pkg_resources.resource_filename('PDB2MC', 'chains.txt')
 
-    chains_df = pd.read_csv(chains_file_path, sep='\s+', header=None, names=['residue', 'atom', 'atom2'],
-                            engine='python')
-    #chains_df = pd.read_csv("chains.txt", sep='\s+', header=None, names=['residue', 'atom', 'atom2'], engine='python')
+    chains_df = pd.read_csv(chains_file_path, sep='\s+', header=None, names=['residue', 'atom', 'atom2'], engine='python')
 
-    # Create an empty list to store the coordinates
-    coordinates = []
+    # Merge to get all atom/atom2 pairs in the structure
+    merged = pd.merge(
+        atom_df,
+        chains_df,
+        left_on=['residue', 'atom'],
+        right_on=['residue', 'atom'],
+        how='inner'
+    )
 
-    # Keep track of the current chain number and its index in the chain_values list
-    current_chain_num = 1
+    # Merge again to get coordinates for atom2
+    merged = pd.merge(
+        merged,
+        atom_df,
+        left_on=['residue', 'resid', 'chain', 'atom2'],
+        right_on=['residue', 'resid', 'chain', 'atom'],
+        suffixes=('_1', '_2'),
+        how='inner'
+    )
+
+    # Assign chain numbers
     chain_values = atom_df["chain"].unique()
     chain_idx_dict = {chain_value: idx for idx, chain_value in enumerate(chain_values)}
+    merged['chain_num'] = merged['chain'].map(lambda c: (chain_idx_dict[c] % 10) + 1)
 
-    # Iterate over the rows of the atom dataframe
-    for i, row in atom_df.iterrows():
-        #print(i, " ", row)
+    # Run Bresenham for each pair
+    def bresenham_row(row):
+        coords = bresenham_line(
+            row['X_1'], row['Y_1'], row['Z_1'],
+            row['X_2'], row['Y_2'], row['Z_2']
+        )
+        if coords.size == 0:
+            return []
+        arr = np.column_stack((coords, np.full(len(coords), row['chain_num'])))
+        return arr.tolist()
 
-        # Find the matching row(s) in the chains dataframe
-        matching_chains = chains_df[(chains_df['residue'] == row['residue']) & (chains_df['atom'] == row['atom'])]
-        #print(matching_chains)
+    all_coords = merged.apply(bresenham_row, axis=1)
+    # Flatten the list of lists
+    flat_coords = [item for sublist in all_coords for item in sublist]
 
-        # Iterate over the matching chain rows
-        for _, chain_row in matching_chains.iterrows():
-            # Find the next row in the atom dataframe that matches the residue and atom2 values
-            try:
-                next_row = atom_df[(atom_df['residue'] == row['residue']) & (atom_df['resid'] == row['resid']) & (
-                    atom_df['chain'] == row['chain']) & (atom_df['atom'] == chain_row['atom2'])].iloc[0]
-            except IndexError:
-                logging.error(f"Failed to find next_row for row: {row} and chain_row: {chain_row}")
-                logging.debug(f"Filtered DataFrame: {atom_df[(atom_df['residue'] == row['residue']) & (atom_df['resid'] == row['resid']) & (atom_df['chain'] == row['chain']) & (atom_df['atom'] == chain_row['atom2'])]}")
-                continue
-
-            # Call the bresenham_line function and append the coordinates to the list
-            if not next_row.empty:
-                temp_coord = bresenham_line(row['X'], row['Y'], row['Z'], next_row['X'], next_row['Y'],
-                                            next_row['Z']).tolist()
-                for sublist in temp_coord:
-                    sublist.append(current_chain_num)
-                coordinates += temp_coord
-
-        # Update the current chain number
-        chain_idx = chain_idx_dict[row['chain']]
-        current_chain_num = (chain_idx % 10) + 1
-
-
-    # Create a dataframe from the coordinates list and return it
-    coord_df = pd.DataFrame(coordinates, columns=['X', 'Y', 'Z', 'atom'])
+    coord_df = pd.DataFrame(flat_coords, columns=['X', 'Y', 'Z', 'atom'])
     coord_df = coord_df.drop_duplicates()
     return coord_df
 
@@ -2054,45 +1957,31 @@ def align_and_filter_dataframes(numpy_array, original_df):
 #     return final_tif
 
 
+import numpy as np
+
 def construct_surface_array_by_type(df, include=['backbone', 'branches']):
-    # Determine the minimum and maximum coordinates from the DataFrame
+    # Get min and max for each axis
     min_x, min_y, min_z = df[['X', 'Y', 'Z']].min()
     max_x, max_y, max_z = df[['X', 'Y', 'Z']].max()
 
-    # Calculate the dimensions for the 3D numpy array
+    # Compute dimensions
     dim_x = max_x - min_x + 1
     dim_y = max_y - min_y + 1
     dim_z = max_z - min_z + 1
 
-    # Create an empty 3D numpy array filled with zeros
+    # Prepare arrays
     array_3d = np.zeros((dim_x, dim_y, dim_z), dtype=np.uint8)
-    extra = np.zeros((dim_x, dim_y, dim_z), dtype=np.uint8)
 
-    # Create an atom mapping dictionary
-    atom_mapping = {atom: 555 for atom in include}
-    atom_mapping.update({atom: 1 for atom in df['atom'].unique() if atom not in include})
+    # Map atoms to values
+    atom_is_included = df['atom'].isin(include)
+    coords = df[['X', 'Y', 'Z']].values - np.array([min_x, min_y, min_z])
 
-    # Iterate over the DataFrame rows and fill the array based on 'atom' values
-    for _, row in df.iterrows():
-        x, y, z = row['X'] - min_x, row['Y'] - min_y, row['Z'] - min_z
-        atom_value = atom_mapping.get(row['atom'], 1)  # Default to 1 if not in mapping
+    # Ensure integer indices
+    included_coords = coords[atom_is_included].astype(int)
+    array_3d[included_coords[:, 0], included_coords[:, 1], included_coords[:, 2]] = 255
 
-        # Check if 'atom' value is included and if the array cell is not already filled
-        if atom_value == 555 and array_3d[x, y, z] == 0:
-            array_3d[x, y, z] = atom_value
-        else:
-            extra[x, y, z] = atom_value
-
-
-    # Change all values >= 1 to 255
-    array_3d[array_3d >= 1] = 255
-    extra[extra >= 1] = 255
-
-    # save_3d_tiff(array_3d, r'C:\Users\marku\Desktop\point_inside_function.tif')
-    # save_3d_tiff(extra, r'C:\Users\marku\Desktop\point_inside_function_extra.tif')
-    # Create an output array with filled cells based on the 'include' parameter
-    #output_array = np.where(np.isin(array_3d, [555]), 255, 0).astype(np.uint8)
-
+    print("3d_type_array shape: ", array_3d.shape)
+    print("Unique values in 3d_type_array: ", np.unique(array_3d))
     return array_3d
 
 
@@ -2406,18 +2295,36 @@ def rasterized_sphere(radius):
 
 ## Need to change to mesh_mode, so it can be mesh, shell, or filled.
 def add_sphere_coordinates(sphere_array, center, df, mesh=False):
+    # Get sphere coordinates relative to center
     sphere_coords = np.transpose(np.nonzero(sphere_array))
-    new_rows = []
+    rel_coords = sphere_coords - np.array(center)
 
-    for row_index, row in df.iterrows():
-        for i, j, k in sphere_coords:
-            i_norm, j_norm, k_norm = i - center[0], j - center[1], k - center[2]
-            distance = math.sqrt(i_norm ** 2 + j_norm ** 2 + k_norm ** 2)
-            if abs(distance - math.ceil(sphere_array.shape[0] / 2)) <= 1 and mesh == True:
-                new_rows.append([row['X'] + i_norm, row['Y'] + j_norm, row['Z'] + k_norm, row['atom']])
-            if abs(distance - math.ceil(sphere_array.shape[0] / 2)) <= 3 and mesh == False:
-                new_rows.append([row['X'] + i_norm, row['Y'] + j_norm, row['Z'] + k_norm, row['atom']])
-    sphere_df = pd.DataFrame(new_rows, columns=['X', 'Y', 'Z', 'atom'])
+    # Compute distances from center for all sphere points
+    distances = np.linalg.norm(rel_coords, axis=1)
+    radius = math.ceil(sphere_array.shape[0] / 2)
+    if mesh:
+        mask = np.abs(distances - radius) <= 1
+    else:
+        mask = np.abs(distances - radius) <= 3
+    rel_coords = rel_coords[mask]
+
+    # Broadcast addition to all df rows
+    base_coords = df[['X', 'Y', 'Z']].values
+    atom_col = df['atom'].values
+
+    # Repeat base coordinates and atom values for each sphere point
+    n_points = rel_coords.shape[0]
+    repeated_base = np.repeat(base_coords, n_points, axis=0)
+    tiled_rel = np.tile(rel_coords, (len(df), 1))
+    new_coords = repeated_base + tiled_rel
+    new_atoms = np.repeat(atom_col, n_points)
+
+    sphere_df = pd.DataFrame(
+        np.column_stack([new_coords, new_atoms]),
+        columns=['X', 'Y', 'Z', 'atom']
+    )
+    # Ensure X, Y, Z are integers if needed
+    sphere_df[['X', 'Y', 'Z']] = sphere_df[['X', 'Y', 'Z']].astype(int)
     return sphere_df
 
 

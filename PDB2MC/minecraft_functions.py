@@ -4,8 +4,10 @@ from PDB2MC import variables
 from shutil import copy
 from zipfile import ZipFile
 import re
-from nbt_structure_utils import NBTStructure, Vector, BlockData
 import shutil
+import numpy as np
+from concurrent.futures import ThreadPoolExecutor
+from nbt_structure_utils import NBTStructure, BlockData, Vector
 
 def extract_remarks_from_pdb(pdb_file, pdb_name):
     pdb_title = ""
@@ -339,55 +341,53 @@ def create_structure_from_mcfunction(name, directory, functions):
     nbtstructure.get_nbt(pressurize=False, align_to_origin=False).write_file(filename=nbt_file)
 
 
-def create_nbt(df, name, air, dir, blocks):
-
-    dir = dir.split("\datapacks/mcPDB/data/protein/functions")[0]
-    dir = dir + "/generated/mc/structures/"
+def process_nbt_chunk(chunk, block_dict, air, dir, name, idx):
     nbtstructure = NBTStructure()
+    coords = chunk[['X', 'Y', 'Z']].round().astype(int).values
+    coords[:, 0] += 40
+    coords[:, 2] += 40
 
-    block_dict = blocks
-    block_type = 'air' if air else 'block'
-
-    # Add a line to set a minecraft obsidian block at the origin and a line to set a minecraft sign at the origin
-    pdb_name = name.lower()
-
-    df['X'] = df['X'].astype(int).round()
-    df['Y'] = df['Y'].astype(int).round()
-    df['Z'] = df['Z'].astype(int).round()
-
-    for index, row in df.iterrows():
-        x, y, z = row['X'], row['Y'], row['Z']
-
-        if 'atom' in df.columns:
-            # Check if block_dict is a single minecraft block
-            if isinstance(block_dict, str):
-                block = block_dict
-            else:
-                if str(row['atom']).isdigit():
-                    block = variables.chain_blocks.get(str(row['atom']), 'gray_concrete')
-                # Check if the str in the 'atom' is a digit and 'b'
-                elif str(row['atom']).endswith('b'):
-                    block = variables.dark_skeleton_blocks.get(str(row['atom']), 'gray_concrete')
-                else:
-                    block = block_dict.get(row['atom'], 'pink_concrete')
+    if 'atom' in chunk.columns:
+        atoms = chunk['atom'].astype(str).values
+        if isinstance(block_dict, str):
+            block_types = np.full(len(chunk), block_dict)
         else:
-            block = block_dict.get('backbone_atom', 'pink_concrete')
+            block_types = np.array([
+                variables.chain_blocks.get(a, 'gray_concrete') if a.isdigit() else
+                variables.dark_skeleton_blocks.get(a, 'gray_concrete') if a.endswith('b') else
+                block_dict.get(a, 'pink_concrete')
+                for a in atoms
+            ])
+    else:
+        block_types = np.full(len(chunk), block_dict.get('backbone_atom', 'pink_concrete'))
 
-        if air:
-            block = 'air'
-        x += 40
-        # y += 70
-        z += 40
+    if air:
+        block_types[:] = 'air'
+
+    for (x, y, z), block in zip(coords, block_types):
         nbtstructure.set_block(Vector(x, y, z), BlockData(block))
 
-    nbt_file = os.path.join(dir, f"{pdb_name}.nbt")
-    nbt_file = nbt_file.replace("/", "\\")
+    nbt_file = os.path.join(dir, f"{name.lower()}_part{idx}.nbt").replace("/", "\\")
     nbtstructure.get_nbt(pressurize=False, align_to_origin=False).write_file(filename=nbt_file)
+
+def create_nbt(df, name, air, dir, blocks, num_threads=4):
+    dir = dir.split("\datapacks/mcPDB/data/protein/functions")[0]
+    dir = dir + "/generated/mc/structures/"
+    block_dict = blocks
+
+    chunks = np.array_split(df, num_threads)
+    with ThreadPoolExecutor(max_workers=num_threads) as executor:
+        for idx, chunk in enumerate(chunks):
+            executor.submit(process_nbt_chunk, chunk, block_dict, air, dir, name, idx)
+
 def create_nbt_function(mcfiles, pdb_name, directory):
     lower_pdb_name = pdb_name.lower()
 
     # sort df by the naming convention
+    mcfiles['group'] = mcfiles['group'].astype(str)
     mcfiles = mcfiles.sort_values('group', key=lambda x: x.str.split('_').str[1])
+    print("mcfiles shape:", mcfiles.shape)
+    print("mcfiles head:\n", mcfiles.head())
 
     sidechain_backbone = mcfiles[mcfiles['group'].str.contains("sidechain|backbone")]
 
@@ -419,28 +419,52 @@ def create_individual_nbt_functions(mcfiles, directory):
             f.write(f'place template mc:{file}\n')
 
 
-def create_nbt_delete(pdb_name, mc_dir):
-    nbt_dir = mc_dir.split("\datapacks/mcPDB/data/protein/functions")[0]
-    nbt_dir = nbt_dir + "/generated/mc/structures/"
+# def create_nbt_delete(pdb_name, mc_dir):
+#     nbt_dir = mc_dir.split("\datapacks/mcPDB/data/protein/functions")[0]
+#     nbt_dir = nbt_dir + "/generated/mc/structures/"
+#
+#     lower_pdb_name = pdb_name.lower()
+#
+#     #Iterate through the directory and for each .nbt file that starts with lower_pdb_name, print the name
+#     for filename in os.listdir(nbt_dir):
+#         if filename.startswith(lower_pdb_name) and filename.endswith(".nbt"):
+#             nbt_structure = NBTStructure(os.path.join(nbt_dir, filename))
+#             for block in nbt_structure.blocks:
+#                 nbt_structure.set_block(block, BlockData('air'))
+#
+#             nbt_file = os.path.join(nbt_dir, f"delete_{filename}")
+#             nbt_file = nbt_file.replace("/", "\\")
+#             nbt_structure.get_nbt(pressurize=False, align_to_origin=False).write_file(filename=nbt_file)
 
+def process_nbt_file(nbt_dir, filename):
+    nbt_structure = NBTStructure(os.path.join(nbt_dir, filename))
+    for block in nbt_structure.blocks:
+        nbt_structure.set_block(block, BlockData('air'))
+    nbt_file = os.path.join(nbt_dir, f"delete_{filename}").replace("/", "\\")
+    nbt_structure.get_nbt(pressurize=False, align_to_origin=False).write_file(filename=nbt_file)
+
+def create_nbt_delete(pdb_name, mc_dir):
+    nbt_dir = mc_dir.split("\\datapacks/mcPDB/data/protein/functions")[0]
+    nbt_dir = nbt_dir + "/generated/mc/structures/"
     lower_pdb_name = pdb_name.lower()
 
-    #Iterate through the directory and for each .nbt file that starts with lower_pdb_name, print the name
-    for filename in os.listdir(nbt_dir):
-        if filename.startswith(lower_pdb_name) and filename.endswith(".nbt"):
-            nbt_structure = NBTStructure(os.path.join(nbt_dir, filename))
-            for block in nbt_structure.blocks:
-                nbt_structure.set_block(block, BlockData('air'))
+    files = [
+        filename for filename in os.listdir(nbt_dir)
+        if filename.startswith(lower_pdb_name) and filename.endswith(".nbt")
+    ]
 
-            nbt_file = os.path.join(nbt_dir, f"delete_{filename}")
-            nbt_file = nbt_file.replace("/", "\\")
-            nbt_structure.get_nbt(pressurize=False, align_to_origin=False).write_file(filename=nbt_file)
+    with ThreadPoolExecutor() as executor:
+        for filename in files:
+            executor.submit(process_nbt_file, nbt_dir, filename)
 
 def create_nbt_delete_function(mcfiles, pdb_name, directory):
     lower_pdb_name = pdb_name.lower()
 
     # sort df by the naming convention
+    mcfiles['group'] = mcfiles['group'].astype(str)
     mcfiles = mcfiles.sort_values('group', key=lambda x: x.str.split('_').str[1])
+    print("mcfiles shape:", mcfiles.shape)
+    print("mcfiles head:\n", mcfiles.head())
 
     with open(os.path.join(directory, f"clear_{lower_pdb_name}.mcfunction"), 'w') as f:
         f.write(f'say Removing... must be standing on original obsidian block.\n')
@@ -452,63 +476,72 @@ def adjust_y_coords(directory, pdb_name, nbtFile=False):
     files = []
 
     if not nbtFile:
-        # Find the minimum Y value
+        # Collect all relevant files and their Y values in one pass
+        y_values = []
         for filename in os.listdir(directory):
             if pdb_name in filename and filename.endswith(".mcfunction"):
                 files.append(filename)
                 with open(os.path.join(directory, filename), 'r') as f:
                     for line in f:
-                        if not line.startswith("setblock ~ ~-1 ~ minecraft:obsidian replace") and 'setblock' in line:
-                            y = int(float(line.split(' ')[2].split('~')[1]))
-                            if min_y is None or y < min_y:
-                                min_y = y
+                        if line.startswith("setblock ~ ~-1 ~ minecraft:obsidian replace"):
+                            continue
+                        if 'setblock' in line:
+                            try:
+                                y = int(float(line.split(' ')[2].split('~')[1]))
+                                y_values.append(y)
+                            except (IndexError, ValueError):
+                                continue
+        if y_values:
+            min_y = min(y_values)
+        else:
+            return  # No Y values found, nothing to adjust
 
         # Adjust Y values in the files
         for filename in files:
-            with open(os.path.join(directory, filename), 'r') as f:
+            file_path = os.path.join(directory, filename)
+            with open(file_path, 'r') as f:
                 lines = f.readlines()
-            with open(os.path.join(directory, filename), 'w') as f:
+            with open(file_path, 'w') as f:
                 for line in lines:
-                    if not line.startswith("setblock ~ ~-1 ~ minecraft:obsidian replace") and 'setblock' in line:
-                        y = int(float(line.split(' ')[2].split('~')[1]))
+                    if line.startswith("setblock ~ ~-1 ~ minecraft:obsidian replace") or 'setblock' not in line:
+                        f.write(line)
+                        continue
+                    parts = line.split(' ')
+                    try:
+                        y = int(float(parts[2].split('~')[1]))
                         adjusted_y = y - min_y
-                        start = ' '.join(line.split(' ')[0:2])
-                        adj_y = "~" + str(adjusted_y)
-                        end = ' '.join(line.split(' ')[3:10])
-                        line = start + " " + adj_y + " " + end
+                        parts[2] = f"~{adjusted_y}"
+                        line = ' '.join(parts)
+                    except (IndexError, ValueError):
+                        pass
                     f.write(line)
     else:
-        # Split the path into parts
+        # NBT file handling
         normalized_path = os.path.normpath(directory)
         path_parts = normalized_path.split(os.sep)
-
-        # Find the index of '.minecraft/saves' and get the next part as the dynamic directory name
         try:
             minecraft_saves_index = path_parts.index('saves')
             dynamic_dir_name = os.sep.join(path_parts[:minecraft_saves_index + 2])
         except ValueError:
-            dynamic_dir_name = None  # or handle the error as needed
             print("Error: No 'saves' directory found in path")
+            return
 
-        if dynamic_dir_name:
-            nbt_dir = os.path.normpath(os.path.join(os.sep.join(path_parts[:minecraft_saves_index]), dynamic_dir_name,
-                                                    "generated/mc/structures"))
+        nbt_dir = os.path.normpath(os.path.join(os.sep.join(path_parts[:minecraft_saves_index]), dynamic_dir_name, "generated/mc/structures"))
 
-        # Load NBT Files
+        nbt_y_values = []
         for filename in os.listdir(nbt_dir):
             if pdb_name in filename and filename.endswith(".nbt"):
                 files.append(filename)
                 nbt_structure = NBTStructure(os.path.join(nbt_dir, filename))
-                nbt_y = nbt_structure.get_min_coords().y
-                if min_y is None or nbt_y < min_y:
-                    min_y = nbt_y
+                nbt_y_values.append(nbt_structure.get_min_coords().y)
+        if nbt_y_values:
+            min_y = min(nbt_y_values)
+        else:
+            return
 
-        # Adjust Y Coordinates
         for filename in files:
             nbt_structure = NBTStructure(os.path.join(nbt_dir, filename))
             nbt_structure.translate(Vector(0, -min_y, 0))
-
-            #Save Adjusted NBT Files
             nbt_structure.get_nbt(pressurize=False, align_to_origin=False).write_file(
                 filename=os.path.join(nbt_dir, filename))
 

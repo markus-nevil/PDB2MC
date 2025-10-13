@@ -1,14 +1,86 @@
-from PyQt6.QtWidgets import QApplication, QMainWindow, QCompleter
+from PyQt6.QtWidgets import QApplication, QMainWindow, QCompleter, QVBoxLayout, QLabel, QDialog
 from PyQt6.QtGui import QDesktopServices, QColor, QIcon, QPainter, QPixmap
 from PyQt6 import QtCore, QtGui, QtWidgets
+from PyQt6.QtCore import QThread, pyqtSignal
 import os
 from PDB2MC.variables import decorative_blocks, hex_dict
 import pandas as pd
 from PDB2MC import minecraft_functions as mcf, pdb_manipulation as pdbm, space_filling
-
 from .utilities import InformationBox, MyComboBox, IncludedPDBPopup, MinecraftPopup, FileExplorerPopup
 import sys
 import pkg_resources
+
+class WorkerThread(QThread):
+    finished = pyqtSignal(object)  # You can pass results if needed
+
+    def __init__(self, config_data, parent=None):
+        super().__init__(parent)
+        self.config_data = config_data
+
+    def run(self):
+
+        config_data = self.config_data
+        # Read in the PDB file and process it
+        pdb_file = config_data['pdb_file']
+        pdb_df = pdbm.read_pdb(pdb_file)
+        pdb_name = pdbm.get_pdb_code(pdb_file)
+        scalar = config_data['scale']
+        scaled = pdbm.scale_coordinates(pdb_df, scalar)
+        moved = pdbm.move_coordinates(scaled)
+        moved = pdbm.rotate_to_y(moved)
+        rounded = pdbm.round_df(moved)
+
+        hetatom_df = pd.DataFrame()
+        hetatm_bonds = pd.DataFrame()
+
+        # Check if the user wants het-atoms, if so, process them
+        if config_data["show_hetatm"] == True:
+            # check if the first column of rounded contains any "HETATM" values
+
+            if "HETATM" in rounded.iloc[:, 0].values:
+                hetatm_bonds = pdbm.process_hetatom(rounded, pdb_file)
+                hetatom_df = pdbm.filter_type_atom(rounded, remove_type="ATOM", remove_atom="H")
+                # hetatom_df = pdbm.filter_type_atom(rounded, remove_type="ATOM")
+            else:
+                hetatm_bonds = None
+                hetatom_df = None
+                config_data["show_hetatm"] = False
+
+        atom_df = pdbm.filter_type_atom(rounded, remove_type="HETATM", remove_atom="H")
+
+        # Delete the old mcfunctions if they match the current one
+        mc_dir = config_data['save_path']
+        mcf.delete_old_files(mc_dir, pdb_name)
+
+        try:
+            # space_filling.run_mode(config_data, pdb_name, rounded, mc_dir, atom_df, hetatom_df, hetatm_bonds)
+            space_filling.run_mode(config_data, pdb_name, atom_df, mc_dir, atom_df, hetatom_df, hetatm_bonds)
+        except Exception as e:
+            self.show_information_box(title_text=f"Error encountered",
+                                      text=f"Model has not generated! \nError: {e}",
+                                      icon_path="images/icons/icon_bad.png")
+
+        lower = pdb_name.lower()
+
+        # Collect and finish up NBT files
+        mcf.finish_nbts(mc_dir, config_data, pdb_name)
+
+        # Create and collect the NBT and mcfunction files to delete models
+        mcf.create_nbt_delete(pdb_name, mc_dir)
+        mcf.finish_delete_nbts(mc_dir, pdb_name)
+        # Emit both result and lower
+        self.finished.emit({"result": "done", "lower": lower})
+
+class PleaseWaitDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Please wait")
+        layout = QVBoxLayout()
+        layout.addWidget(QLabel("Processing, please wait..."))
+        self.setLayout(layout)
+        self.setModal(True)
+
+
 class spWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -141,198 +213,6 @@ class spWindow(QMainWindow):
         self.bg.setPixmap(QtGui.QPixmap("images/MC2PDB bg.png"))
         self.bg.setScaledContents(True)
         self.bg.setObjectName("bg")
-        # icon1 = QtGui.QIcon()
-        # icon1.addPixmap(QtGui.QPixmap("images/icons/black_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon2 = QtGui.QIcon()
-        # icon2.addPixmap(QtGui.QPixmap("images/icons/red_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon3 = QtGui.QIcon()
-        # icon3.addPixmap(QtGui.QPixmap("images/icons/orange_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon4 = QtGui.QIcon()
-        # icon4.addPixmap(QtGui.QPixmap("images/icons/yellow_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon5 = QtGui.QIcon()
-        # icon5.addPixmap(QtGui.QPixmap("images/icons/lime_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon6 = QtGui.QIcon()
-        # icon6.addPixmap(QtGui.QPixmap("images/icons/green_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon7 = QtGui.QIcon()
-        # icon7.addPixmap(QtGui.QPixmap("images/icons/cyan_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon8 = QtGui.QIcon()
-        # icon8.addPixmap(QtGui.QPixmap("images/icons/light_blue_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon9 = QtGui.QIcon()
-        # icon9.addPixmap(QtGui.QPixmap("images/icons/blue_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon10 = QtGui.QIcon()
-        # icon10.addPixmap(QtGui.QPixmap("images/icons/purple_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon11 = QtGui.QIcon()
-        # icon11.addPixmap(QtGui.QPixmap("images/icons/magenta_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon12 = QtGui.QIcon()
-        # icon12.addPixmap(QtGui.QPixmap("images/icons/magenta_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon13 = QtGui.QIcon()
-        # icon13.addPixmap(QtGui.QPixmap("images/icons/brown_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon14 = QtGui.QIcon()
-        # icon14.addPixmap(QtGui.QPixmap("images/icons/gray_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon15 = QtGui.QIcon()
-        # icon15.addPixmap(QtGui.QPixmap("images/icons/light_gray_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon16 = QtGui.QIcon()
-        # icon16.addPixmap(QtGui.QPixmap("images/icons/white_concrete.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon17 = QtGui.QIcon()
-        # icon17.addPixmap(QtGui.QPixmap("images/icons/red_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon18 = QtGui.QIcon()
-        # icon18.addPixmap(QtGui.QPixmap("images/icons/orange_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon19 = QtGui.QIcon()
-        # icon19.addPixmap(QtGui.QPixmap("images/icons/yellow_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon20 = QtGui.QIcon()
-        # icon20.addPixmap(QtGui.QPixmap("images/icons/lime_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon21 = QtGui.QIcon()
-        # icon21.addPixmap(QtGui.QPixmap("images/icons/green_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon22 = QtGui.QIcon()
-        # icon22.addPixmap(QtGui.QPixmap("images/icons/cyan_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon23 = QtGui.QIcon()
-        # icon23.addPixmap(QtGui.QPixmap("images/icons/light_blue_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon24 = QtGui.QIcon()
-        # icon24.addPixmap(QtGui.QPixmap("images/icons/blue_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon25 = QtGui.QIcon()
-        # icon25.addPixmap(QtGui.QPixmap("images/icons/purple_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon26 = QtGui.QIcon()
-        # icon26.addPixmap(QtGui.QPixmap("images/icons/magenta_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon27 = QtGui.QIcon()
-        # icon27.addPixmap(QtGui.QPixmap("images/icons/pink_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon28 = QtGui.QIcon()
-        # icon28.addPixmap(QtGui.QPixmap("images/icons/brown_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon29 = QtGui.QIcon()
-        # icon29.addPixmap(QtGui.QPixmap("images/icons/black_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon30 = QtGui.QIcon()
-        # icon30.addPixmap(QtGui.QPixmap("images/icons/gray_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon31 = QtGui.QIcon()
-        # icon31.addPixmap(QtGui.QPixmap("images/icons/light_gray_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon32 = QtGui.QIcon()
-        # icon32.addPixmap(QtGui.QPixmap("images/icons/white_glazed_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon33 = QtGui.QIcon()
-        # icon33.addPixmap(QtGui.QPixmap("images/icons/red_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon34 = QtGui.QIcon()
-        # icon34.addPixmap(QtGui.QPixmap("images/icons/orange_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon35 = QtGui.QIcon()
-        # icon35.addPixmap(QtGui.QPixmap("images/icons/yellow_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon36 = QtGui.QIcon()
-        # icon36.addPixmap(QtGui.QPixmap("images/icons/lime_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon37 = QtGui.QIcon()
-        # icon37.addPixmap(QtGui.QPixmap("images/icons/green_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon38 = QtGui.QIcon()
-        # icon38.addPixmap(QtGui.QPixmap("images/icons/cyan_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon39 = QtGui.QIcon()
-        # icon39.addPixmap(QtGui.QPixmap("images/icons/light_blue_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon40 = QtGui.QIcon()
-        # icon40.addPixmap(QtGui.QPixmap("images/icons/blue_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon41 = QtGui.QIcon()
-        # icon41.addPixmap(QtGui.QPixmap("images/icons/purple_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon42 = QtGui.QIcon()
-        # icon42.addPixmap(QtGui.QPixmap("images/icons/magenta_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon43 = QtGui.QIcon()
-        # icon43.addPixmap(QtGui.QPixmap("images/icons/pink_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon44 = QtGui.QIcon()
-        # icon44.addPixmap(QtGui.QPixmap("images/icons/brown_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon45 = QtGui.QIcon()
-        # icon45.addPixmap(QtGui.QPixmap("images/icons/black_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon46 = QtGui.QIcon()
-        # icon46.addPixmap(QtGui.QPixmap("images/icons/gray_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon47 = QtGui.QIcon()
-        # icon47.addPixmap(QtGui.QPixmap("images/icons/light_gray_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon48 = QtGui.QIcon()
-        # icon48.addPixmap(QtGui.QPixmap("images/icons/white_terracotta.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon49 = QtGui.QIcon()
-        # icon49.addPixmap(QtGui.QPixmap("images/icons/red_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon50 = QtGui.QIcon()
-        # icon50.addPixmap(QtGui.QPixmap("images/icons/orange_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon51 = QtGui.QIcon()
-        # icon51.addPixmap(QtGui.QPixmap("images/icons/yellow_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon52 = QtGui.QIcon()
-        # icon52.addPixmap(QtGui.QPixmap("images/icons/lime_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon53 = QtGui.QIcon()
-        # icon53.addPixmap(QtGui.QPixmap("images/icons/green_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon54 = QtGui.QIcon()
-        # icon54.addPixmap(QtGui.QPixmap("images/icons/cyan_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon55 = QtGui.QIcon()
-        # icon55.addPixmap(QtGui.QPixmap("images/icons/light_blue_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon56 = QtGui.QIcon()
-        # icon56.addPixmap(QtGui.QPixmap("images/icons/blue_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon57 = QtGui.QIcon()
-        # icon57.addPixmap(QtGui.QPixmap("images/icons/purple_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon58 = QtGui.QIcon()
-        # icon58.addPixmap(QtGui.QPixmap("images/icons/magenta_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon59 = QtGui.QIcon()
-        # icon59.addPixmap(QtGui.QPixmap("images/icons/pink_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon60 = QtGui.QIcon()
-        # icon60.addPixmap(QtGui.QPixmap("images/icons/brown_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon61 = QtGui.QIcon()
-        # icon61.addPixmap(QtGui.QPixmap("images/icons/black_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon62 = QtGui.QIcon()
-        # icon62.addPixmap(QtGui.QPixmap("images/icons/gray_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon63 = QtGui.QIcon()
-        # icon63.addPixmap(QtGui.QPixmap("images/icons/light_gray_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        #
-        # icon64 = QtGui.QIcon()
-        # icon64.addPixmap(QtGui.QPixmap("images/icons/white_wool.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-
         self.cColorLabel = QtWidgets.QLabel(parent=self.centralwidget)
         self.cColorLabel.setGeometry(QtCore.QRect(110, 10, 106, 21))
         self.cColorLabel.setObjectName("cColorLabel")
@@ -767,74 +647,31 @@ class spWindow(QMainWindow):
             config_data['pdb_file'] = self.user_pdb_file
             config_data['save_path'] = self.user_minecraft_save
 
+            self.wait_dialog = PleaseWaitDialog(self)
+            self.wait_dialog.show()
+
+            self.worker = WorkerThread(config_data)
+            self.worker.finished.connect(self.on_worker_finished)
+            self.worker.start()
+
             #QMessageBox.information(None, "Please wait", "This process will take a long time, please wait.")
 
-            # Read in the PDB file and process it
-            pdb_file = config_data['pdb_file']
-            pdb_df = pdbm.read_pdb(pdb_file)
-            pdb_name = pdbm.get_pdb_code(pdb_file)
-            scalar = config_data['scale']
-            scaled = pdbm.scale_coordinates(pdb_df, scalar)
-            moved = pdbm.move_coordinates(scaled)
-            moved = pdbm.rotate_to_y(moved)
-            rounded = pdbm.round_df(moved)
 
-            hetatom_df = pd.DataFrame()
-            hetatm_bonds = pd.DataFrame()
 
-            # Check if the user wants het-atoms, if so, process them
-            if config_data["show_hetatm"] == True:
-                # check if the first column of rounded contains any "HETATM" values
-
-                if "HETATM" in rounded.iloc[:, 0].values:
-                    hetatm_bonds = pdbm.process_hetatom(rounded, pdb_file)
-                    hetatom_df = pdbm.filter_type_atom(rounded, remove_type="ATOM", remove_atom="H")
-                    # hetatom_df = pdbm.filter_type_atom(rounded, remove_type="ATOM")
-                else:
-                    hetatm_bonds = None
-                    hetatom_df = None
-                    config_data["show_hetatm"] = False
-
-            atom_df = pdbm.filter_type_atom(rounded, remove_type="HETATM", remove_atom="H")
-
-            # Delete the old mcfunctions if they match the current one
-            mc_dir = config_data['save_path']
-            mcf.delete_old_files(mc_dir, pdb_name)
-
-            try:
-                #space_filling.run_mode(config_data, pdb_name, rounded, mc_dir, atom_df, hetatom_df, hetatm_bonds)
-                space_filling.run_mode(config_data, pdb_name, atom_df, mc_dir, atom_df, hetatom_df, hetatm_bonds)
-            except Exception as e:
-                self.show_information_box(title_text=f"Error encountered",
-                                          text=f"Model has not generated! \nError: {e}",
-                                          icon_path="images/icons/icon_bad.png")
-
-            # mcfiles = mcf.find_mcfunctions(mc_dir, pdb_name.lower())
-            #
-            # if config_data["simple"]:
-            #     mcf.create_simple_function(pdb_name, mc_dir)
-            #     mcf.create_clear_function(mc_dir, pdb_name)
-            #     mcf.delete_mcfunctions(mc_dir, "z" + pdb_name.lower())
-            # else:
-            #     mcf.create_master_function(mcfiles, pdb_name, mc_dir)
-            #     mcf.create_clear_function(mc_dir, pdb_name)
-
-            lower = pdb_name.lower()
-            mcf.adjust_y_coords(mc_dir, lower, nbtFile=True)
-
-            # Collect and finish up NBT files
-            mcf.finish_nbts(mc_dir, config_data, pdb_name)
-
-            # Create and collect the NBT and mcfunction files to delete models
-            mcf.create_nbt_delete(pdb_name, mc_dir)
-            mcf.finish_delete_nbts(mc_dir, pdb_name)
-
-            self.show_information_box(title_text = f"Model generated", text = f"Finished! \n Remember to use /reload\n Make your model with: /function protein:build_" + lower, icon_path ="images/icons/icon_good.png")
+            #self.show_information_box(title_text = f"Model generated", text = f"Finished! \n Remember to use /reload\n Make your model with: /function protein:build_" + lower, icon_path ="images/icons/icon_good.png")
 
             #QMessageBox.information(None, "Model generated", f"Finished!\nRemember to /reload in your world and /function protein:build_{lower}")
 
     def handle_github_button(self):
         QDesktopServices.openUrl(QtCore.QUrl("https://github.com/markus-nevil/mcpdb"))
+
+    def on_worker_finished(self, result):
+        self.wait_dialog.close()
+        lower = result.get("lower", "unknown")
+        self.show_information_box(
+            title_text = f"Model generated",
+            text = f"Finished! \n Remember to use /reload\n Make your model with: /function protein:build_" + lower,
+            icon_path ="images/icons/icon_good.png")
 
     def handle_help_button(self):
         from UI.help_window import HelpWindow
