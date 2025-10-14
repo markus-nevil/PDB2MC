@@ -6,9 +6,9 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 from UI import help_window, custom_window, skeleton_window, xray_window, space_filling_window, ribbon_window, amino_acids_window, tool_window
 import sys
 #import pkg_resources
-import importlib_resources
+import importlib.resources as importlib_resources
 from packaging import version
-from importlib_metadata import version, PackageNotFoundError
+from importlib.metadata import version, PackageNotFoundError
 from PDB2MC.version import version
 from UI.utilities import InformationBox
 import requests

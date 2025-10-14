@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QApplication, QMainWindow, QCompleter, QVBoxLayout, QLabel, QDialog
+from PyQt6.QtWidgets import QApplication, QMainWindow, QCompleter, QVBoxLayout, QLabel, QDialog, QProgressBar
 from PyQt6.QtGui import QDesktopServices, QColor, QIcon, QPainter, QPixmap
 from PyQt6 import QtCore, QtGui, QtWidgets
 from PyQt6.QtCore import QThread, pyqtSignal
@@ -12,6 +12,7 @@ import pkg_resources
 
 class WorkerThread(QThread):
     finished = pyqtSignal(object)  # You can pass results if needed
+    progress = pyqtSignal(int)
 
     def __init__(self, config_data, parent=None):
         super().__init__(parent)
@@ -29,9 +30,9 @@ class WorkerThread(QThread):
         moved = pdbm.move_coordinates(scaled)
         moved = pdbm.rotate_to_y(moved)
         rounded = pdbm.round_df(moved)
-
         hetatom_df = pd.DataFrame()
         hetatm_bonds = pd.DataFrame()
+        self.progress.emit(10)
 
         # Check if the user wants het-atoms, if so, process them
         if config_data["show_hetatm"] == True:
@@ -47,7 +48,7 @@ class WorkerThread(QThread):
                 config_data["show_hetatm"] = False
 
         atom_df = pdbm.filter_type_atom(rounded, remove_type="HETATM", remove_atom="H")
-
+        self.progress.emit(30)
         # Delete the old mcfunctions if they match the current one
         mc_dir = config_data['save_path']
         mcf.delete_old_files(mc_dir, pdb_name)
@@ -55,6 +56,7 @@ class WorkerThread(QThread):
         try:
             # space_filling.run_mode(config_data, pdb_name, rounded, mc_dir, atom_df, hetatom_df, hetatm_bonds)
             space_filling.run_mode(config_data, pdb_name, atom_df, mc_dir, atom_df, hetatom_df, hetatm_bonds)
+            self.progress.emit(50)
         except Exception as e:
             self.show_information_box(title_text=f"Error encountered",
                                       text=f"Model has not generated! \nError: {e}",
@@ -64,10 +66,13 @@ class WorkerThread(QThread):
 
         # Collect and finish up NBT files
         mcf.finish_nbts(mc_dir, config_data, pdb_name)
+        self.progress.emit(70)
 
         # Create and collect the NBT and mcfunction files to delete models
         mcf.create_nbt_delete(pdb_name, mc_dir)
+        self.progress.emit(85)
         mcf.finish_delete_nbts(mc_dir, pdb_name)
+        self.progress.emit(100)
         # Emit both result and lower
         self.finished.emit({"result": "done", "lower": lower})
 
@@ -76,9 +81,27 @@ class PleaseWaitDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("Please wait")
         layout = QVBoxLayout()
-        layout.addWidget(QLabel("Processing, please wait..."))
+        self.status_label = QLabel("Processing, please wait...")
+        layout.addWidget(self.status_label)
+        self.progress_bar = QProgressBar(self)
+        self.progress_bar.setRange(0, 100)
+        layout.addWidget(self.progress_bar)
         self.setLayout(layout)
         self.setModal(True)
+    def set_progress(self, value):
+        self.progress_bar.setValue(value)
+        if value <= 10:
+            self.status_label.setText("Reading and scaling PDB file...")
+        elif value <= 30:
+            self.status_label.setText("Processing atoms and bonds...")
+        elif value <= 50:
+            self.status_label.setText("Generating intermediate files...")
+        elif value <= 70:
+            self.status_label.setText("Generating Minecraft files...")
+        elif value <= 85:
+            self.status_label.setText("Finalizing output...")
+        else:
+            self.status_label.setText("Done!")
 
 
 class spWindow(QMainWindow):
@@ -87,18 +110,10 @@ class spWindow(QMainWindow):
         self.user_pdb_file = None
         self.user_minecraft_save = None
         self.setWindowTitle("Space Filling mode")
-        # current_directory = os.path.basename(os.getcwd())
-        # if current_directory == "PDB2MC":
-        #     mcpdb_directory = os.path.join(os.getcwd(), ".." "UI")
-        #     os.chdir(mcpdb_directory)
-
         os.chdir(get_images_path())
 
         self.resize(435, 411)
         self.setWindowIcon(QIcon('images/icons/logo.png'))
-
-        # Set style to Fusion
-        #self.setStyle("Fusion")
         self.centralwidget = QtWidgets.QWidget(parent=self)
         self.centralwidget.setObjectName("centralwidget")
         self.switchModeLabel = QtWidgets.QLabel(parent=self.centralwidget)
@@ -651,6 +666,7 @@ class spWindow(QMainWindow):
             self.wait_dialog.show()
 
             self.worker = WorkerThread(config_data)
+            self.worker.progress.connect(self.wait_dialog.set_progress)
             self.worker.finished.connect(self.on_worker_finished)
             self.worker.start()
 
