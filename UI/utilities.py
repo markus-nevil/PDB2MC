@@ -270,7 +270,7 @@ class MinecraftPopup(QMainWindow):
     def __init__(self):
         super().__init__()
         home_dir = os.path.expanduser("~")
-        wd = os.path.join(home_dir, "AppData\Roaming\.minecraft\saves")
+        wd = os.path.join(home_dir, r"AppData\Roaming\.minecraft\saves")
         good_dir = False
         self.selected_directory = None
         while not good_dir:

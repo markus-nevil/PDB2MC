@@ -6,6 +6,7 @@ from itertools import cycle
 
 def run_mode(config_data, pdb_name, pdb_file, rounded, mc_dir, atom_df, hetatom_df, hetatm_bonds):
     # Deal with the backbone
+    print("running custom!")
     if config_data["backbone"]:
         pdb_backbone = pdb_name + "_backbone"
         backbone = pdbm.atom_subset(rounded, ['C', 'N', 'CA', 'P', "O5'", "C5'", "C4'", "C3'", "O3'"],
@@ -63,6 +64,7 @@ def run_mode(config_data, pdb_name, pdb_file, rounded, mc_dir, atom_df, hetatom_
             center = pdbm.sphere_center(config_data['atom_scale'])
         shortened = pdbm.shorten_atom_names(atom_df)
         spheres = pdbm.add_sphere_coordinates(coord, center, shortened, mesh=config_data['mesh'])
+        print("I created a file!", mc_dir)
         mcf.create_nbt(spheres, pdb_atoms, air=False, dir=mc_dir, blocks=config_data['atoms'])
 
     if config_data["show_hetatm"]:

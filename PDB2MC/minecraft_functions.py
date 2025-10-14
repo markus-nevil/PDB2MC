@@ -110,13 +110,16 @@ def delete_nbt_mcfunctions_from_dir(save_directory):
 
 
 def delete_mcfunctions(directory, name):
-    for filename in os.listdir(directory):
-        if filename.startswith("build_" + name) and filename.endswith(".mcfunction"):
-            os.remove(os.path.join(directory, filename))
-        if filename.startswith(name) and filename.endswith(".mcfunction"):
-            os.remove(os.path.join(directory, filename))
-        if filename.startswith(name) and filename.endswith(".nbt"):
-            os.remove(os.path.join(directory, filename))
+    if os.path.exists(directory):
+        for filename in os.listdir(directory):
+            if filename.startswith("build_" + name) and filename.endswith(".mcfunction"):
+                os.remove(os.path.join(directory, filename))
+            if filename.startswith(name) and filename.endswith(".mcfunction"):
+                os.remove(os.path.join(directory, filename))
+            if filename.startswith(name) and filename.endswith(".nbt"):
+                os.remove(os.path.join(directory, filename))
+    else:
+        print(f"Directory {directory} does not exist.")
 
 
 def delete_old_files(mc_dir, pdb_name):
@@ -128,6 +131,7 @@ def delete_old_files(mc_dir, pdb_name):
     # In the parallel directory named "function", delete the old mcfunction
     base_dir = os.path.dirname(mc_dir)  # Get the directory containing the "functions" directory
     new_dir = os.path.join(base_dir, "function")  # Path for the new "function" directory
+    new_dir = os.path.normpath(new_dir)
     delete_mcfunctions(new_dir, "z" + pdb_name.lower())
     delete_mcfunctions(new_dir, "build_" + pdb_name.lower())
     delete_mcfunctions(new_dir, "clear_" + pdb_name.lower())
@@ -191,12 +195,15 @@ def find_mcfunctions(directory, name):
 
 def find_nbt(directory, name):
     file_list = []
-    for filename in os.listdir(directory):
-        if filename.startswith(name) and filename.endswith(".nbt"):
-            parts = filename.split("_")
-            full = filename.split(".")
-            if len(parts) > 1:
-                file_list.append(full[0])
+    if os.path.exists(directory):
+        for filename in os.listdir(directory):
+            if filename.startswith(name) and filename.endswith(".nbt"):
+                parts = filename.split("_")
+                full = filename.split(".")
+                if len(parts) > 1:
+                    file_list.append(full[0])
+    else:
+        print(f"Directory {directory} does not exist.")
     df = pd.DataFrame({"group": file_list})
     return df
 
@@ -323,7 +330,7 @@ def create_structure_from_mcfunction(name, directory, functions):
     pdb_name = name.lower()
     nbtstructure = NBTStructure()
 
-    directory = directory.split("\datapacks/mcPDB/data/protein/functions")[0]
+    directory = directory.split(r"\datapacks/mcPDB/data/protein/functions")[0]
     directory = directory + "/generated/mc/structures/"
 
     # iterate through each line in functions
@@ -562,7 +569,7 @@ def copy_directory_contents(src, dest):
             shutil.copy2(s, d)
 
 def finish_nbts(mc_dir, config_data, pdb_name):
-    nbt_dir = mc_dir.split("\datapacks/mcPDB/data/protein/functions")[0]
+    nbt_dir = mc_dir.split(r"\datapacks/mcPDB/data/protein/functions")[0]
     nbt_dir = nbt_dir + "/generated/mc/structures/"
 
     mcfiles = find_nbt(nbt_dir, pdb_name.lower())
@@ -579,7 +586,7 @@ def finish_nbts(mc_dir, config_data, pdb_name):
     copy_directory_contents(mc_dir, new_dir)
 
 def finish_delete_nbts(mc_dir, pdb_name):
-    nbt_dir = mc_dir.split("\datapacks/mcPDB/data/protein/functions")[0]
+    nbt_dir = mc_dir.split(r"\datapacks/mcPDB/data/protein/functions")[0]
     nbt_dir = nbt_dir + "/generated/mc/structures/"
 
     mcfiles = find_delete_nbt(nbt_dir, pdb_name.lower())

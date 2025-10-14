@@ -240,7 +240,7 @@ class ToolWindow(QMainWindow):
 
     def handle_move_preset_button(self):
         home_dir = os.path.expanduser("~")
-        wd = os.path.join(home_dir, "AppData\Roaming\.minecraft\saves")
+        wd = os.path.join(home_dir, r"AppData\Roaming\.minecraft\saves")
         mcf.copy_blank_world(wd)
         self.show_information_box(title_text=f"Blank World Copied!",
                                   text=f"The blank world will now be found in your saves.\nRun again to overwrite with this world.",
