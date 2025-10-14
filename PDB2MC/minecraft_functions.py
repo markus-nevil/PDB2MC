@@ -415,9 +415,7 @@ def create_nbt_function(mcfiles, pdb_name, directory):
 
 
 def create_individual_nbt_functions(mcfiles, directory):
-    print(mcfiles)
     mcfiles_list = mcfiles.values.flatten().tolist()
-    print(mcfiles_list)
     for file in mcfiles_list:
         basename = os.path.splitext(file)[0]
         with open(os.path.join(directory, f"build_{basename}.mcfunction"), 'w') as f:
@@ -470,8 +468,6 @@ def create_nbt_delete_function(mcfiles, pdb_name, directory):
     # sort df by the naming convention
     mcfiles['group'] = mcfiles['group'].astype(str)
     mcfiles = mcfiles.sort_values('group', key=lambda x: x.str.split('_').str[1])
-    print("mcfiles shape:", mcfiles.shape)
-    print("mcfiles head:\n", mcfiles.head())
 
     with open(os.path.join(directory, f"clear_{lower_pdb_name}.mcfunction"), 'w') as f:
         f.write(f'say Removing... must be standing on original obsidian block.\n')

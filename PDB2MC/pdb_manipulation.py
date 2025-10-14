@@ -938,126 +938,6 @@ def find_intermediate_points(replot_df, keep_columns=False, atoms=None, fill_col
 
     return new_data
 
-# def find_intermediate_points_old(replot_df, keep_columns=False, atoms=None):
-#     other_atoms_df = pd.DataFrame(columns=replot_df.columns)
-#
-#     # If atoms was passed a value, filter the dataframe by the atoms saving the filtered-out atoms in other_atoms_df
-#     if atoms:
-#         other_atoms_df = atom_subset(replot_df, atoms, include=False)
-#         replot_df = atom_subset(replot_df, atoms, include=True)
-#
-#     # Initialize the new dataframe
-#     columns = ['X', 'Y', 'Z']
-#
-#     if keep_columns:
-#         other_columns = replot_df.columns.drop(columns)
-#         final_columns = replot_df.columns
-#     else:
-#         final_columns = columns
-#
-#     # initialize a new dataframe, new_data, with columns = final_columns
-#     new_data = pd.DataFrame(columns=final_columns)
-#
-#     # Iterate over each row of the input dataframe
-#     for i in range(1, len(replot_df)):
-#         # Get the current and previous points
-#         point1 = replot_df.iloc[i - 1][columns].values
-#         point2 = replot_df.iloc[i][columns].values
-#         if replot_df.iloc[i - 1]['chain'] == replot_df.iloc[i]['chain']:
-#             # Use Bresenham's line algorithm to find the intermediate points
-#             intermediate_points = bresenham_line(*point1, *point2)
-#
-#             # Convert to a small dataframe if intermediate_points is not empty
-#             if intermediate_points.size > 0:
-#                 df_small = pd.DataFrame(intermediate_points, columns=columns)
-#
-#                 # Add the missing columns from replot_df.iloc[i] to df_small
-#                 if keep_columns:
-#                     for col in other_columns:
-#                         df_small[col] = replot_df.iloc[i][col]
-#
-#                 # Add the df_small dataframe to the new_data dataframe
-#                 new_data = pd.concat([new_data, df_small], ignore_index=True)
-#
-#             # Add the intermediate points to the new_data array
-#             # for p in intermediate_points:
-#             #    new_data.append(p)
-#
-#     if len(other_atoms_df) > 0:
-#         new_data = pd.concat([new_data, other_atoms_df], ignore_index=True)
-#
-#     return new_data
-
-# Function that will take a pdb dataframe and a new dataframe and, starting at the first "atom" value of "O", will iteratively do the following:
-# 1. Find the next "atom" value of "N" in the same "chain" value
-# 2. Add that original "O" row to the new dataframe
-# 3. Add a new row with identical column values except for an "atom" value of "Nz", and new X, Y, Z coordinates such that the distance between the "Nz" and the "N" are the same as the distance between the original "O" and the last "C" row. Also the new coordinates should be as close to the coordinates of "O"
-# 4. Repeat steps 1-3 until the last "C" value in the "chain" is reached
-# 5. Return the new dataframe
-
-# def add_nz(df):
-#     # Initialize the new dataframe
-#     columns = ["atom_num", "atom", "residue", "chain", "resid", "X", "Y", "Z"]
-#     # Initialize a list to hold the new dataframe
-#     new_df = []
-#
-#     # Variable to hold the direction between two points
-#     xyz = []
-#     # Variable to hold the distance between two points
-#     distance = 0
-#
-#     # Iterate over each row until a row with an "atom" value of "C" is reached
-#     for i in range(len(df)):
-#
-#         if df.iloc[i]['atom'] == 'C':
-#             # Check if the next row has an "atom" value of "O", but only if the next row is not the last row
-#             if df.iloc[i + 1]['atom'] == 'O' and i + 1 != len(df) - 1:
-#
-#                 # Calculate the direction between the "C" and "O" points
-#                 xyz = df.iloc[i + 1][['X', 'Y', 'Z']].values - df.iloc[i][['X', 'Y', 'Z']].values
-#                 # Calculate the distance between the "C" and "O" points
-#                 distance = np.linalg.norm(xyz)
-#                 # Add the "O" row to the new dataframe
-#                 new_df.append(df.iloc[i + 1])
-#
-#                 # Iterate to find the next row with an "atom" value of "N", but only if the next row is not the last row:
-#                 while df.iloc[i + 2]['atom'] != 'N' and i + 2 != len(df) - 1:
-#                     i += 1
-#
-#                 # Add a new "Nz" row to the new dataframe by copying the "N" row and changing the "atom" value to "Nz"
-#                 new_df.append(df.iloc[i + 2])
-#                 new_df[-1]['atom'] = 'Nz'
-#                 # Calculate the new coordinates for the "Nz" row by using the same distance and direction but relative to the old "N" row and round to the nearest whole number
-#                 new_df[-1][['X', 'Y', 'Z']] = df.iloc[i + 2][['X', 'Y', 'Z']].values + (
-#                             distance * xyz / np.linalg.norm(xyz))
-#
-#                 # Update the iterator to skip the already examined "N" and "O" rows, but only if the next row is not the last row
-#                 if i + 6 <= len(df):
-#                     i += 2
-#
-#     # Convert the float values in columns X, Y, and Z to integers
-#     for i in range(len(new_df)):
-#         new_df[i][['X', 'Y', 'Z']] = new_df[i][['X', 'Y', 'Z']].astype(int)
-#
-#     test_df = pd.DataFrame(new_df, columns=columns)
-#
-#     # Using the completed new_df, use the bresenham_line function to find the intermediate points between the "O" and "Nz" rows
-#     new_df = find_intermediate_points(pd.DataFrame(new_df, columns=columns))
-#     # Return the new dataframe
-#     return new_df
-
-
-# Function that takes in a dataframe of coordinates and a raw PDB file
-# Add a new column to the dataframe called "structure" and initialize all values to "None"
-# Make a new dataframe called "structure_df" with columns "chain", "residue1", "resid1", "residue2", "resid2", and "structure"
-# Search through the PDB file for rows starting with "HELIX", which will contain two "residue" and "resid" values per row and appear in columns 4-9. Add these values to the "structure_df" dataframe in addition to "helix" in structure column.
-# Search through the PDB file for rows starting with "SHEET", which will contain four "residue" and "resid" values per row. The first two appear in columns 4-9. Add these values to the "structure_df" dataframe in addition to "sheet" in structure column.
-# Next, from the same row "SHEET" row in the PDB file, the last two "residue" and "resid" values appear in columns 12-18. Add these values to the "structure_df" dataframe in addition to "sheet" in structure column.
-# Now assume that in the structure_df, each row represents a range of residues that are part of a structure.
-# Now for each row of the coordinate dataframe (df), check if the "chain", "residue", and "resid" values match any of the rows in the structure_df or if the "chain" matches and the "resid" is between "resid1" and "resid2".
-# If there is a match, then change the "structure" value of the coordinate dataframe (df) to the value in the "structure" column of the structure_df.
-# Return the coordinate dataframe (df)
-
 def add_structure(df, pdb_file):
     # Add a structure column to the dataframe and initialize all values to "None"
     df['structure'] = "None"
@@ -1070,13 +950,7 @@ def add_structure(df, pdb_file):
         # Iterate over each line in the PDB file searching for rows starting with "HELIX" or "SHEET"
         for line in f:
             if line.startswith("HELIX"):
-                # Add the chain, residue, and resid values to the structure dataframe
-                # data = {'chain': line[19],
-                #         'residue1': line[15:19].strip(),
-                #         'resid1': line[22:26].strip(),
-                #         'residue2': line[27:31].strip(),
-                #         'resid2': line[34:38].strip(),
-                #         'structure': "helix"}
+
                 data = {'chain': line[18:20].strip(),
                         'residue1': line[15:18].strip(),
                         'resid1': line[22:26].strip(),
@@ -1085,19 +959,6 @@ def add_structure(df, pdb_file):
                         'structure': "helix"}
                 structure_df = pd.concat([structure_df, pd.DataFrame(data, index=[0])], ignore_index=True)
             elif line.startswith("SHEET"):
-                # Add the chain, residue, and resid values to the structure dataframe
-                # data1 = {'chain': line[21],
-                #          'residue1': line[17:21].strip(),
-                #          'resid1': line[22:27].strip(),
-                #          'residue2': line[28:32].strip(),
-                #          'resid2': line[34:38].strip(),
-                #          'structure': "sheet"}
-                # data2 = {'chain': line[49],
-                #          'residue1': line[44:48].strip(),
-                #          'resid1': line[52:55].strip(),
-                #          'residue2': line[59:63].strip(),
-                #          'resid2': line[67:70].strip(),
-                #          'structure': "sheet"}
                 data1 = {'chain': line[20:22].strip(),
                          'residue1': line[17:20].strip(),
                          'resid1': line[22:27].strip(),
@@ -1112,9 +973,6 @@ def add_structure(df, pdb_file):
                          'structure': "sheet"}
                 structure_df = pd.concat([structure_df, pd.DataFrame(data1, index=[0]), pd.DataFrame(data2, index=[0])],
                                          ignore_index=True)
-        print(structure_df.head(n=5))
-        print(structure_df.iloc[1200:1220])
-        print(structure_df.tail(n=5))
     # Remove any rows with only space characters for columns 'chain', 'residue1', 'resid1', 'residue2', or 'resid2'
     structure_df = structure_df[structure_df['chain'].str.strip().astype(bool)]
 

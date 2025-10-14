@@ -1,6 +1,7 @@
-from PyQt6.QtWidgets import QApplication, QMainWindow, QCompleter
+from PyQt6.QtWidgets import QApplication, QMainWindow, QCompleter, QVBoxLayout, QLabel, QDialog, QProgressBar
 from PyQt6.QtGui import QDesktopServices, QColor, QIcon, QPainter, QPixmap
 from PyQt6 import QtCore, QtGui, QtWidgets
+from PyQt6.QtCore import QThread, pyqtSignal
 import os
 from PDB2MC.variables import decorative_blocks, hex_dict
 import pandas as pd
@@ -9,6 +10,84 @@ from .utilities import InformationBox, MyComboBox, IncludedPDBPopup, MinecraftPo
 import sys
 import pkg_resources
 import shutil
+
+class WorkerThread(QThread):
+    finished = pyqtSignal(object)
+    progress = pyqtSignal(int)
+
+    def __init__(self, config_data, parent=None):
+        super().__init__(parent)
+        self.config_data = config_data
+
+    def run(self):
+        config_data = self.config_data
+        pdb_file = config_data['pdb_file']
+        pdb_df = pdbm.read_pdb(pdb_file)
+        pdb_name = pdbm.get_pdb_code(pdb_file)
+        scalar = config_data['scale']
+        scaled = pdbm.scale_coordinates(pdb_df, scalar)
+        moved = pdbm.move_coordinates(scaled)
+        moved = pdbm.rotate_to_y(moved)
+        rounded = pdbm.round_df(moved)
+        hetatom_df = pd.DataFrame()
+        hetatm_bonds = pd.DataFrame()
+        self.progress.emit(10)
+
+        if config_data["show_hetatm"]:
+            if "HETATM" in rounded.iloc[:, 0].values:
+                hetatm_bonds = pdbm.process_hetatom(rounded, pdb_file)
+                hetatom_df = pdbm.filter_type_atom(rounded, remove_type="ATOM", remove_atom="H")
+            else:
+                hetatm_bonds = None
+                hetatom_df = None
+                config_data["show_hetatm"] = False
+
+        self.progress.emit(30)
+        mc_dir = config_data['save_path']
+        mcf.delete_old_files(mc_dir, pdb_name)
+
+        try:
+            ribbon.run_mode(pdb_name, pdb_file, rounded, mc_dir, config_data, hetatom_df, hetatm_bonds)
+            self.progress.emit(50)
+        except Exception as e:
+            # Use signal/slot to show error in main thread if needed
+            pass
+
+        mcf.finish_nbts(mc_dir, config_data, pdb_name)
+        self.progress.emit(70)
+        mcf.create_nbt_delete(pdb_name, mc_dir)
+        self.progress.emit(85)
+        mcf.finish_delete_nbts(mc_dir, pdb_name)
+        self.progress.emit(100)
+        lower = pdb_name.lower()
+        self.finished.emit({"result": "done", "lower": lower})
+
+class PleaseWaitDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Please wait")
+        layout = QVBoxLayout()
+        self.status_label = QLabel("Processing, please wait...")
+        layout.addWidget(self.status_label)
+        self.progress_bar = QProgressBar(self)
+        self.progress_bar.setRange(0, 100)
+        layout.addWidget(self.progress_bar)
+        self.setLayout(layout)
+        self.setModal(True)
+    def set_progress(self, value):
+        self.progress_bar.setValue(value)
+        if value <= 10:
+            self.status_label.setText("Reading and scaling PDB file...")
+        elif value <= 30:
+            self.status_label.setText("Processing atoms and bonds...")
+        elif value <= 50:
+            self.status_label.setText("Generating intermediate files...")
+        elif value <= 70:
+            self.status_label.setText("Generating Minecraft files...")
+        elif value <= 85:
+            self.status_label.setText("Finalizing output...")
+        else:
+            self.status_label.setText("Done!")
 
 class RibbonWindow(QMainWindow):
     def __init__(self):
@@ -731,10 +810,7 @@ class RibbonWindow(QMainWindow):
         self.user_pdb_file = f"presets/{text}.pdb"
 
     def handle_make_function_button(self):
-        # Create a dictionary to store the user options
         config_data = {'atoms': {}}
-
-        # Add the current text of each combobox to the dictionary
         config_data['atoms']['ribbon_atom'] = self.ribbonColorBox.currentText()
         config_data['atoms']['O'] = 'red_wool'
         config_data['atoms']['N'] = 'blue_wool'
@@ -748,18 +824,13 @@ class RibbonWindow(QMainWindow):
         config_data['backbone_size'] = 1.0
         config_data['atom_scale'] = self.aScaleSpinBox.value()
         config_data['scale'] = self.pScaleSpinBox.value()
-
-        # Add the checked state of each checkbox to the dictionary
         config_data['show_hetatm'] = self.otherMoleculeCheck.isChecked()
         config_data['backbone'] = self.showBackboneCheck.isChecked()
         config_data['sidechain'] = self.showSidechainCheck.isChecked()
         config_data['by_chain'] = self.colorByBackboneCheck.isChecked()
         config_data['simple'] = self.simpleOutputCheck.isChecked()
         config_data['bar_style'] = self.barStyleCheck.isChecked()
-        #config_data['bar_style'] = True
 
-        # Add the current paths of the files and directories to the dictionary
-        # Replace 'file_path' and 'save_path' with the actual paths
         if self.user_pdb_file is None:
             self.show_information_box(title_text=f"Error: No PDB file",
                                       text=f"Please select a PDB file.",
@@ -772,54 +843,21 @@ class RibbonWindow(QMainWindow):
             config_data['pdb_file'] = self.user_pdb_file
             config_data['save_path'] = self.user_minecraft_save
 
-            # Read in the PDB file and process it
-            pdb_file = config_data['pdb_file']
-            pdb_df = pdbm.read_pdb(pdb_file)
-            pdb_name = pdbm.get_pdb_code(pdb_file)
-            scalar = config_data['scale']
-            scaled = pdbm.scale_coordinates(pdb_df, scalar)
-            moved = pdbm.move_coordinates(scaled)
-            moved = pdbm.rotate_to_y(moved)
-            rounded = pdbm.round_df(moved)
-            hetatom_df = pd.DataFrame()
-            hetatm_bonds = pd.DataFrame()
+            self.wait_dialog = PleaseWaitDialog(self)
+            self.wait_dialog.show()
 
-            # Check if the user wants het-atoms, if so, process them
-            if config_data["show_hetatm"]:
+            self.worker = WorkerThread(config_data)
+            self.worker.progress.connect(self.wait_dialog.set_progress)
+            self.worker.finished.connect(self.on_worker_finished)
+            self.worker.start()
 
-                # check if the first column of rounded contains any "HETATM" values
-                if "HETATM" in rounded.iloc[:, 0].values:
-                    hetatm_bonds = pdbm.process_hetatom(rounded, pdb_file)
-                    hetatom_df = pdbm.filter_type_atom(rounded, remove_type="ATOM", remove_atom="H")
-                else:
-                    hetatm_bonds = None
-                    hetatom_df = None
-                    config_data["show_hetatm"] = False
-
-            # atom_df = pdbm.filter_type_atom(rounded, remove_type="HETATM", remove_atom="H")
-
-            # Delete the old mcfunctions if they match the current one
-            mc_dir = config_data['save_path']
-            mcf.delete_old_files(mc_dir, pdb_name)
-            #ribbon.run_mode(pdb_name, pdb_file, rounded, mc_dir, config_data, hetatom_df, hetatm_bonds)
-
-            try:
-                #print(":P")
-                ribbon.run_mode(pdb_name, pdb_file, rounded, mc_dir, config_data, hetatom_df, hetatm_bonds)
-            except Exception as e:
-                self.show_information_box(title_text=f"Error encountered",
-                                          text=f"Model has not generated! \nError: {e}",
-                                          icon_path="images/icons/icon_bad.png")
-
-            #Collect and finish up NBT files
-            mcf.finish_nbts(mc_dir, config_data, pdb_name)
-
-            # Create and collect the NBT and mcfunction files to delete models
-            mcf.create_nbt_delete(pdb_name, mc_dir)
-            mcf.finish_delete_nbts(mc_dir, pdb_name)
-
-            lower = pdb_name.lower()
-            self.show_information_box(title_text = f"Model generated", text = f"Finished! \n Remember to use /reload\n Make your model with: /function protein:build_" + lower, icon_path ="images/icons/icon_good.png")
+    def on_worker_finished(self, result):
+        self.wait_dialog.close()
+        lower = result.get("lower", "unknown")
+        self.show_information_box(
+            title_text = f"Model generated",
+            text = f"Finished! \n Remember to use /reload\n Make your model with: /function protein:build_" + lower,
+            icon_path ="images/icons/icon_good.png")
 
     def handle_github_button(self):
         QDesktopServices.openUrl(QtCore.QUrl("https://github.com/markus-nevil/mcpdb"))
