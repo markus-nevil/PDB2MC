@@ -1,21 +1,30 @@
 import os
+import sys
+import requests
 
 from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel
 from PyQt6.QtGui import QDesktopServices, QIcon
 from PyQt6 import QtCore, QtGui, QtWidgets
-from UI import help_window, custom_window, skeleton_window, xray_window, space_filling_window, ribbon_window, amino_acids_window, tool_window
-import sys
-#import pkg_resources
-import importlib.resources as importlib_resources
-from packaging import version
+
+# UI windows
+from UI import (
+    help_window, custom_window, skeleton_window, xray_window,
+    space_filling_window, ribbon_window, amino_acids_window, tool_window
+)
+from UI.utilities import InformationBox
+
+# Version handling
+from packaging import version as packaging_version
 from importlib.metadata import version, PackageNotFoundError
 from PDB2MC.version import version
-from UI.utilities import InformationBox
-import requests
 
 help_window = None
 
 class MainWindow(QMainWindow):
+    """
+    Main application window for PDB2MC.
+    Handles UI setup, navigation, and version checking.
+    """
     def __init__(self):
         super().__init__()
 
@@ -26,6 +35,7 @@ class MainWindow(QMainWindow):
 
         self.setWindowIcon(QIcon('images/icons/logo.png'))
 
+        # Central widget and background GIF
         self.centralwidget = QtWidgets.QWidget(parent=self)
         self.centralwidget.setObjectName("centralwidget")
 
@@ -35,11 +45,11 @@ class MainWindow(QMainWindow):
         font.setPointSize(10)
         self.label.setFont(font)
         self.label.setText("")
-
         movie = QtGui.QMovie("images/bg.gif")
         self.label.setMovie(movie)
         movie.start()
 
+        # Version label
         self.version_label = QLabel(f'Version: {version}', self)
         self.version_label.setGeometry(0, 0, 130, 30)
         self.version_label.move(5, 590)
@@ -56,6 +66,8 @@ class MainWindow(QMainWindow):
         self.label.setScaledContents(True)
         self.label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         self.label.setObjectName("label")
+
+        # Mode selection combo box
         self.comboBox = QtWidgets.QComboBox(parent=self.centralwidget)
         self.comboBox.setGeometry(QtCore.QRect(340, 560, 231, 51))
         font = QtGui.QFont()
@@ -78,16 +90,17 @@ class MainWindow(QMainWindow):
         self.comboBox.addItem("Amino Acids")
         self.comboBox.addItem("Tools")
 
+        # Title image
         labelTitle = QtWidgets.QLabel(self)
         pixmap = QtGui.QPixmap("images/title.png")
         pixmap = pixmap.scaled(500, 500)
         labelTitle.setScaledContents(True)
         labelTitle.setGeometry(QtCore.QRect(215, 50, 500, 118))
-
         labelTitle.setPixmap(pixmap)
         labelTitle.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
         self.layout().addWidget(labelTitle)
 
+        # Help button
         self.help = QtWidgets.QPushButton(parent=self.centralwidget)
         font = QtGui.QFont()
         font.setPointSize(25)
@@ -95,6 +108,7 @@ class MainWindow(QMainWindow):
         self.help.setObjectName("help")
         self.help.setGeometry(QtCore.QRect(755, 560, 150, 51))
 
+        # Labels for UI
         self.label_2 = QtWidgets.QLabel(parent=self.centralwidget)
         self.label_2.setGeometry(QtCore.QRect(340, 510, 141, 71))
         font = QtGui.QFont()
@@ -102,72 +116,95 @@ class MainWindow(QMainWindow):
         font.setUnderline(True)
         self.label_2.setFont(font)
         self.label_2.setObjectName("label_2")
+
         self.label_3 = QtWidgets.QLabel(parent=self.centralwidget)
         self.label_3.setGeometry(QtCore.QRect(270, 0, 371, 71))
         font = QtGui.QFont()
         font.setPointSize(29)
         self.label_3.setFont(font)
         self.label_3.setObjectName("label_3")
+
         self.setCentralWidget(self.centralwidget)
         self.retranslateUi(self)
 
         QtCore.QMetaObject.connectSlotsByName(self)
 
-        # Connect the currentTextChanged signal to a slot method
+        # Connect signals
         self.comboBox.currentTextChanged.connect(self.handle_dropdown_change)
         self.help.clicked.connect(self.handle_help_button)
 
+        # Check for updates after startup
         self.timer = QtCore.QTimer()
         self.timer.singleShot(1000, self.is_outdated)
 
     def is_outdated(self):
-
-        #user_version = version.parse(version)
+        """
+        Checks if the local version is older than the latest GitHub release.
+        Shows a popup if an update is available.
+        Silently ignores connection errors.
+        """
         repo_owner = "markus-nevil"
         repo_name = "PDB2MC"
 
-        # Get the latest release from GitHub
         try:
-            response = requests.get(f"https://api.github.com/repos/{repo_owner}/{repo_name}/releases/latest")
-            response.raise_for_status()  # Raise an exception if the request failed
-            latest_release = response.json()["tag_name"]
-            print(latest_release)
+            response = requests.get(
+                f"https://api.github.com/repos/{repo_owner}/{repo_name}/releases/latest", timeout=5
+            )
+            response.raise_for_status()
+            latest_release = response.json().get("tag_name", None)
         except requests.ConnectionError:
-            return
+            return  # No internet, ignore
+        except Exception:
+            return  # Any other error, ignore
 
-        ## TODO: Implement the version check
-        # # Compare the local version with the latest release
-        # if latest_release is not None:
-        #     if version.parse(user_version) < version.parse(latest_release):
-        #         self.show_information_box(title_text=f"New Version Available!",
-        #                                   text=f"There is a new PDB2MC version available.\n Download Release v{version.parse(latest_release)} from Github.\nhttps://github.com/markus-nevil/PDB2MC",
-        #                                   icon_path="images/icons/icon_good.png")
+        if latest_release is not None:
+            try:
+                local_version = packaging_version.parse(str(version))
+                remote_version = packaging_version.parse(str(latest_release))
+                if local_version < remote_version:
+                    self.show_information_box(
+                        title_text="New Version Available!",
+                        text=f"There is a new PDB2MC version available.\n"
+                             f"Download Release v{remote_version} from Github.\n"
+                             f"https://github.com/markus-nevil/PDB2MC",
+                        icon_path="images/icons/icon_good.png"
+                    )
+            except Exception:
+                pass  # Ignore version parsing errors
 
     def show_information_box(self, title_text, text, icon_path):
+        """
+        Shows an information popup window.
+        """
         self.info_box = InformationBox()
         self.info_box.set_text(text)
         self.info_box.set_title(title_text)
         self.info_box.set_icon(icon_path)
         self.info_box.show()
+
     def handle_help_button(self):
+        """
+        Opens the help window, centering it on the screen.
+        """
         from UI.help_window import HelpWindow
         help_window = HelpWindow.instance()
         if help_window.isVisible():
-            # If a HelpWindow already exists, bring it to the front
             help_window.raise_()
             help_window.activateWindow()
         else:
-            # If no HelpWindow exists, create a new one
             help_window.show()
 
-        # Move the HelpWindow to the center of the current screen
+        # Center the help window
         frame_geometry = help_window.frameGeometry()
         screen_center = self.screen().availableGeometry().center()
         frame_geometry.moveCenter(screen_center)
         help_window.move(frame_geometry.topLeft())
-        #QDesktopServices.openUrl(QtCore.QUrl("https://github.com/markus-nevil/mcpdb/blob/main/README.md"))
 
     def handle_dropdown_change(self, text):
+        """
+        Handles mode selection from the dropdown.
+        Opens the corresponding window and hides the main window.
+        """
         if text == "Custom":
             self.custom_window = custom_window.CustomWindow()
             self.custom_window.show()
@@ -198,42 +235,42 @@ class MainWindow(QMainWindow):
             self.hide()
 
     def retranslateUi(self, MainWindow):
+        """
+        Sets UI text for widgets.
+        """
         _translate = QtCore.QCoreApplication.translate
         self.comboBox.setItemText(1, _translate("MainWindow", "Custom"))
         self.help.setText(_translate("MainWindow", "Help"))
-        # self.comboBox.setItemText(4, _translate("MainWindow", "Space Filling"))
-        # self.comboBox.setItemText(5, _translate("MainWindow", "Ribbon"))
-        # self.comboBox.setItemText(6, _translate("MainWindow", "Amino Acids"))
         self.label_2.setText(_translate("MainWindow", "Select Mode:"))
 
 def get_images_path():
+    """
+    Returns the path to the images directory, depending on execution context.
+    """
     if getattr(sys, 'frozen', False):
-        # The program is running as a compiled executable
+        # Compiled executable
+        import importlib.resources as importlib_resources
         images_dir = importlib_resources.files('UI').joinpath('images')
-        #images_dir = pkg_resources.resource_filename('UI', 'images')
-        #images_dir = os.path.join(images_dir, '..')
         return images_dir
     else:
-        # The program is running as a Python script or it's installed in the Python environment
-        # Get the directory of the current script
+        # Python script or installed package
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        # Construct the path to the UI/images directory
         images_dir = os.path.join(current_dir, '..', 'UI')
         return images_dir
 
-# def get_version(package_name):
-#     try:
-#         return pkg_resources.get_distribution(package_name).version
-#     except pkg_resources.DistributionNotFound:
-#         return None
-
 def get_version(package_name):
+    """
+    Returns the installed version of a package, or None if not found.
+    """
     try:
         return version(package_name)
     except PackageNotFoundError:
         return None
 
 def main():
+    """
+    Entry point for the application.
+    """
     app = QApplication([])
     main_window = MainWindow()
     main_window.show()

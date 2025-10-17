@@ -1,15 +1,84 @@
-from PyQt6.QtWidgets import QApplication, QMainWindow, QCompleter
+from PyQt6.QtWidgets import QApplication, QMainWindow, QCompleter, QDialog, QVBoxLayout, QLabel, QProgressBar
 from PyQt6.QtGui import QDesktopServices, QColor, QIcon, QPainter, QPixmap
 from PyQt6 import QtCore, QtGui, QtWidgets
 
 from PDB2MC.variables import decorative_blocks, hex_dict
-import pandas as pd
 from PDB2MC import minecraft_functions as mcf, custom, pdb_manipulation as pdbm
-
 from UI.utilities import InformationBox, IncludedPDBPopup, MyComboBox, MinecraftPopup, FileExplorerPopup
 import os
 import sys
 import pkg_resources
+
+from PyQt6.QtCore import QThread, pyqtSignal
+
+class WorkerThread(QThread):
+    finished = pyqtSignal(object)
+    progress = pyqtSignal(int)
+
+    def __init__(self, config_data, parent=None):
+        super().__init__(parent)
+        self.config_data = config_data
+
+    def run(self):
+        config_data = self.config_data
+        pdb_file = config_data['pdb_file']
+        try:
+            # Use StructureData to read the structure file ONCE
+            if pdb_file.lower().endswith('.cif'):
+                structure = pdbm.StructureData.from_mmcif(pdb_file)
+            else:
+                structure = pdbm.StructureData.from_pdb(pdb_file)
+            config_data['structure'] = structure
+
+            pdb_name = structure.metadata.get('id', pdbm.get_pdb_code(pdb_file))
+            self.progress.emit(10)
+
+            mc_dir = config_data['save_path']
+            mcf.delete_old_files(mc_dir, pdb_name)
+
+            try:
+                custom.run_mode(structure, config_data, pdb_name, mc_dir)
+                self.progress.emit(70)
+            except Exception as e:
+                self.finished.emit({"result": "error", "error": f"Error in custom.run_mode: {e}"})
+                return
+
+            mcf.finish_nbts(mc_dir, config_data, pdb_name)
+            self.progress.emit(85)
+            mcf.create_nbt_delete(pdb_name, mc_dir)
+            mcf.finish_delete_nbts(mc_dir, pdb_name)
+            self.progress.emit(100)
+            lower = pdb_name.lower()
+            self.finished.emit({"result": "done", "lower": lower})
+        except Exception as e:
+            self.finished.emit({"result": "error", "error": f"Fatal error in WorkerThread: {e}"})
+
+
+class PleaseWaitDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Please wait")
+        layout = QVBoxLayout()
+        self.status_label = QLabel("Processing, please wait...")
+        layout.addWidget(self.status_label)
+        self.progress_bar = QProgressBar(self)
+        self.progress_bar.setRange(0, 100)
+        layout.addWidget(self.progress_bar)
+        self.setLayout(layout)
+        self.setModal(True)
+
+    def set_progress(self, value):
+        self.progress_bar.setValue(value)
+        if value <= 10:
+            self.status_label.setText("Reading and scaling structure file...")
+        elif value <= 30:
+            self.status_label.setText("Processing atoms and bonds...")
+        elif value <= 70:
+            self.status_label.setText("Generating Minecraft files...")
+        elif value <= 85:
+            self.status_label.setText("Finalizing output...")
+        else:
+            self.status_label.setText("Done!")
 
 class CustomWindow(QMainWindow):
     def __init__(self):
@@ -823,6 +892,36 @@ class CustomWindow(QMainWindow):
         self.user_pdb_file = self.selectPDB.selected_file
         print(f"The user has this file: {self.user_pdb_file}")
 
+        # Show recommended scale popup after file selection (for both .pdb and .cif)
+        if self.user_pdb_file:
+            from .utilities import InformationBox
+            from PDB2MC import pdb_manipulation as pdbm
+            try:
+                world_max = 320
+                # First check if model fits in Minecraft
+                if not pdbm.check_model_size(self.user_pdb_file, world_max=world_max):
+                    self.info_box = InformationBox()  # Keep reference!
+                    self.info_box.set_text(f"The chosen model is too large for Minecraft.")
+                    self.info_box.set_title("Model too large!")
+                    self.info_box.set_icon("images/icons/icon_bad.png")
+                    self.info_box.show()
+                else:
+                    size_factor = pdbm.check_max_size(self.user_pdb_file, world_max=world_max)
+                    size_factor = str(round(size_factor, 2))
+                    self.info_box = InformationBox()  # Keep reference!
+                    self.info_box.set_text(
+                        f"The suggested maximum protein scale is: {size_factor}x\n\nSet 'Protein Scale' below this for best results.")
+                    self.info_box.set_title("Maximum scale")
+                    self.info_box.set_icon("images/icons/icon_info.png")
+                    self.info_box.show()
+            except Exception as e:
+                self.info_box = InformationBox()  # Keep reference!
+                self.info_box.set_text(f"Could not determine recommended scale.\nError: {e}")
+                self.info_box.set_title("Scale error")
+                self.info_box.set_icon("images/icons/icon_bad.png")
+                self.info_box.show()
+
+
     def handle_select_minecraft_button(self):
         self.selectMinecraft = MinecraftPopup()
         if self.selectMinecraft.selected_directory is None:
@@ -847,11 +946,9 @@ class CustomWindow(QMainWindow):
         print(f"The user has this file: {self.user_pdb_file}")
 
     def handle_make_function_button(self):
-        # Create a dictionary to store the user options
         config_data = {}
         config_data['atoms'] = {}
 
-        # Add the current text of each combobox to the dictionary
         config_data['atoms']['O'] = self.oColorBox.currentText()
         config_data['atoms']['N'] = self.nColorBox.currentText()
         config_data['atoms']['P'] = self.pColorBox.currentText()
@@ -866,7 +963,6 @@ class CustomWindow(QMainWindow):
         config_data['atom_scale'] = self.aScaleSpinBox.value()
         config_data['scale'] = self.pScaleSpinBox.value()
 
-        # Add the checked state of each checkbox to the dictionary
         config_data['show_atoms'] = self.showAtomsCheck.isChecked()
         config_data['show_hetatm'] = self.otherMoleculeCheck.isChecked()
         config_data['mesh'] = self.meshCheck.isChecked()
@@ -875,92 +971,43 @@ class CustomWindow(QMainWindow):
         config_data['by_chain'] = self.colorByBackboneCheck.isChecked()
         config_data['simple'] = self.simpleOutputCheck.isChecked()
 
-        # Add the current paths of the files and directories to the dictionary
-        # Replace 'file_path' and 'save_path' with the actual paths
         if self.user_pdb_file is None:
             self.show_information_box(title_text=f"Error: No PDB file",
                                       text=f"Please select a PDB file.",
                                       icon_path="images/icons/icon_bad.png")
-            #QMessageBox.critical(None, "Error", "Please select a PDB file.")
         elif self.user_minecraft_save is None:
             self.show_information_box(title_text=f"Error: No Minecraft save",
                                       text=f"Please select a Minecraft save.",
                                       icon_path="images/icons/icon_bad.png")
-            #QMessageBox.critical(None, "Error", "Please select a Minecraft save.")
         else:
             config_data['pdb_file'] = self.user_pdb_file
             config_data['save_path'] = self.user_minecraft_save
 
-            # Read in the PDB file and process it
-            pdb_file = config_data['pdb_file']
-            pdb_df = pdbm.read_pdb(pdb_file)
-            pdb_name = pdbm.get_pdb_code(pdb_file)
-            scalar = config_data['scale']
-            scaled = pdbm.scale_coordinates(pdb_df, scalar)
-            moved = pdbm.move_coordinates(scaled)
-            moved = pdbm.rotate_to_y(moved)
-            rounded = pdbm.round_df(moved)
+            # Show modal progress dialog
+            self.wait_dialog = PleaseWaitDialog(self)
+            self.wait_dialog.show()
 
-            # if(config_data['scale'] > 5):
-            #     lower = pdb_name.lower()
-            #     print(f"Generating large model for {lower}")
-            #     self.show_information_box(title_text=f"Generating large model",
-            #                               text=f"You are generating a very large model.\nThis may take a long time and may cause lag. Press Okay to continue",
-            #                               icon_path="images/icons/icon_info.png")
-            hetatom_df = pd.DataFrame()
-            hetatm_bonds = pd.DataFrame()
+            # Use WorkerThread for background processing
+            self.worker = WorkerThread(config_data)
+            self.worker.progress.connect(self.wait_dialog.set_progress)
+            self.worker.finished.connect(self.on_worker_finished)
+            self.worker.start()
 
-            # Check if the user wants het-atoms, if so, process them
-            if config_data["show_hetatm"] == True:
-                # check if the first column of rounded contains any "HETATM" values
-
-                if "HETATM" in rounded.iloc[:, 0].values:
-                    hetatm_bonds = pdbm.process_hetatom(rounded, pdb_file)
-                    hetatom_df = pdbm.filter_type_atom(rounded, remove_type="ATOM", remove_atom="H")
-                    # hetatom_df = pdbm.filter_type_atom(rounded, remove_type="ATOM")
-                else:
-                    hetatm_bonds = None
-                    hetatom_df = None
-                    config_data["show_hetatm"] = False
-
-            atom_df = pdbm.filter_type_atom(rounded, remove_type="HETATM", remove_atom="H")
-
-            # Delete the old mcfunctions if they match the current one
-            mc_dir = config_data['save_path']
-            mcf.delete_old_files(mc_dir, pdb_name)
-            #mcf.delete_mcfunctions(mc_dir, "z" + pdb_name.lower())
-
-            try:
-                custom.run_mode(config_data, pdb_name, pdb_file, rounded, mc_dir, atom_df, hetatom_df, hetatm_bonds)
-            except Exception as e:
-                self.show_information_box(title_text=f"Error encountered",
-                                          text=f"Model has not generated! \nError: {e}",
-                                          icon_path="images/icons/icon_bad.png")
-
-            # mcfiles = mcf.find_mcfunctions(mc_dir, pdb_name.lower())
-            #
-            # if config_data["simple"]:
-            #     mcf.create_simple_function(pdb_name, mc_dir)
-            #     mcf.create_clear_function(mc_dir, pdb_name)
-            #     mcf.delete_mcfunctions(mc_dir, "z" + pdb_name.lower())
-            # else:
-            #     mcf.create_master_function(mcfiles, pdb_name, mc_dir)
-            #     mcf.create_clear_function(mc_dir, pdb_name)
-
-            # Collect and finish up NBT files
-            mcf.finish_nbts(mc_dir, config_data, pdb_name)
-
-            # Create and collect the NBT and mcfunction files to delete models
-            mcf.create_nbt_delete(pdb_name, mc_dir)
-            mcf.finish_delete_nbts(mc_dir, pdb_name)
-
-            lower = pdb_name.lower()
-            self.show_information_box(title_text = f"Model generated",
-                                      text = f"Finished! \n Remember to use /reload\n Make your model with: /function protein:build_" + lower,
-                                      icon_path ="images/icons/icon_good.png")
-
-            #QMessageBox.information(None, "Model generated", f"Finished!\nRemember to /reload in your world and /function protein:build_{lower}")
-
+    def on_worker_finished(self, result):
+        self.wait_dialog.close()
+        if result.get("result") == "done":
+            lower = result.get("lower", "")
+            self.show_information_box(
+                title_text=f"Model generated",
+                text=f"Finished! \n Remember to use /reload\n Make your model with: /function protein:build_{lower}",
+                icon_path="images/icons/icon_good.png"
+            )
+        else:
+            self.show_information_box(
+                title_text="Error encountered",
+                text=f"Model has not generated! \nError: {result.get('error', '')}",
+                icon_path="images/icons/icon_bad.png"
+            )
 
     def handle_github_button(self):
         QDesktopServices.openUrl(QtCore.QUrl("https://github.com/markus-nevil/mcpdb"))

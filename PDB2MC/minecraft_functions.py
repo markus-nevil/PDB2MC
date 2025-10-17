@@ -108,6 +108,18 @@ def delete_nbt_mcfunctions_from_dir(save_directory):
     for file in files_to_delete:
         os.remove(file)
 
+def delete_pdb_nbt_files(pdb_name, mc_dir):
+    """
+    Deletes all .nbt files in the generated/mc/structures directory that start with the given PDB name.
+    """
+    nbt_dir = mc_dir.split(r"\datapacks/mcPDB/data/protein/functions")[0]
+    nbt_dir = nbt_dir + "/generated/mc/structures/"
+    lower_pdb_name = pdb_name.lower()
+
+    if os.path.exists(nbt_dir):
+        for filename in os.listdir(nbt_dir):
+            if filename.startswith(lower_pdb_name) and filename.endswith(".nbt"):
+                os.remove(os.path.join(nbt_dir, filename))
 
 def delete_mcfunctions(directory, name):
     if os.path.exists(directory):
@@ -393,8 +405,6 @@ def create_nbt_function(mcfiles, pdb_name, directory):
     # sort df by the naming convention
     mcfiles['group'] = mcfiles['group'].astype(str)
     mcfiles = mcfiles.sort_values('group', key=lambda x: x.str.split('_').str[1])
-    print("mcfiles shape:", mcfiles.shape)
-    print("mcfiles head:\n", mcfiles.head())
 
     sidechain_backbone = mcfiles[mcfiles['group'].str.contains("sidechain|backbone")]
 

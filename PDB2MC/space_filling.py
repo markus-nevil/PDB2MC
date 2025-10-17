@@ -5,10 +5,11 @@ from PDB2MC import pdb_manipulation as pdbm
 from PDB2MC import variables as var
 from itertools import cycle
 
-def run_mode(config_data, pdb_name, rounded, mc_dir, atom_df, hetatom_df, hetatm_bonds):
+def run_mode(config_data, pdb_name, atom_df, mc_dir, atom_df2, hetatom_df, hetatm_bonds, structure=None):
+    # structure: StructureData object, if provided
     print("Running space filling mode")
     cycle_sequence = cycle(range(1, 11))
-    space_filling_master_df = rounded
+    space_filling_master_df = atom_df
     space_filling_total_df = pd.DataFrame()
     point_df = pd.DataFrame()
     atoms_only_df = pd.DataFrame()
@@ -94,7 +95,8 @@ def run_mode(config_data, pdb_name, rounded, mc_dir, atom_df, hetatom_df, hetatm
     if not output_df.empty:
         nbt_exports.append((output_df, pdb_surface))
 
-    if config_data["show_hetatm"] and hetatom_df is not None and aligned_hetatm is not None:
+    # --- HETATM handling ---
+    if config_data["show_hetatm"] and hetatom_df is not None and structure is not None:
         pdb_hetatm = pdb_name + "_hetatm"
         scale = round(config_data['scale'] - 1)
         coord = pdbm.rasterized_sphere(scale)
@@ -104,10 +106,14 @@ def run_mode(config_data, pdb_name, rounded, mc_dir, atom_df, hetatom_df, hetatm
         if not spheres.empty:
             nbt_exports.append((spheres, pdb_hetatm))
         pdb_hetatm_bonds = pdb_name + "_hetatm_bonds"
-        if aligned_hetatm_bonds is not None:
-            aligned_hetatm_bonds['atom'] = 99
-            if not aligned_hetatm_bonds.empty:
-                nbt_exports.append((aligned_hetatm_bonds, pdb_hetatm_bonds))
+        # Always use structure.bonds for HETATM bonds
+        hetatm_bonds_df = pdbm.get_hetatm_bond_lines_from_df(aligned_hetatm, structure.bonds)
+        if hetatm_bonds_df is not None and not hetatm_bonds_df.empty:
+            hetatm_bonds_df['atom'] = 99
+            hetatm_bonds_df['X'] = hetatm_bonds_df['X'].astype(int).round()
+            hetatm_bonds_df['Y'] = hetatm_bonds_df['Y'].astype(int).round()
+            hetatm_bonds_df['Z'] = hetatm_bonds_df['Z'].astype(int).round()
+            nbt_exports.append((hetatm_bonds_df, pdb_hetatm_bonds))
 
     # Find the global minimum Y across all DataFrames
     all_min_ys = [df['Y'].min() for df, _ in nbt_exports if 'Y' in df.columns and not df.empty]

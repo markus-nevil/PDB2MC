@@ -13,6 +13,7 @@ from scipy.ndimage import convolve
 from scipy.spatial import cKDTree
 import pkg_resources
 import sys
+from PDB2MC.structure_data import StructureData
 
 import logging
 
@@ -91,36 +92,50 @@ def get_corner_points(df):
 
 # Function that takes a pdb file, reads the coordinates of a single chain, and determines whether the shortest edge of the bounding box is shorter than the parameter ymax
 def check_model_size(file_path, world_max):
-    pdb_df = read_pdb(file_path)
-    chain = clip_coords(pdb_df)
-    chain = rotate_to_y(chain)
-    ymin = chain['Y'].min()
-    ymax = chain['Y'].max()
-    ydiff = ymax - ymin
-    if ydiff < world_max:
-        return True
-    else:
+    try:
+        if file_path.lower().endswith('.cif'):
+            structure = StructureData.from_mmcif(file_path)
+        else:
+            structure = StructureData.from_pdb(file_path)
+        pdb_df = pd.DataFrame(structure.atoms)
+        if 'x' in pdb_df.columns:
+            pdb_df = pdb_df.rename(columns={'x': 'X', 'y': 'Y', 'z': 'Z'})
+        chain = clip_coords(pdb_df)
+        chain = rotate_to_y(chain)
+        ymin = chain['Y'].min()
+        ymax = chain['Y'].max()
+        ydiff = ymax - ymin
+        if ydiff < world_max:
+            return True
+        else:
+            return False
+    except Exception as e:
+        print(f"Error in check_model_size: {e}")
         return False
 
 
 # Function that takes a pdb file, reads the coordinates of a single chain, determines the shortest edge of the bounding box, and determines the muliplication required to make that >= ymax.
 def check_max_size(file_path, world_max):
-    y_values = []
-    with open(file_path, 'r') as f:
-        for line in f:
-            if line.startswith(('ATOM', 'HETATM')):
-                try:
-                    y = float(line[31:38].strip())
-                    y_values.append(y)
-                except ValueError:
-                    continue
-    if not y_values:
-        return 1  # or handle as needed
-    ymin = min(y_values)
-    ymax = max(y_values)
-    ydiff = ymax - ymin
-    multiplier = math.ceil(world_max / ydiff) if ydiff > 0 else 1
-    return multiplier
+    try:
+        # Always use StructureData for both PDB and mmCIF
+        if file_path.lower().endswith('.cif'):
+            structure = StructureData.from_mmcif(file_path)
+        else:
+            structure = StructureData.from_pdb(file_path)
+        pdb_df = pd.DataFrame(structure.atoms)
+        if 'x' in pdb_df.columns:
+            pdb_df = pdb_df.rename(columns={'x': 'X', 'y': 'Y', 'z': 'Z'})
+        y_values = pdb_df['Y'].tolist()
+        if not y_values:
+            return 1  # or handle as needed
+        ymin = min(y_values)
+        ymax = max(y_values)
+        ydiff = ymax - ymin
+        multiplier = math.ceil(world_max / ydiff) if ydiff > 0 else 1
+        return multiplier
+    except Exception as e:
+        print(f"Error in check_max_size: {e}")
+        return 1
 
 
 # def choose_subdir(file_path):
@@ -139,32 +154,44 @@ def check_max_size(file_path, world_max):
 #     return os.path.join(file_path, subdirectory)
 
 
-def read_pdb(filename):
-    atom_data = []
-    with open(filename, 'r') as f:
-        for line in f:
-            if line.startswith('ATOM') or line.startswith("HETATM"):
-                record = {'row': line[0:6].strip(),
-                          'atom_num': line[6:11].strip(),
-                          'atom': line[12:16].strip(),
-                          'residue': line[17:20].strip(),
-                          #'chain': line[21],
-                          'chain': line[20:22].strip(),
-                          'resid': int(line[22:26]),
-                          'X': pd.to_numeric(line[30:38].strip()),
-                          'Y': pd.to_numeric(line[38:46].strip()),
-                          'Z': pd.to_numeric(line[46:54].strip())}
-                # Check if the current record is the same as the last one in atom_data
-                if not atom_data or (atom_data[-1]['row'] != record['row'] or
-                                     atom_data[-1]['atom'] != record['atom'] or
-                                     atom_data[-1]['residue'] != record['residue'] or
-                                     atom_data[-1]['chain'] != record['chain'] or
-                                     atom_data[-1]['resid'] != record['resid']):
-                    atom_data.append(record)
-                #atom_data.append(record)
-    pdb_df = pd.DataFrame(atom_data)
+def read_pdb(filename_or_structure):
+    if isinstance(filename_or_structure, str):
+        atom_data = []
+        with open(filename_or_structure, 'r') as f:
+            for line in f:
+                if line.startswith('ATOM') or line.startswith("HETATM"):
+                    record = {'row': line[0:6].strip(),
+                              'atom_num': line[6:11].strip(),
+                              'atom': line[12:16].strip(),
+                              'residue': line[17:20].strip(),
+                              #'chain': line[21],
+                              'chain': line[20:22].strip(),
+                              'resid': int(line[22:26]),
+                              'X': pd.to_numeric(line[30:38].strip()),
+                              'Y': pd.to_numeric(line[38:46].strip()),
+                              'Z': pd.to_numeric(line[46:54].strip())}
+                    # Check if the current record is the same as the last one in atom_data
+                    if not atom_data or (atom_data[-1]['row'] != record['row'] or
+                                         atom_data[-1]['atom'] != record['atom'] or
+                                         atom_data[-1]['residue'] != record['residue'] or
+                                         atom_data[-1]['chain'] != record['chain'] or
+                                         atom_data[-1]['resid'] != record['resid']):
+                        atom_data.append(record)
+                    #atom_data.append(record)
+        pdb_df = pd.DataFrame(atom_data)
 
-    return pdb_df
+        return pdb_df
+    elif hasattr(filename_or_structure, 'atoms'):
+        # StructureData object
+        df = pd.DataFrame(filename_or_structure.atoms)
+        # Ensure 'resid' column exists and is int
+        if 'resid' not in df.columns and 'res_id' in df.columns:
+            df['resid'] = df['res_id']
+        if 'resid' in df.columns:
+            df['resid'] = df['resid'].astype(int)
+        return df
+    else:
+        raise ValueError("Input must be a filename or StructureData object")
 
 
 def get_pdb_code(file_path):
@@ -432,7 +459,7 @@ def flank_DNA(df, vector_df):
     non_flanked_coordinates = []
 
     vector_iter_count = 1
-    columns = ["atom_num", "atom", "residue", "chain", "resid", "X", "Y", "Z", "structure"]
+    columns = ["atom_num", "atom", "residue", "chain", "resid", "X", "Y", "Z"]
 
     # Iterate over the rows of the dataframe
     for i, row in df.iterrows():
@@ -927,6 +954,8 @@ def find_intermediate_points(replot_df, keep_columns=False, atoms=None, fill_col
                         df_small.loc[:half_point-1, col] = replot_df.iloc[i - 1][col]
                         df_small.loc[half_point:, col] = replot_df.iloc[i][col]
                 dfs.append(df_small)
+            else:
+                continue
 
     if dfs:
         new_data = pd.concat(dfs, ignore_index=True)
@@ -938,62 +967,6 @@ def find_intermediate_points(replot_df, keep_columns=False, atoms=None, fill_col
 
     return new_data
 
-def add_structure(df, pdb_file):
-    # Add a structure column to the dataframe and initialize all values to "None"
-    df['structure'] = "None"
-
-    # Initialize the structure dataframe
-    structure_df = pd.DataFrame(columns=['chain', 'residue1', 'resid1', 'residue2', 'resid2', 'structure'])
-
-    # Open the PDB file
-    with open(pdb_file, 'r') as f:
-        # Iterate over each line in the PDB file searching for rows starting with "HELIX" or "SHEET"
-        for line in f:
-            if line.startswith("HELIX"):
-
-                data = {'chain': line[18:20].strip(),
-                        'residue1': line[15:18].strip(),
-                        'resid1': line[22:26].strip(),
-                        'residue2': line[27:30].strip(),
-                        'resid2': line[34:38].strip(),
-                        'structure': "helix"}
-                structure_df = pd.concat([structure_df, pd.DataFrame(data, index=[0])], ignore_index=True)
-            elif line.startswith("SHEET"):
-                data1 = {'chain': line[20:22].strip(),
-                         'residue1': line[17:20].strip(),
-                         'resid1': line[22:27].strip(),
-                         'residue2': line[28:31].strip(),
-                         'resid2': line[34:38].strip(),
-                         'structure': "sheet"}
-                data2 = {'chain': line[48:50].strip(),
-                         'residue1': line[44:48].strip(),
-                         'resid1': line[51:55].strip(),
-                         'residue2': line[59:63].strip(),
-                         'resid2': line[66:70].strip(),
-                         'structure': "sheet"}
-                structure_df = pd.concat([structure_df, pd.DataFrame(data1, index=[0]), pd.DataFrame(data2, index=[0])],
-                                         ignore_index=True)
-    # Remove any rows with only space characters for columns 'chain', 'residue1', 'resid1', 'residue2', or 'resid2'
-    structure_df = structure_df[structure_df['chain'].str.strip().astype(bool)]
-
-    # Convert the 'str' values in the resid1 and resid2 columns to 'int'
-    structure_df[['resid1', 'resid2']] = structure_df[['resid1', 'resid2']].astype(int)
-
-    # Iterate over each row in the coordinate dataframe (df) and check if the "chain" and the "resid" value is between "resid1" and "resid2" in the structure dataframe. If so, add the structure value to the coordinate dataframe (df)
-    for i, row in df.iterrows():
-        # Find the matching row(s) in the structure dataframe
-        matching_rows = structure_df[
-            (structure_df['chain'] == row['chain']) & (structure_df['resid1'] <= row['resid']) & (
-                        structure_df['resid2'] >= row['resid'])]
-        # If there is a match, then change the "structure" value of the coordinate dataframe (df) to the value in the "structure" column of the structure_df.
-        if len(matching_rows) > 0:
-            df.at[i, 'structure'] = matching_rows['structure'].values[0]
-
-    print(df.head())
-    print(df['structure'].unique())
-    print(df['chain'].unique())
-    # Return the coordinate dataframe (df)
-    return df
 
 
 # Function that takes a dataframe of 3D coordinates and if four or more coordinates touch a location without any coordinates, then add a new coordinate at that location.
@@ -1037,7 +1010,6 @@ def add_structure(df, pdb_file):
 #                 missing_coordinates.append(neighbor)
 #
 #     # Create a new list for the missing coordinates with > 4 neighbors
-#     missing_coordinates_4 = []
 #
 #     # For each missing coordinate, check if there are at least four other coordinates that touch that location, and if so, add a new coordinate at that location to a dataframe
 #     for missing_coordinate in missing_coordinates:
@@ -1293,6 +1265,15 @@ def construct_surface_array(df):
     return array_3d
 
 
+def construct_surface_array_by_type(df, include=None):
+    """
+    Construct a 3D numpy array from the DataFrame, optionally filtering by 'atom' column values in 'include'.
+    This is a stub to avoid AttributeError. You can expand its logic as needed.
+    """
+    if include is not None and 'atom' in df.columns:
+        df = df[df['atom'].isin(include)]
+    return construct_surface_array(df)
+
 def filter_3d_array_with_bool(num_array, bool_array):
 
     num_array_copy = num_array.copy()
@@ -1433,7 +1414,7 @@ def SASA_gaussian_surface(arr_3d, sigma = 1.1, fill = False):
             eroded_line = np.swapaxes(eroded_line, 2, 0)
             eroded_line = np.swapaxes(eroded_line, 1, 2)
 
-    # Ensure the values are reversed (0 is 255, >=1 is 0)
+    #    # Ensure the values are reversed (0 is 255, >=1 is 0)
     inner_line = np.where(inner_line >= 1, 255, 0)
 
     inner_smooth = blur_3d_array(inner_line, sigma=sigma)
@@ -1540,27 +1521,38 @@ def adjust_hetatm_coordinates(original_bonds, moved_bonds, hetatm_bonds, hetatm)
 
     return hetatm, hetatm_bonds
 
-# def array_to_voxel(arr_3d, atom):
-#     # Find the coordinates where arr_3d is True
-#     nonzero_coords = np.array(np.where(arr_3d)).T
-#
-#     #subtract 10 from each coordinate
-#     nonzero_coords = nonzero_coords - 10
-#
-#     #subtract 40 from the x coordinate
-#     nonzero_coords[:, 0] = nonzero_coords[:, 0] - 40
-#
-#     #subtract 3 to the y coordinate
-#     nonzero_coords[:, 1] = nonzero_coords[:, 1] - 3
-#
-#     #subtract 35 from the z coordinate
-#     nonzero_coords[:, 2] = nonzero_coords[:, 2] - 35
-#
-#     #Create a voxel dataframe of the coordinates and an 'atom' column from the atom parameter
-#     voxel_df = pd.DataFrame(nonzero_coords, columns=['X', 'Y', 'Z'])
-#     voxel_df['atom'] = atom
-#
-#     return voxel_df
+def get_hetatm_bond_lines_from_df(atom_df, bonds):
+    """
+    Given a DataFrame of HETATM atoms and a list of bonds (dicts with atom_num1, atom_num2),
+    return a DataFrame of all bond line coordinates.
+    """
+    import numpy as np
+    import pandas as pd
+
+    results_df = pd.DataFrame(columns=['X', 'Y', 'Z'])
+    if atom_df is None or bonds is None or len(bonds) == 0:
+        return results_df
+
+    # Ensure atom_num is int for matching
+    atom_df = atom_df.copy()
+    atom_df['atom_num'] = atom_df['atom_num'].astype(int)
+
+    for bond in bonds:
+        atom_num1 = int(bond['atom_num1'])
+        atom_num2 = int(bond['atom_num2'])
+        atom1_coords = atom_df[atom_df['atom_num'] == atom_num1][['X', 'Y', 'Z']].values
+        atom2_coords = atom_df[atom_df['atom_num'] == atom_num2][['X', 'Y', 'Z']].values
+        if len(atom1_coords) == 0 or len(atom2_coords) == 0:
+            continue
+        atom1_coords = atom1_coords[0]
+        atom2_coords = atom2_coords[0]
+        # Ensure all coordinates are integers before passing to bresenham_line
+        x0, y0, z0 = map(int, np.round(atom1_coords))
+        x1, y1, z1 = map(int, np.round(atom2_coords))
+        line_coords = bresenham_line(x0, y0, z0, x1, y1, z1)
+        results_df = pd.concat([results_df, pd.DataFrame(line_coords, columns=['X', 'Y', 'Z'])], ignore_index=True)
+    return results_df
+
 
 def contour_outline(voxel_array, smooth=False, smooth_factor=0.02, fill = False):
 
@@ -1582,10 +1574,13 @@ def contour_outline(voxel_array, smooth=False, smooth_factor=0.02, fill = False)
         if j == 2:
             voxel_array = np.swapaxes(voxel_array, 0, 1)
             voxel_array = np.swapaxes(voxel_array, 0, 2)
+            final_tif = np.swapaxes(final_tif, 0, 1)
+            final_tif = np.swapaxes(final_tif, 0, 2)
         elif j == 1:
             voxel_array = np.swapaxes(voxel_array, 1, 0)
             voxel_array = np.swapaxes(voxel_array, 2, 1)
-
+            final_tif = np.swapaxes(final_tif, 1, 0)
+            final_tif = np.swapaxes(final_tif, 2, 1)
 
         # Iterate through each slice of the 3D image_array
         for i in range(voxel_array.shape[0]):
@@ -1633,23 +1628,23 @@ def contour_outline(voxel_array, smooth=False, smooth_factor=0.02, fill = False)
         # Ensure the final_tif contains only integers
         temp_tif = temp_tif.astype(np.uint8)
         temp_tif[temp_tif >= 1] = 1
+        final_tif = np.logical_or(final_tif, temp_tif)
 
+        # Swap the axes for the current dimension
         if j == 2:
             voxel_array = np.swapaxes(voxel_array, 0, 2)
             voxel_array = np.swapaxes(voxel_array, 0, 1)
-            temp_tif = np.swapaxes(temp_tif, 0, 2)
-            temp_tif = np.swapaxes(temp_tif, 0, 1)
-
+            final_tif = np.swapaxes(final_tif, 0, 2)
+            final_tif = np.swapaxes(final_tif, 0, 1)
         elif j == 1:
             voxel_array = np.swapaxes(voxel_array, 2, 0)
             voxel_array = np.swapaxes(voxel_array, 1, 2)
-            temp_tif = np.swapaxes(temp_tif, 2, 0)
-            temp_tif = np.swapaxes(temp_tif, 1, 2)
+            final_tif = np.swapaxes(final_tif, 2, 0)
+            final_tif = np.swapaxes(final_tif, 1, 2)
 
-        # Use np.logical_or to combine the two arrays
-        final_tif = np.logical_or(final_tif, temp_tif)
 
     return final_tif
+
 
 def find_border_cells(arr_3d):
     #Make a copy of the array and make the values np.int32
@@ -1743,107 +1738,6 @@ def align_and_filter_dataframes(numpy_array, original_df):
 #     # Create a dataframe from the coordinates list and return it
 #     return pd.DataFrame(coordinates, columns=['X', 'Y', 'Z', 'atom'])
 
-# def contour_outline2(voxel_array, smooth=False, smooth_factor=0.02, fill = False):
-#
-#     # make an empty 3d array with the shape of image_array
-#     final_tif = np.zeros(voxel_array.shape, dtype=np.uint8)
-#
-#     #Ensure the voxel_array contains only integers
-#     voxel_array = voxel_array.astype(np.uint8)
-#
-#     #Convert all numbers >= 1 to 100 in the voxel_array
-#     voxel_array[voxel_array >= 1] = 255
-#
-#     # Iterate through 0 to 2
-#     for j in range(0, 3):
-#
-#         filled_list = []
-#         voxel_array = np.swapaxes(voxel_array, j, 0)
-#
-#         # Iterate through each slice of the 3D image_array
-#         for i in range(voxel_array.shape[0]):
-#
-#             gray = voxel_array[i, :, :]
-#
-#             # Threshold the image to create a binary image
-#             ret, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY)
-#
-#             if smooth:
-#                 # Find the contours in the binary image
-#                 contours, hierarchy = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-#             else:
-#                 # Find the contours in the binary image
-#                 contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-#
-#             # Create a blank image with the same dimensions as the original image
-#             filled_img = np.zeros(gray.shape[:2], dtype=np.uint8)
-#
-#             # Iterate over the contours and their hierarchies
-#             for i, contour in enumerate(contours):
-#                 if smooth and hierarchy[0][i][3] == -1:
-#                     epsilon = smooth_factor * cv2.arcLength(contour, True)
-#                     approx = cv2.approxPolyDP(contour, epsilon, True)
-#                     # If the contour doesn't have a parent, fill it with pixel value 255
-#                     cv2.drawContours(filled_img, [approx], -1, 255, thickness=1)
-#                 elif fill and hierarchy[0][i][3] == -1:
-#                     # If the contour doesn't have a parent, fill it with pixel value 255
-#                     cv2.drawContours(filled_img, [contour], -1, 255, thickness=cv2.FILLED)
-#                 # Check if the contour has a parent
-#                 elif hierarchy[0][i][3] == -1:
-#                     # If the contour doesn't have a parent, fill it with pixel value 255
-#                     cv2.drawContours(filled_img, [contour], -1, 255, thickness=1)
-#
-#
-#             # append filled_im to filled_list
-#             filled_list.append(filled_img)
-#
-#         temp_tif = np.asarray(filled_list)
-#
-#         # Ensure the final_tif contains only integers
-#         temp_tif = temp_tif.astype(np.uint8)
-#         temp_tif[temp_tif >= 1] = 1
-#
-#         if j == 2:
-#             temp_tif = np.swapaxes(temp_tif, 0, 2)
-#             temp_tif = np.swapaxes(temp_tif, 0, 1)
-#         else:
-#             temp_tif = np.swapaxes(temp_tif, j, 0)
-#
-#         # Use np.logical_or to combine the two arrays
-#         final_tif = np.logical_or(final_tif, temp_tif)
-#
-#     return final_tif
-
-
-import numpy as np
-
-def construct_surface_array_by_type(df, include=['backbone', 'branches']):
-    # Get min and max for each axis
-    min_x, min_y, min_z = df[['X', 'Y', 'Z']].min()
-    max_x, max_y, max_z = df[['X', 'Y', 'Z']].max()
-
-    # Compute dimensions
-    dim_x = max_x - min_x + 1
-    dim_y = max_y - min_y + 1
-    dim_z = max_z - min_z + 1
-
-    # Prepare arrays
-    array_3d = np.zeros((dim_x, dim_y, dim_z), dtype=np.uint8)
-
-    # Map atoms to values
-    atom_is_included = df['atom'].isin(include)
-    coords = df[['X', 'Y', 'Z']].values - np.array([min_x, min_y, min_z])
-
-    # Ensure integer indices
-    included_coords = coords[atom_is_included].astype(int)
-    array_3d[included_coords[:, 0], included_coords[:, 1], included_coords[:, 2]] = 255
-
-    print("3d_type_array shape: ", array_3d.shape)
-    print("Unique values in 3d_type_array: ", np.unique(array_3d))
-    return array_3d
-
-
-#
 # def contour_outlinetwo(voxel_array, smooth=False, smooth_factor=0.02):
 #
 #     # make an empty 3d array with the shape of image_array
@@ -2036,34 +1930,6 @@ def paint_bucket_fill(arr_3d, row=1, col=1, fill_value=1e7, empty_value=1e6):
 #     return filtered_df
 
 
-# def filter_dataframe_by_array_bad(array, dataframe):
-#     unique_values = np.unique(array[array != 0])
-#
-#     # Create an array of boolean masks to filter the DataFrame
-#     masks = [dataframe.index == value for value in unique_values]
-#
-#     # Concatenate the masks along the rows to get a single boolean mask
-#     combined_mask = np.any(masks, axis=0)
-#
-#     # Use the combined mask to filter the DataFrame
-#     filtered_df = dataframe[combined_mask]
-#
-#     return filtered_df
-
-# def find_outer_surface(surface_array):
-#     surface_mask = np.zeros_like(surface_array, dtype=bool)
-#
-#     for z in range(surface_array.shape[2]):
-#         slice_2d = surface_array[:, :, z]
-#         slice_2d = np.ravel(slice_2d)
-#         convolved = np.convolve(slice_2d < 1e6, np.array([1, 1, 1]), mode='same')
-#         surface_mask[:, :, z] = (convolved > 0) & (convolved < 3)
-#
-#     surface_array[surface_mask] = surface_array[surface_mask]
-#     surface_array[surface_array == 1e6] = np.nan  # Remove the large value
-#     return surface_array
-
-
 # def filter_dataframe(original_df, surface_array):
 #     filtered_indices = [index for index in np.ravel(surface_array) if isinstance(index, int)]
 #     filtered_df = original_df.loc[filtered_indices]
@@ -2198,6 +2064,7 @@ def add_filled_sphere_coordinates(sphere_array, center, df):
     sphere_df = pd.DataFrame(new_rows, columns=['X', 'Y', 'Z', 'atom'])
     return sphere_df
 
+
 def fill_sphere_coordinates(sphere_array, center, df):
     sphere_coords = np.transpose(np.nonzero(sphere_array))
     new_rows = []
@@ -2211,42 +2078,34 @@ def fill_sphere_coordinates(sphere_array, center, df):
     return sphere_df
 
 
-# def process_coordinates(df):
-#     # Create an empty "hidden" column
-#     df["hidden"] = False
-#
-#     # Loop through each row in the dataframe
-#     for i, row in df.iterrows():
-#         # Extract the coordinates of the current row
-#         x, y, z = row["X"], row["Y"], row["Z"]
-#
-#         # Create a boolean array indicating whether each of the 6 surrounding coordinates exists in the dataframe
-#         surrounding = ((df["X"] == x + 1) & (df["Y"] == y) & (df["Z"] == z)) | \
-#                       ((df["X"] == x - 1) & (df["Y"] == y) & (df["Z"] == z)) | \
-#                       ((df["X"] == x) & (df["Y"] == y + 1) & (df["Z"] == z)) | \
-#                       ((df["X"] == x) & (df["Y"] == y - 1) & (df["Z"] == z)) | \
-#                       ((df["X"] == x) & (df["Y"] == y) & (df["Z"] == z + 1)) | \
-#                       ((df["X"] == x) & (df["Y"] == y) & (df["Z"] == z - 1))
-#
-#         # Count the number of surrounding coordinates that exist in the dataframe
-#         num_surrounding = np.sum(surrounding)
-#
-#         # Set the "hidden" column to True if there are 6 surrounding coordinates, False otherwise
-#         df.at[i, "hidden"] = num_surrounding == 6
-#
-#     # Remove any rows where "hidden" is True
-#     df = df[df["hidden"] == False]
-#
-#     # Remove the "hidden" column
-#     df = df.drop("hidden", axis=1)
-#
-#     return df
+def add_structure_from_structured_data(df, structure_data):
+    """
+    Assigns secondary structure (helix, sheet, none) to each amino acid in df using StructureData.structural_info.
+    """
+    df = df.copy()
+    df['structure'] = "None"
+    structure_df = structure_data.structural_info
 
+    # Defensive: ensure resid columns are int
+    if not structure_df.empty:
+        structure_df = structure_df.copy()
+        structure_df['resid1'] = structure_df['resid1'].astype(int)
+        structure_df['resid2'] = structure_df['resid2'].astype(int)
+
+    # Iterate over each row in df and assign structure if in range
+    for i, row in df.iterrows():
+        matching_rows = structure_df[
+            (structure_df['chain'] == row['chain']) &
+            (structure_df['resid1'] <= row['resid']) &
+            (structure_df['resid2'] >= row['resid'])
+        ]
+        if len(matching_rows) > 0:
+            df.at[i, 'structure'] = matching_rows['structure'].values[0]
+    return df
 
 def residue_to_atoms(df):
     df['atom'] = df['residue']
     return df
-
 
 def shorten_atom_names(df):
     def shorten_atom(atom):
@@ -2301,60 +2160,4 @@ def change_mode(config):
     return config
 
 
-def process_hetatom(atom_df, pdb_file):
-    # #Filter HETATM lines with "HOH" in the fourth column
-    # atom_df = atom_df[~((atom_df['row'] == 'HETATM') & (atom_df['atom'] == 'HOH'))]
-
-    # Step 1: Read CONECT lines from file
-    conect_ids = []
-    with open(pdb_file, 'r') as f:
-        for line in f:
-            # Check if the line starts with "CONECT"
-            if line.startswith("CONECT"):
-                # Save the part after "CONECT" in the 'start' variable
-                start = line[6:]
-
-                # Split the 'start' variable into values of 5 characters each
-                values = [start[i:i + 5] for i in range(0, len(start), 5)]
-
-                # Remove any strings with only spaces from the list
-                values = [value for value in values if value.strip()]
-
-                if values:
-                    base_value = int(values[0].replace(" ", ""))
-
-                    for val in values[1:]:
-                        val = val.replace(" ", "")
-                        conect_ids.append([base_value, int(val)])
-
-    # Step 2: Create dataframe from conect_ids
-    conect_ids_df = pd.DataFrame(conect_ids, columns=['atom_1', 'atom_2'])
-    # Step 3: Filter dataframe based on atoms present in atom_df
-    valid_atoms = set(atom_df['atom_num'].astype(int).values)
-
-    conect_ids_df = conect_ids_df[conect_ids_df['atom_1'].isin(valid_atoms) & conect_ids_df['atom_2'].isin(valid_atoms)]
-
-    # Step 4: Call bresenham_line for each row in the dataframe
-    results_df = pd.DataFrame(columns=['X', 'Y', 'Z'])
-    atom1_coords = []
-    atom2_coords = []
-
-    for index, row in conect_ids_df.iterrows():
-        atom1_coords = atom_df[atom_df['atom_num'].astype('int64') == row['atom_1']][['X', 'Y', 'Z']].values[0]
-        atom2_coords = atom_df[atom_df['atom_num'].astype('int64') == row['atom_2']][['X', 'Y', 'Z']].values[0]
-
-        atom1_coords = atom1_coords.reshape(1, 3)
-        atom1 = pd.DataFrame(atom1_coords, columns=['X', 'Y', 'Z'])
-
-        atom2_coords = atom2_coords.reshape(1, 3)
-        atom2 = pd.DataFrame(atom2_coords, columns=['X', 'Y', 'Z'])
-
-        line_coords = bresenham_line(atom1['X'].values[0], atom1['Y'].values[0], atom1['Z'].values[0],
-                                     atom2['X'].values[0], atom2['Y'].values[0], atom2['Z'].values[0])
-
-        results_df = pd.concat([results_df, pd.DataFrame(line_coords, columns=['X', 'Y', 'Z'])], ignore_index=True)
-
-    # Step 5: Remove duplicate rows from results_df
-    results_df = results_df.drop_duplicates()
-
-    return results_df
+# Remove downstream use of process_hetatom; always use get_hetatm_bond_lines_from_df with structure.bonds

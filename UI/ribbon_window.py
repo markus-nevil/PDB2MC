@@ -10,6 +10,7 @@ from .utilities import InformationBox, MyComboBox, IncludedPDBPopup, MinecraftPo
 import sys
 import pkg_resources
 import shutil
+from PDB2MC.structure_data import StructureData
 
 class WorkerThread(QThread):
     finished = pyqtSignal(object)
@@ -22,45 +23,54 @@ class WorkerThread(QThread):
     def run(self):
         config_data = self.config_data
         pdb_file = config_data['pdb_file']
-        pdb_df = pdbm.read_pdb(pdb_file)
-        pdb_name = pdbm.get_pdb_code(pdb_file)
-        scalar = config_data['scale']
-        scaled = pdbm.scale_coordinates(pdb_df, scalar)
-        moved = pdbm.move_coordinates(scaled)
-        moved = pdbm.rotate_to_y(moved)
-        rounded = pdbm.round_df(moved)
-        hetatom_df = pd.DataFrame()
-        hetatm_bonds = pd.DataFrame()
-        self.progress.emit(10)
-
-        if config_data["show_hetatm"]:
-            if "HETATM" in rounded.iloc[:, 0].values:
-                hetatm_bonds = pdbm.process_hetatom(rounded, pdb_file)
-                hetatom_df = pdbm.filter_type_atom(rounded, remove_type="ATOM", remove_atom="H")
-            else:
-                hetatm_bonds = None
-                hetatom_df = None
-                config_data["show_hetatm"] = False
-
-        self.progress.emit(30)
-        mc_dir = config_data['save_path']
-        mcf.delete_old_files(mc_dir, pdb_name)
 
         try:
-            ribbon.run_mode(pdb_name, pdb_file, rounded, mc_dir, config_data, hetatom_df, hetatm_bonds)
-            self.progress.emit(50)
-        except Exception as e:
-            # Use signal/slot to show error in main thread if needed
-            pass
+            # Use StructureData to read the structure file ONCE
+            if pdb_file.lower().endswith('.cif'):
+                structure = StructureData.from_mmcif(pdb_file)
+            else:
+                structure = StructureData.from_pdb(pdb_file)
+            config_data['structure'] = structure  # Pass StructureData downstream
 
-        mcf.finish_nbts(mc_dir, config_data, pdb_name)
-        self.progress.emit(70)
-        mcf.create_nbt_delete(pdb_name, mc_dir)
-        self.progress.emit(85)
-        mcf.finish_delete_nbts(mc_dir, pdb_name)
-        self.progress.emit(100)
-        lower = pdb_name.lower()
-        self.finished.emit({"result": "done", "lower": lower})
+            pdb_name = structure.metadata.get('id', pdbm.get_pdb_code(pdb_file))
+            self.progress.emit(10)
+
+            # --- HETATM handling ---
+            hetatom_df = None
+            hetatm_bonds = None
+            if config_data["show_hetatm"]:
+                # Let ribbon.run_mode handle DataFrame creation and filtering
+                hetatom_df = None
+                hetatm_bonds = None
+
+            self.progress.emit(30)
+            mc_dir = config_data['save_path']
+            mcf.delete_old_files(mc_dir, pdb_name)
+
+            try:
+                ribbon.run_mode(
+                    config_data,
+                    pdb_name,
+                    structure,
+                    mc_dir,
+                    hetatom_df,
+                    hetatm_bonds
+                )
+                self.progress.emit(50)
+            except Exception as e:
+                self.finished.emit({"result": "error", "error": f"Error in ribbon.run_mode: {e}"})
+                return
+
+            mcf.finish_nbts(mc_dir, config_data, pdb_name)
+            self.progress.emit(70)
+            mcf.create_nbt_delete(pdb_name, mc_dir)
+            self.progress.emit(85)
+            mcf.finish_delete_nbts(mc_dir, pdb_name)
+            self.progress.emit(100)
+            lower = pdb_name.lower()
+            self.finished.emit({"result": "done", "lower": lower})
+        except Exception as e:
+            self.finished.emit({"result": "error", "error": f"Fatal error in WorkerThread: {e}"})
 
 class PleaseWaitDialog(QDialog):
     def __init__(self, parent=None):
@@ -791,6 +801,36 @@ class RibbonWindow(QMainWindow):
     def handle_select_pdb_file_button(self):
         self.selectPDB = FileExplorerPopup()
         self.user_pdb_file = self.selectPDB.selected_file
+
+        # Show recommended scale popup after file selection (for both .pdb and .cif)
+        if self.user_pdb_file:
+            from .utilities import InformationBox
+            from PDB2MC import pdb_manipulation as pdbm
+            try:
+                world_max = 320
+                # First check if model fits in Minecraft
+                if not pdbm.check_model_size(self.user_pdb_file, world_max=world_max):
+                    self.info_box = InformationBox()  # Keep reference!
+                    self.info_box.set_text(f"The chosen model is too large for Minecraft.")
+                    self.info_box.set_title("Model too large!")
+                    self.info_box.set_icon("images/icons/icon_bad.png")
+                    self.info_box.show()
+                else:
+                    size_factor = pdbm.check_max_size(self.user_pdb_file, world_max=world_max)
+                    print("Multiplier is: ", size_factor)  # For debugging
+                    size_factor = str(round(size_factor, 2))
+                    self.info_box = InformationBox()  # Keep reference!
+                    self.info_box.set_text(
+                        f"The suggested maximum protein scale is: {size_factor}x\n\nSet 'Protein Scale' below this for best results.")
+                    self.info_box.set_title("Maximum scale")
+                    self.info_box.set_icon("images/icons/icon_info.png")
+                    self.info_box.show()
+            except Exception as e:
+                self.info_box = InformationBox()  # Keep reference!
+                self.info_box.set_text(f"Could not determine recommended scale.\nError: {e}")
+                self.info_box.set_title("Scale error")
+                self.info_box.set_icon("images/icons/icon_bad.png")
+                self.info_box.show()
 
     def handle_select_minecraft_button(self):
         self.selectMinecraft = MinecraftPopup()
