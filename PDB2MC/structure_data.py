@@ -31,8 +31,12 @@ class StructureData:
         self.structural_info = pd.DataFrame(
             columns=['chain', 'residue1', 'resid1', 'residue2', 'resid2', 'structure']
         )
-        self.sequences = {}  # chain_id: list of (resid, single_letter_code)
+        # sequences: maps chain -> list of tuples (true_resid, one_letter_code)
+        # - true_resid: the original residue id from the file (auth seq id); used for downstream references
+        # - one_letter_code: single-letter amino acid / nucleotide code
+        self.sequences = {}  # chain_id: list of (true_resid, single_letter_code)
         self.bonds = []      # List of dicts: {'atom_num1': int, 'atom_num2': int}
+        self.chain_identity = {}  # chain_id: molecule name
 
     @classmethod
     def from_pdb(cls, file_path):
@@ -149,7 +153,7 @@ class StructureData:
         chain_residues = {}
         for atom in instance.atoms:
             chain = atom['chain']
-            resid = atom['resid']
+            resid = atom['resid']            # true residue id from PDB file
             resname = atom['residue']
             # Only add first atom for each residue
             if chain not in chain_residues:
@@ -158,11 +162,50 @@ class StructureData:
                 # Only add if amino acid or nucleotide
                 code = three_to_one(resname)
                 if code != '?':
+                    # store as (true_resid, code)
                     chain_residues[chain].append((resid, code))
-        # Remove chains with no valid sequence
-        instance.sequences = {c: seq for c, seq in chain_residues.items() if seq}
+
+        # Use the simple (true_resid, code) format for sequences
+        instance.sequences = {c: seq for c, seq in chain_residues.items()}
         instance.metadata['id'] = pdb_id if pdb_id else structure.id
         instance.metadata['source_file'] = file_path
+
+        # --- Improved CMPND parsing for chain identity ---
+        cmpnd_lines = []
+        with open(file_path) as f:
+            for line in f:
+                if line.startswith("COMPND"):
+                    cmpnd_lines.append(line[10:].strip())
+
+        chain_identity = {}
+        if cmpnd_lines:
+            full = " ".join(cmpnd_lines)
+            # split into fields by semicolon; keep order
+            tokens = [t.strip() for t in full.split(";") if t.strip()]
+
+            current_molecule = None
+            for token in tokens:
+                # MOLECULE: <name>
+                m = re.match(r'^\s*MOLECULE:\s*(.+)$', token, flags=re.I)
+                if m:
+                    current_molecule = m.group(1).strip()
+                    # remove any trailing commas or periods
+                    current_molecule = current_molecule.rstrip(".,")
+                    continue
+
+                # CHAIN: A, B, C
+                c = re.match(r'^\s*CHAIN:\s*(.+)$', token, flags=re.I)
+                if c and current_molecule:
+                    chains_raw = c.group(1).strip()
+                    # split on commas, strip whitespace and ignore empty parts
+                    chains = [ch.strip() for ch in chains_raw.split(",") if ch.strip()]
+                    for ch in chains:
+                        chain_identity[ch] = current_molecule
+                    # consume the molecule so only the first CHAIN is associated with it
+                    current_molecule = None
+
+        instance.chain_identity = chain_identity
+        # ------------------------------------------------
         return instance
 
     def save_to_file(self, base_path):
@@ -331,14 +374,36 @@ class StructureData:
         chain_residues = {}
         for atom in instance.atoms:
             chain = atom['chain']
-            resid = atom['resid']
+            resid = atom['resid']  # true residue id from mmCIF auth_seq_id
             resname = atom['residue']
             if chain not in chain_residues:
                 chain_residues[chain] = []
             if not chain_residues[chain] or chain_residues[chain][-1][0] != resid:
                 code = three_to_one(resname)
                 if code != '?':
+                    # store as (true_resid, code)
                     chain_residues[chain].append((resid, code))
-        instance.sequences = {c: seq for c, seq in chain_residues.items() if seq}
+
+        # Use the simple (true_resid, code) format for sequences
+        instance.sequences = {c: seq for c, seq in chain_residues.items()}
         instance.metadata['source_file'] = file_path
+
+        # Parse entity names and map to chains
+        chain_identity = {}
+        # Get entity names
+        entity_names = mmcif_dict.get('_entity_name_com.name', [])
+        entity_ids = mmcif_dict.get('_entity_poly.entity_id', [])
+        strand_ids = mmcif_dict.get('_entity_poly.pdbx_strand_id', [])
+        # Map entity_id to name
+        entity_id_to_name = {}
+        for i, eid in enumerate(entity_ids):
+            name = entity_names[i] if i < len(entity_names) else ""
+            entity_id_to_name[eid] = name
+        # Map chain to name via entity_id
+        for i, eid in enumerate(entity_ids):
+            chains = strand_ids[i].replace(" ", "").split(",")
+            name = entity_id_to_name.get(eid, "")
+            for c in chains:
+                chain_identity[c] = name
+        instance.chain_identity = chain_identity
         return instance

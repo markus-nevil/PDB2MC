@@ -22,6 +22,8 @@ def run_mode(config_data, pdb_name, structure, mc_dir, hetatom_df, hetatm_bonds)
     df = pdbm.round_df(df)
     # Annotate secondary structure
     df = pdbm.add_structure_from_structured_data(df, structure)
+    pd.set_option('display.max_columns', None)
+    pd.set_option('display.width', None)
 
     # Backbone rendering
     if config_data["backbone"]:
@@ -34,6 +36,7 @@ def run_mode(config_data, pdb_name, structure, mc_dir, hetatom_df, hetatm_bonds)
             for i, chain_value in enumerate(chain_values):
                 chain_df = backbone[backbone["chain"] == chain_value]
                 intermediate = pdbm.find_intermediate_points(chain_df)
+                print("intermediated points: ", intermediate)
                 intermediate = pdbm.cylinderize(intermediate, config_data["backbone_size"])
                 intermediate["atom"] = (i + 1) if i < 10 else ((i + 1) % 10)
                 by_chain_df = pd.concat([by_chain_df, intermediate], ignore_index=True)
@@ -42,6 +45,8 @@ def run_mode(config_data, pdb_name, structure, mc_dir, hetatom_df, hetatm_bonds)
         else:
             intermediate = pdbm.find_intermediate_points(backbone)
             intermediate = pdbm.cylinderize(intermediate, config_data["backbone_size"])
+        print(intermediate.head())
+        print(intermediate.tail())
         mcf.create_nbt(intermediate, pdb_backbone, air=False, dir=mc_dir, blocks=config_data['atoms'])
         del intermediate
         del backbone
@@ -55,7 +60,10 @@ def run_mode(config_data, pdb_name, structure, mc_dir, hetatom_df, hetatm_bonds)
         pdb_sidechain = pdb_name + "_sidechain"
         for i, chain_value in enumerate(chain_values):
             chain_df = sidechain[sidechain["chain"] == chain_value]
+
+            print(chain_df.head())
             branches = pdbm.sidechain(chain_df)
+            print(branches.head())
             if config_data["by_chain"]:
                 branches["atom"] = (i + 1) if i < 10 else ((i + 1) % 10)
             else:

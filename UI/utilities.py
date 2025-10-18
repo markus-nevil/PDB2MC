@@ -38,7 +38,7 @@ class InformationBox(QMainWindow):
 
         labelTitle.setPixmap(pixmap)
         labelTitle.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
-        self.layout().addWidget(labelTitle)
+        # removed: self.layout().addWidget(labelTitle)
 
         # Create labels
         self.label1 = QLabel("test", self)
@@ -102,7 +102,7 @@ class InformationBox(QMainWindow):
 
         labelTitle.setPixmap(pixmap)
         labelTitle.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
-        self.layout().addWidget(labelTitle)
+        # removed: self.layout().addWidget(labelTitle)
 
     #Function to change the window title
     def set_title(self, title):
@@ -151,7 +151,7 @@ class IncludedPDBPopup(QMainWindow):
                 file = file[:-4]
                 listOutput.append(file)
             else:
-                print(file)
+                continue
         return listOutput
     def __init__(self):
         super().__init__()
@@ -215,7 +215,6 @@ class IncludedPDBPopup(QMainWindow):
                 self.info_box.show()
             else:
                 size_factor = pdbm.check_max_size(preset_file, world_max=320)
-                print("Multiplier is: ", size_factor)  # For debugging
                 size_factor = str(round(size_factor, 2))
                 self.info_box = InformationBox()  # Keep reference!
                 self.info_box.set_text(f"The suggested maximum protein scale is: {size_factor}x\n\nSet 'Protein Scale' below this for best results.")
@@ -326,29 +325,45 @@ class SequenceSelectorPopup(QMainWindow):
         os.chdir(get_images_path())
         self.setWindowIcon(QIcon('images/icons/logo.png'))
         self.setStyleSheet("background-image: url(images/MC2PDB bg.png);")
-        self.resize(700, 400)
+
+        # --- Dynamically set window height based on number of chains ---
+        min_height = 420
+        chain_height = 80  # Height per chain (label + list)
+        n_chains = max(1, len(structure_data.sequences))
+        total_height = max(min_height, 120 + n_chains * chain_height)
+        self.resize(900, total_height)
+        # --------------------------------------------------------------
 
         self.structure_data = structure_data
         self.selections = {}  # {chain: [(start, end, [options])]}
         self.chain_widgets = {}  # {chain: QListWidget}
         self.modified_items = {}  # {chain: dict(resnum: set(options))}
+        self.block_assignments = {}  # {chain: {resnum: block_type}}
+        self.chain_order = []  # Track chain order for selection logic
+        self._last_active_chain = None  # Track most recently interacted chain (fixes bug)
 
         # Title label
         self.title_label = QLabel("Select sequence regions for annotation", self)
         self.title_label.setFont(QFont("Arial", 14))
         self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.title_label.setGeometry(0, 10, 700, 30)
+        self.title_label.setGeometry(0, 10, 900, 30)
 
         # Dynamic area for chains
         self.scroll_area = QtWidgets.QScrollArea(self)
-        self.scroll_area.setGeometry(20, 50, 660, 250)
+        self.scroll_area.setGeometry(20, 50, 860, total_height - 170)
         self.scroll_area.setWidgetResizable(True)
         self.scroll_content = QtWidgets.QWidget()
         self.scroll_layout = QtWidgets.QVBoxLayout(self.scroll_content)
 
         # Use StructureData.sequences for chain display
         for chain_id, seq_info in self.structure_data.sequences.items():
-            chain_label = QLabel(f"Chain {chain_id}:", self.scroll_content)
+            self.chain_order.append(chain_id)
+            # Get chain name from chain_identity
+            chain_name = self.structure_data.chain_identity.get(chain_id, "")
+            chain_label_text = f"Chain {chain_id}"
+            if chain_name:
+                chain_label_text += f", {chain_name}"
+            chain_label = QLabel(chain_label_text, self.scroll_content)
             chain_label.setFont(QFont("Arial", 12))
             self.scroll_layout.addWidget(chain_label)
 
@@ -357,59 +372,105 @@ class SequenceSelectorPopup(QMainWindow):
             font = QFont("Consolas", 11)
             list_widget.setFont(font)
             list_widget.setFlow(QListWidget.Flow.LeftToRight)
-            list_widget.setWrapping(True)
+            list_widget.setWrapping(False)
             list_widget.setResizeMode(QListWidget.ResizeMode.Adjust)
-            list_widget.setMinimumHeight(40)
-            list_widget.setMaximumHeight(60)
-            # Show every single-letter code, but only show index if divisible by 5
-            for resid, code in seq_info:
-                label = f"{code}"
-                if int(resid) % 5 == 0:
-                    label = f"{code}\n{resid}"
+            # --- Ensure enough height for two lines (letter + index) ---
+            list_widget.setMinimumHeight(60)
+            list_widget.setMaximumHeight(100)
+            # ----------------------------------------------------------
+            list_widget.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
+            list_widget.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+            # seq_info now contains tuples: (true_resid, code)
+            for idx, pair in enumerate(seq_info, start=1):
+                true_resid, code = pair
+                # Display uses chain-local index (idx). Only show index if divisible by 5.
+                if idx % 5 == 0:
+                    label = f"{code}\n{idx}"
+                else:
+                    label = f"{code}\n "
                 item = QtWidgets.QListWidgetItem(label)
-                item.setData(QtCore.Qt.ItemDataRole.UserRole, str(resid))  # Store resid for lookup
+                # Store the true residue id for downstream references
+                item.setData(QtCore.Qt.ItemDataRole.UserRole, str(true_resid))
+                # Optionally show tooltip with true id to make it clear
+                item.setToolTip(f"True residue id: {true_resid}")
                 list_widget.addItem(item)
+
+            # Connect selection change to track the last active chain reliably.
+            # Use a bound lambda so chain_id is captured correctly per-loop.
+            list_widget.itemSelectionChanged.connect(lambda ch=chain_id: self._on_chain_selection_changed(ch))
+
             self.scroll_layout.addWidget(list_widget)
             self.chain_widgets[chain_id] = list_widget
             self.modified_items[chain_id] = {}
+            self.block_assignments[chain_id] = {}
 
         self.scroll_area.setWidget(self.scroll_content)
 
         # Option buttons
         self.block_btn = QPushButton("Assign Block Type", self)
-        self.block_btn.setGeometry(100, 320, 140, 35)
+        self.block_btn.setGeometry(100, total_height - 60, 140, 35)
         self.block_btn.clicked.connect(self.assign_block_type)
 
         self.hide_btn = QPushButton("Hide Selection", self)
-        self.hide_btn.setGeometry(260, 320, 120, 35)
+        self.hide_btn.setGeometry(260, total_height - 60, 120, 35)
         self.hide_btn.clicked.connect(self.assign_hide)
 
         self.add_chain_btn = QPushButton("Add Chain", self)
-        self.add_chain_btn.setGeometry(400, 320, 120, 35)
+        self.add_chain_btn.setGeometry(400, total_height - 60, 120, 35)
         self.add_chain_btn.clicked.connect(self.assign_add_chain)
 
         self.okay_btn = QPushButton("Okay", self)
-        self.okay_btn.setGeometry(550, 320, 100, 35)
+        self.okay_btn.setGeometry(550, total_height - 60, 100, 35)
         self.okay_btn.clicked.connect(self.finish_selection)
 
-        # Store options per selection: {chain: {resnum: [options]}}
         self.options = {}
 
     def assign_block_type(self):
         chain, selected = self._get_current_selection()
-        if not selected:
+        if chain is None or not selected:
             QMessageBox.warning(self, "No selection", "Please select a sequence region.")
             return
-        block_type, ok = QtWidgets.QInputDialog.getText(self, "Block Type", "Enter block type:")
-        if ok and block_type:
+        from PDB2MC.variables import decorative_blocks, hex_dict
+        block_dialog = QtWidgets.QDialog(self)
+        block_dialog.setWindowTitle("Select Block Type")
+        block_dialog.setModal(True)
+        block_dialog.resize(400, 120)
+        layout = QtWidgets.QVBoxLayout(block_dialog)
+        label = QLabel("Choose block type for selection:")
+        layout.addWidget(label)
+        combo = QtWidgets.QComboBox(block_dialog)
+        for block in decorative_blocks:
+            icon = QIcon()
+            if block in hex_dict:
+                pixmap = QtGui.QPixmap(20, 20)
+                pixmap.fill(QtGui.QColor(hex_dict[block]))
+                icon = QIcon(pixmap)
+            combo.addItem(icon, block)
+        layout.addWidget(combo)
+        btns = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.StandardButton.Ok | QtWidgets.QDialogButtonBox.StandardButton.Cancel)
+        layout.addWidget(btns)
+        btns.accepted.connect(block_dialog.accept)
+        btns.rejected.connect(block_dialog.reject)
+        if block_dialog.exec() == QtWidgets.QDialog.DialogCode.Accepted:
+            block_type = combo.currentText()
             for resnum in selected:
+                self._remove_block_assignment(chain, resnum)
                 self._add_option(chain, resnum, f"block:{block_type}")
                 self._mark_modified(chain, resnum, "block")
+                self.block_assignments[chain][resnum] = block_type
             self._update_item_colors(chain)
+
+    def _remove_block_assignment(self, chain, resnum):
+        if chain in self.options and resnum in self.options[chain]:
+            self.options[chain][resnum] = [opt for opt in self.options[chain][resnum] if not opt.startswith("block:")]
+        if chain in self.modified_items and resnum in self.modified_items[chain]:
+            self.modified_items[chain][resnum].discard("block")
+        if chain in self.block_assignments and resnum in self.block_assignments[chain]:
+            del self.block_assignments[chain][resnum]
 
     def assign_hide(self):
         chain, selected = self._get_current_selection()
-        if not selected:
+        if chain is None or not selected:
             QMessageBox.warning(self, "No selection", "Please select a sequence region.")
             return
         for resnum in selected:
@@ -419,7 +480,7 @@ class SequenceSelectorPopup(QMainWindow):
 
     def assign_add_chain(self):
         chain, selected = self._get_current_selection()
-        if not selected:
+        if chain is None or not selected:
             QMessageBox.warning(self, "No selection", "Please select a sequence region.")
             return
         for resnum in selected:
@@ -427,17 +488,44 @@ class SequenceSelectorPopup(QMainWindow):
             self._mark_modified(chain, resnum, "add_chain")
         self._update_item_colors(chain)
 
+    def _on_chain_selection_changed(self, chain_id):
+        # Called whenever selection in a chain's widget changes.
+        # Stores the chain id so subsequent operations (assign/hide/add) apply to the
+        # chain the user actually interacted with, not always the first chain.
+        self._last_active_chain = chain_id
+
     def _get_current_selection(self):
-        for chain_id, widget in self.chain_widgets.items():
-            if widget.hasFocus():
+        # Prefer the most recently interacted chain (via selection change).
+        if self._last_active_chain:
+            widget = self.chain_widgets.get(self._last_active_chain)
+            if widget:
                 selected_items = widget.selectedItems()
-                resnums = [item.data(QtCore.Qt.ItemDataRole.UserRole) for item in selected_items]
-                return chain_id, resnums
-        for chain_id, widget in self.chain_widgets.items():
+                if selected_items:
+                    resnums = [str(item.data(QtCore.Qt.ItemDataRole.UserRole)) for item in selected_items]
+                    return self._last_active_chain, resnums
+
+        # Next, prefer a widget that currently has focus (covers keyboard focus cases).
+        focused_widget = QApplication.focusWidget()
+        if focused_widget:
+            # If the focused widget is one of our list widgets (or a child), map it back.
+            for chain_id, widget in self.chain_widgets.items():
+                if focused_widget is widget or widget.isAncestorOf(focused_widget):
+                    selected_items = widget.selectedItems()
+                    if selected_items:
+                        resnums = [str(item.data(QtCore.Qt.ItemDataRole.UserRole)) for item in selected_items]
+                        return chain_id, resnums
+
+        # Finally, look for any widget that currently has a selection.
+        for chain_id in self.chain_order:
+            widget = self.chain_widgets[chain_id]
             selected_items = widget.selectedItems()
             if selected_items:
-                resnums = [item.data(QtCore.Qt.ItemDataRole.UserRole) for item in selected_items]
+                resnums = [str(item.data(QtCore.Qt.ItemDataRole.UserRole)) for item in selected_items]
+                # update last active so future calls are faster / consistent
+                self._last_active_chain = chain_id
                 return chain_id, resnums
+
+        # No selection anywhere: return None so callers don't accidentally act on a default chain
         return None, []
 
     def _add_option(self, chain, resnum, option):
@@ -445,11 +533,12 @@ class SequenceSelectorPopup(QMainWindow):
             self.options[chain] = {}
         if resnum not in self.options[chain]:
             self.options[chain][resnum] = []
+        if option.startswith("block:"):
+            self.options[chain][resnum] = [opt for opt in self.options[chain][resnum] if not opt.startswith("block:")]
         if option not in self.options[chain][resnum]:
             self.options[chain][resnum].append(option)
 
     def _mark_modified(self, chain, resnum, option_type):
-        # Track all option types for each residue
         if chain not in self.modified_items:
             self.modified_items[chain] = {}
         if resnum not in self.modified_items[chain]:
@@ -457,6 +546,7 @@ class SequenceSelectorPopup(QMainWindow):
         self.modified_items[chain][resnum].add(option_type)
 
     def _update_item_colors(self, chain):
+        from PDB2MC.variables import hex_dict
         widget = self.chain_widgets.get(chain)
         if not widget:
             return
@@ -464,12 +554,18 @@ class SequenceSelectorPopup(QMainWindow):
             item = widget.item(i)
             resnum = item.data(QtCore.Qt.ItemDataRole.UserRole)
             types = self.modified_items.get(chain, {}).get(resnum, set())
+            block_type = self.block_assignments.get(chain, {}).get(resnum, None)
             # Color logic:
             # "hide": dark grey bg, black text (takes precedence)
-            # "block": blue bg, white text
+            # "block": use block color bg, white text
             # "add_chain": red bg, white text
             # "block"+"add_chain": purple bg, white text
             # If both "hide" and others: always dark grey/black
+            # If "add_chain" and block: text red, bg block color
+            # If only block: bg block color, white text
+            # If only add_chain: red bg, white text
+            # If both block and add_chain: purple bg, white text
+            # If "hide" and anything: always dark grey/black
             if "hide" in types:
                 item.setForeground(QtGui.QColor("black"))
                 item.setBackground(QtGui.QColor(60, 60, 60))
@@ -477,8 +573,13 @@ class SequenceSelectorPopup(QMainWindow):
                 item.setForeground(QtGui.QColor("white"))
                 item.setBackground(QtGui.QColor(128, 0, 128))  # purple
             elif "block" in types:
+                # Use block color for background
+                color = hex_dict.get(block_type, "#1e90ff") if block_type else "#1e90ff"
+                item.setBackground(QtGui.QColor(color))
                 item.setForeground(QtGui.QColor("white"))
-                item.setBackground(QtGui.QColor(30, 144, 255))  # blue
+                # If "add_chain" is also present, text turns red
+                if "add_chain" in types:
+                    item.setForeground(QtGui.QColor("red"))
             elif "add_chain" in types:
                 item.setForeground(QtGui.QColor("white"))
                 item.setBackground(QtGui.QColor(220, 20, 60))  # red
@@ -487,8 +588,41 @@ class SequenceSelectorPopup(QMainWindow):
                 item.setBackground(QtGui.QColor(255, 255, 255))
 
     def finish_selection(self):
+        # Build output based on union of all sources of modifications so no chain is missed.
+        output = {}
+        # Keep predictable ordering by using chain_order
+        union_chains = [ch for ch in self.chain_order if (ch in self.options or ch in self.modified_items or ch in self.block_assignments)]
+        for chain in union_chains:
+            residues = {}
+            # Collect all residue ids that have any form of modification
+            resids = set()
+            resids.update(map(str, self.options.get(chain, {}).keys()))
+            resids.update(map(str, self.modified_items.get(chain, {}).keys()))
+            resids.update(map(str, self.block_assignments.get(chain, {}).keys()))
+            # Sort residues numerically when possible
+            def _res_sort_key(x):
+                try:
+                    return int(x)
+                except Exception:
+                    return x
+            for res in sorted(resids, key=_res_sort_key):
+                opts = []
+                # Start with any explicit options stored
+                opts.extend(self.options.get(chain, {}).get(res, []))
+                # Ensure block assignment is reflected (take the current block_assignments value)
+                if res in self.block_assignments.get(chain, {}):
+                    block = self.block_assignments[chain][res]
+                    # remove any prior block: entries and then add current
+                    opts = [o for o in opts if not o.startswith("block:")]
+                    opts.append(f"block:{block}")
+                # Keep only non-empty option lists
+                if opts:
+                    residues[res] = opts
+            if residues:
+                output[chain] = residues
+
         print("Sequence selection output:")
-        print(self.options)
+        print(output)
         self.close()
 
 def get_images_path():
