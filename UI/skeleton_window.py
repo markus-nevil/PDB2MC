@@ -511,6 +511,15 @@ class SkeletonWindow(QMainWindow):
         self.simpleOutputCheck.setGeometry(QtCore.QRect(110, 385, 100, 31))
         self.createFunctionsButton.setGeometry(QtCore.QRect(230, 385, 181, 31))
 
+        # Add "Modify Residues" button (minimal placement; adjust graphics as needed)
+        self.modifyResiduesButton = QtWidgets.QPushButton(parent=self.centralwidget)
+        self.modifyResiduesButton.setGeometry(QtCore.QRect(100, 345, 150, 31))
+        font = QtGui.QFont()
+        font.setPointSize(10)
+        self.modifyResiduesButton.setFont(font)
+        self.modifyResiduesButton.setObjectName("modifyResiduesButton")
+
+
         # Add labels to show selected file/folder
         self.selectedPDBLabel = QtWidgets.QLabel(parent=self.centralwidget)
         self.selectedPDBLabel.setGeometry(QtCore.QRect(110, 340, 300, 21))
@@ -560,6 +569,7 @@ class SkeletonWindow(QMainWindow):
         self.simpleOutputCheck.raise_()
         self.selectPDBFileButton.raise_()
         self.createFunctionsButton.raise_()
+        self.modifyResiduesButton.raise_()
         self.orText.raise_()
         self.andText.raise_()
         self.setCentralWidget(self.centralwidget)
@@ -582,6 +592,7 @@ class SkeletonWindow(QMainWindow):
         self.selectMinecraftSaveButton.clicked.connect(self.handle_select_minecraft_button)
         self.createFunctionsButton.clicked.connect(self.handle_make_function_button)
         self.tools.clicked.connect(self.handle_tool_mode)
+        self.modifyResiduesButton.clicked.connect(self.handle_modify_residues_button)
 
         self.otherColorBox.focusOut.connect(lambda: self.check_input(self.otherColorBox, decorative_blocks))
         self.backboneColorBox.focusOut.connect(lambda: self.check_input(self.backboneColorBox, decorative_blocks))
@@ -640,8 +651,8 @@ class SkeletonWindow(QMainWindow):
 
         # Show recommended scale popup after file selection (for both .pdb and .cif)
         if self.user_pdb_file:
-            from .utilities import InformationBox, SequenceSelectorPopup
-            from PDB2MC import pdb_manipulation as pdbm
+            # from .utilities import InformationBox
+            # from PDB2MC import pdb_manipulation as pdbm
             try:
                 world_max = 320
                 # First check if model fits in Minecraft
@@ -691,6 +702,33 @@ class SkeletonWindow(QMainWindow):
                                       icon_path="images/icons/icon_bad.png")
             return
         self.user_minecraft_save = self.selectMinecraft.selected_directory
+
+    def handle_modify_residues_button(self):
+        # Only open the selector if a structure file has been chosen
+        if not getattr(self, "user_pdb_file", None):
+            self.show_information_box(title_text="No structure selected",
+                                      text="Please select a PDB or mmCIF file first.",
+                                      icon_path="images/icons/icon_bad.png")
+            return
+        try:
+            # Load StructureData so the popup receives the expected object
+            from PDB2MC.structure_data import StructureData
+            if self.user_pdb_file.lower().endswith('.cif'):
+                structure = StructureData.from_mmcif(self.user_pdb_file)
+            else:
+                structure = StructureData.from_pdb(self.user_pdb_file)
+        except Exception as e:
+            QMessageBox.critical(self, "File Error", f"Failed to load structure for sequence selection:\n{e}")
+            return
+
+        # Keep reference to the popup so it isn't GC'd; capture its output when it closes
+        try:
+            popup = SequenceSelectorPopup(structure)
+            self.seq_selector = popup
+            popup.destroyed.connect(lambda obj=None, p=popup: setattr(self, "last_sequence_selection", getattr(p, "selection_output", None)))
+            popup.show()
+        except Exception as e:
+            print(f"Error opening SequenceSelectorPopup: {e}")
 
     def handle_included_pdb_button(self):
         self.includedPDB = IncludedPDBPopup()
@@ -883,6 +921,7 @@ class SkeletonWindow(QMainWindow):
         self.selectMinecraftSaveButton.setText(_translate("SkeletonWindow", "Select Minecraft Save"))
         self.simpleOutputCheck.setText(_translate("SkeletonWindow", "Simple output"))
         self.selectPDBFileButton.setText(_translate("SkeletonWindow", "Select PDB File"))
+        self.modifyResiduesButton.setText(_translate("SkeletonWindow", "Modify Residues"))
         self.createFunctionsButton.setText(_translate("SkeletonWindow", "Create Minecraft Functions"))
         self.orText.setText(_translate("SkeletonWindow", "or"))
         self.andText.setText(_translate("SkeletonWindow", "and"))

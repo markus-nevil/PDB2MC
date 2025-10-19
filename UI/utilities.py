@@ -621,6 +621,9 @@ class SequenceSelectorPopup(QMainWindow):
             if residues:
                 output[chain] = residues
 
+        # Save output to instance so external callers can read it after the popup closes.
+        self.selection_output = output
+
         print("Sequence selection output:")
         print(output)
         self.close()
