@@ -55,6 +55,12 @@ This guide includes a quick start, glossary of terms, description of features, a
 4. Install PDB2MC with `pip install .`
 5. Run PDB2MC with `python -m PDB2MC`
 
+To run the test suite: `pip install ".[test]"` then `python -m pytest`.
+
+> [!NOTE]
+> Minecraft 1.21 renamed the world folders that hold structures (`generated/mc/structures` → `generated/mc/structure`)
+> and functions (`functions` → `function`). PDB2MC writes every file to both, so models work in older and newer versions.
+
 > [!IMPORTANT]
 > Due to the size of even small models, it is recommended to prepare a special Minecraft world with minimal other blocks to generate models.
 > This will ensure that there is the maximum amount of space to generate models.

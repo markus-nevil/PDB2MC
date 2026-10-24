@@ -11,11 +11,38 @@ from scipy import ndimage
 import cv2
 from scipy.ndimage import convolve
 from scipy.spatial import cKDTree
-import pkg_resources
 import sys
+from functools import lru_cache
 from PDB2MC.structure_data import StructureData
+from PDB2MC import resources
 
 import logging
+
+
+@lru_cache(maxsize=4)
+def _load_structure_cached(file_path, mtime):
+    return StructureData.from_file(file_path)
+
+
+def load_structure(file_path):
+    """
+    Read a PDB/mmCIF file into a StructureData, reusing the result if the same unchanged file
+    was read recently (selecting a file, checking its size and generating the model all need it).
+    Treat the returned object as read-only.
+    """
+    file_path = os.path.abspath(file_path)
+    return _load_structure_cached(file_path, os.path.getmtime(file_path))
+
+
+def structure_to_df(structure):
+    """Coordinate DataFrame (X, Y, Z, atom, residue, chain, resid, element, row, ...) for a StructureData."""
+    df = pd.DataFrame(structure.atoms)
+    if df.empty:
+        return pd.DataFrame(columns=['atom_num', 'atom', 'residue', 'chain', 'resid', 'X', 'Y', 'Z', 'element', 'row'])
+    df = df.rename(columns={'x': 'X', 'y': 'Y', 'z': 'Z'})
+    df['row'] = np.where(df['hetatm'], 'HETATM', 'ATOM')
+    df['atom'] = df['atom'].astype(str)
+    return df
 
 
 def assign_atom_values(surface_df, branch_df):
@@ -91,48 +118,35 @@ def get_corner_points(df):
     return corner_points
 
 # Function that takes a pdb file, reads the coordinates of a single chain, and determines whether the shortest edge of the bounding box is shorter than the parameter ymax
+def _model_height(file_path):
+    """Height (Y extent, in Angstrom = blocks at scale 1) of a model after rotate_to_y puts its smallest side on Y."""
+    structure = file_path if isinstance(file_path, StructureData) else load_structure(file_path)
+    df = structure_to_df(structure)
+    if df.empty:
+        return 0.0
+    ranges = df[['X', 'Y', 'Z']].max() - df[['X', 'Y', 'Z']].min()
+    return float(ranges.min())
+
+
 def check_model_size(file_path, world_max):
+    """True if the model (a path or StructureData) fits in world_max blocks of height at scale 1."""
     try:
-        if file_path.lower().endswith('.cif'):
-            structure = StructureData.from_mmcif(file_path)
-        else:
-            structure = StructureData.from_pdb(file_path)
-        pdb_df = pd.DataFrame(structure.atoms)
-        if 'x' in pdb_df.columns:
-            pdb_df = pdb_df.rename(columns={'x': 'X', 'y': 'Y', 'z': 'Z'})
-        chain = clip_coords(pdb_df)
-        chain = rotate_to_y(chain)
-        ymin = chain['Y'].min()
-        ymax = chain['Y'].max()
-        ydiff = ymax - ymin
-        if ydiff < world_max:
-            return True
-        else:
-            return False
+        return _model_height(file_path) < world_max
     except Exception as e:
         print(f"Error in check_model_size: {e}")
         return False
 
 
-# Function that takes a pdb file, reads the coordinates of a single chain, determines the shortest edge of the bounding box, and determines the muliplication required to make that >= ymax.
 def check_max_size(file_path, world_max):
+    """
+    Largest protein scale at which the model still fits in world_max blocks of height,
+    rounded down to one decimal (the precision of the scale spin boxes).
+    """
     try:
-        # Always use StructureData for both PDB and mmCIF
-        if file_path.lower().endswith('.cif'):
-            structure = StructureData.from_mmcif(file_path)
-        else:
-            structure = StructureData.from_pdb(file_path)
-        pdb_df = pd.DataFrame(structure.atoms)
-        if 'x' in pdb_df.columns:
-            pdb_df = pdb_df.rename(columns={'x': 'X', 'y': 'Y', 'z': 'Z'})
-        y_values = pdb_df['Y'].tolist()
-        if not y_values:
-            return 1  # or handle as needed
-        ymin = min(y_values)
-        ymax = max(y_values)
-        ydiff = ymax - ymin
-        multiplier = math.ceil(world_max / ydiff) if ydiff > 0 else 1
-        return multiplier
+        height = _model_height(file_path)
+        if height <= 0:
+            return 1
+        return max(1.0, math.floor(world_max / height * 10) / 10)
     except Exception as e:
         print(f"Error in check_max_size: {e}")
         return 1
@@ -651,20 +665,21 @@ def interpolate_dataframe(df, smoothness):
     return interpolated_df
 
 
+# The rotate_* functions must be proper rotations (determinant +1). A reflection would turn the model
+# into its mirror image: right-handed helices become left-handed and L-amino acids become D.
+# Minecraft's axes (X east, Y up, Z south) are right-handed like PDB coordinates.
 def rotate_x(df):
-    x = df['X']
-    y = df['Y']
-    z = df['Z']
-    df['X'] = -z
+    """Rotate so the old X axis becomes Y: (x, y, z) -> (z, x, y)."""
+    x, y, z = df['X'].to_numpy(copy=True), df['Y'].to_numpy(copy=True), df['Z'].to_numpy(copy=True)
+    df['X'] = z
     df['Y'] = x
     df['Z'] = y
     return df
 
 
 def rotate_y(df):
-    x = df['X']
-    y = df['Y']
-    z = df['Z']
+    """Quarter turn about Y: (x, y, z) -> (z, y, -x)."""
+    x, y, z = df['X'].to_numpy(copy=True), df['Y'].to_numpy(copy=True), df['Z'].to_numpy(copy=True)
     df['X'] = z
     df['Y'] = y
     df['Z'] = -x
@@ -672,10 +687,9 @@ def rotate_y(df):
 
 
 def rotate_z(df):
-    x = df['X']
-    y = df['Y']
-    z = df['Z']
-    df['X'] = -y
+    """Rotate so the old Z axis becomes Y: (x, y, z) -> (y, z, x)."""
+    x, y, z = df['X'].to_numpy(copy=True), df['Y'].to_numpy(copy=True), df['Z'].to_numpy(copy=True)
+    df['X'] = y
     df['Y'] = z
     df['Z'] = x
     return df
@@ -936,29 +950,30 @@ def find_intermediate_points(replot_df, keep_columns=False, atoms=None, fill_col
         final_columns = columns
 
     # Convert to numpy for fast access
-    coords = replot_df[columns].values
-    chains = replot_df['chain'].values if 'chain' in replot_df.columns else np.repeat(None, len(replot_df))
+    coords = replot_df[columns].to_numpy().astype(int)
+    chains = replot_df['chain'].to_numpy() if 'chain' in replot_df.columns else np.repeat(None, len(replot_df))
 
-    dfs = []
+    # Rasterise each consecutive same-chain pair, recording which source rows every point came from.
+    # Building one DataFrame at the end (rather than one per pair) is what keeps this fast.
+    point_chunks = []
+    row_chunks = []
     for i in range(1, len(replot_df)):
         if chains[i - 1] == chains[i]:
             intermediate_points = bresenham_line(*coords[i - 1], *coords[i])
             if intermediate_points.size > 0:
-                df_small = pd.DataFrame(intermediate_points, columns=columns)
-                if keep_columns:
-                    for col in other_columns:
-                        df_small[col] = replot_df.iloc[i][col]
+                point_chunks.append(intermediate_points)
+                rows = np.full(len(intermediate_points), i)
                 if fill_columns and keep_columns:
-                    half_point = len(df_small) // 2
-                    for col in other_columns:
-                        df_small.loc[:half_point-1, col] = replot_df.iloc[i - 1][col]
-                        df_small.loc[half_point:, col] = replot_df.iloc[i][col]
-                dfs.append(df_small)
-            else:
-                continue
+                    # first half of the line takes the values of the previous row
+                    rows[:len(rows) // 2] = i - 1
+                row_chunks.append(rows)
 
-    if dfs:
-        new_data = pd.concat(dfs, ignore_index=True)
+    if point_chunks:
+        new_data = pd.DataFrame(np.concatenate(point_chunks), columns=columns)
+        if keep_columns:
+            source = replot_df.iloc[np.concatenate(row_chunks)].reset_index(drop=True)
+            for col in other_columns:
+                new_data[col] = source[col].to_numpy()
     else:
         new_data = pd.DataFrame(columns=final_columns)
 
@@ -1150,17 +1165,21 @@ def find_intermediate_points(replot_df, keep_columns=False, atoms=None, fill_col
 #     # Return the new dataframe
 #     return new_df
 
+@lru_cache(maxsize=1)
+def _sidechain_bonds():
+    """Intra-residue bond table from chains.txt: columns residue, atom, atom2."""
+    return pd.read_csv(resources.package_file('chains.txt'), sep=r'\s+', header=None,
+                       names=['residue', 'atom', 'atom2'], engine='python', dtype=str)
+
+
 def sidechain(atom_df):
-
-    logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
-
-    if getattr(sys, 'frozen', False):
-        base_path = sys._MEIPASS
-        chains_file_path = os.path.join(base_path, 'PDB2MC', 'chains.txt')
-    else:
-        chains_file_path = pkg_resources.resource_filename('PDB2MC', 'chains.txt')
-
-    chains_df = pd.read_csv(chains_file_path, sep='\s+', header=None, names=['residue', 'atom', 'atom2'], engine='python')
+    """
+    Lines (X, Y, Z, atom) for every bond listed in chains.txt. 'atom' holds the 1-based chain number
+    (cycling 1-10 in order of appearance) so callers can colour by chain or overwrite it.
+    """
+    chains_df = _sidechain_bonds()
+    if atom_df.empty:
+        return pd.DataFrame(columns=['X', 'Y', 'Z', 'atom'])
 
     # Merge to get all atom/atom2 pairs in the structure
     merged = pd.merge(
@@ -1184,25 +1203,23 @@ def sidechain(atom_df):
     # Assign chain numbers
     chain_values = atom_df["chain"].unique()
     chain_idx_dict = {chain_value: idx for idx, chain_value in enumerate(chain_values)}
-    merged['chain_num'] = merged['chain'].map(lambda c: (chain_idx_dict[c] % 10) + 1)
+    chain_nums = merged['chain'].map(lambda c: (chain_idx_dict[c] % 10) + 1).to_numpy()
 
     # Run Bresenham for each pair
-    def bresenham_row(row):
-        coords = bresenham_line(
-            row['X_1'], row['Y_1'], row['Z_1'],
-            row['X_2'], row['Y_2'], row['Z_2']
-        )
-        if coords.size == 0:
-            return []
-        arr = np.column_stack((coords, np.full(len(coords), row['chain_num'])))
-        return arr.tolist()
+    ends = merged[['X_1', 'Y_1', 'Z_1', 'X_2', 'Y_2', 'Z_2']].to_numpy().astype(int)
+    point_chunks = []
+    atom_chunks = []
+    for pair, chain_num in zip(ends, chain_nums):
+        coords = bresenham_line(*pair)
+        if coords.size:
+            point_chunks.append(coords)
+            atom_chunks.append(np.full(len(coords), chain_num))
+    if not point_chunks:
+        return pd.DataFrame(columns=['X', 'Y', 'Z', 'atom'])
 
-    all_coords = merged.apply(bresenham_row, axis=1)
-    # Flatten the list of lists
-    flat_coords = [item for sublist in all_coords for item in sublist]
-
-    coord_df = pd.DataFrame(flat_coords, columns=['X', 'Y', 'Z', 'atom'])
-    coord_df = coord_df.drop_duplicates()
+    coord_df = pd.DataFrame(np.concatenate(point_chunks), columns=['X', 'Y', 'Z'])
+    coord_df['atom'] = np.concatenate(atom_chunks)
+    coord_df = coord_df.drop_duplicates().reset_index(drop=True)
     return coord_df
 
 
@@ -1526,32 +1543,26 @@ def get_hetatm_bond_lines_from_df(atom_df, bonds):
     Given a DataFrame of HETATM atoms and a list of bonds (dicts with atom_num1, atom_num2),
     return a DataFrame of all bond line coordinates.
     """
-    import numpy as np
-    import pandas as pd
+    if atom_df is None or atom_df.empty or not bonds:
+        return pd.DataFrame(columns=['X', 'Y', 'Z'])
 
-    results_df = pd.DataFrame(columns=['X', 'Y', 'Z'])
-    if atom_df is None or bonds is None or len(bonds) == 0:
-        return results_df
+    # atom_num -> rounded coordinates (first occurrence wins, as before)
+    lookup = atom_df.drop_duplicates(subset='atom_num')
+    coords_by_num = dict(zip(lookup['atom_num'].astype(int),
+                             np.round(lookup[['X', 'Y', 'Z']].to_numpy(dtype=float)).astype(int)))
 
-    # Ensure atom_num is int for matching
-    atom_df = atom_df.copy()
-    atom_df['atom_num'] = atom_df['atom_num'].astype(int)
-
+    lines = []
     for bond in bonds:
-        atom_num1 = int(bond['atom_num1'])
-        atom_num2 = int(bond['atom_num2'])
-        atom1_coords = atom_df[atom_df['atom_num'] == atom_num1][['X', 'Y', 'Z']].values
-        atom2_coords = atom_df[atom_df['atom_num'] == atom_num2][['X', 'Y', 'Z']].values
-        if len(atom1_coords) == 0 or len(atom2_coords) == 0:
+        start = coords_by_num.get(int(bond['atom_num1']))
+        end = coords_by_num.get(int(bond['atom_num2']))
+        if start is None or end is None:
             continue
-        atom1_coords = atom1_coords[0]
-        atom2_coords = atom2_coords[0]
-        # Ensure all coordinates are integers before passing to bresenham_line
-        x0, y0, z0 = map(int, np.round(atom1_coords))
-        x1, y1, z1 = map(int, np.round(atom2_coords))
-        line_coords = bresenham_line(x0, y0, z0, x1, y1, z1)
-        results_df = pd.concat([results_df, pd.DataFrame(line_coords, columns=['X', 'Y', 'Z'])], ignore_index=True)
-    return results_df
+        line_coords = bresenham_line(*start, *end)
+        if line_coords.size:
+            lines.append(line_coords)
+    if not lines:
+        return pd.DataFrame(columns=['X', 'Y', 'Z'])
+    return pd.DataFrame(np.concatenate(lines), columns=['X', 'Y', 'Z'])
 
 
 def contour_outline(voxel_array, smooth=False, smooth_factor=0.02, fill = False):
@@ -2043,12 +2054,10 @@ def add_sphere_coordinates(sphere_array, center, df, mesh=False):
     new_coords = repeated_base + tiled_rel
     new_atoms = np.repeat(atom_col, n_points)
 
-    sphere_df = pd.DataFrame(
-        np.column_stack([new_coords, new_atoms]),
-        columns=['X', 'Y', 'Z', 'atom']
-    )
-    # Ensure X, Y, Z are integers if needed
-    sphere_df[['X', 'Y', 'Z']] = sphere_df[['X', 'Y', 'Z']].astype(int)
+    # Build columns separately; stacking coordinates with the atom labels would turn every number into a string
+    new_coords = np.asarray(new_coords, dtype=float).astype(int)
+    sphere_df = pd.DataFrame(new_coords, columns=['X', 'Y', 'Z'])
+    sphere_df['atom'] = new_atoms
     return sphere_df
 
 
@@ -2083,24 +2092,19 @@ def add_structure_from_structured_data(df, structure_data):
     Assigns secondary structure (helix, sheet, none) to each amino acid in df using StructureData.structural_info.
     """
     df = df.copy()
-    df['structure'] = "None"
+    structure = np.full(len(df), "None", dtype=object)
     structure_df = structure_data.structural_info
 
-    # Defensive: ensure resid columns are int
-    if not structure_df.empty:
-        structure_df = structure_df.copy()
-        structure_df['resid1'] = structure_df['resid1'].astype(int)
-        structure_df['resid2'] = structure_df['resid2'].astype(int)
-
-    # Iterate over each row in df and assign structure if in range
-    for i, row in df.iterrows():
-        matching_rows = structure_df[
-            (structure_df['chain'] == row['chain']) &
-            (structure_df['resid1'] <= row['resid']) &
-            (structure_df['resid2'] >= row['resid'])
-        ]
-        if len(matching_rows) > 0:
-            df.at[i, 'structure'] = matching_rows['structure'].values[0]
+    if not structure_df.empty and len(df):
+        chains = df['chain'].to_numpy()
+        resids = df['resid'].to_numpy().astype(int)
+        # Walk the ranges backwards so the first matching range wins, as before
+        for chain, start, end, kind in zip(structure_df['chain'].to_numpy()[::-1],
+                                           structure_df['resid1'].to_numpy(dtype=int)[::-1],
+                                           structure_df['resid2'].to_numpy(dtype=int)[::-1],
+                                           structure_df['structure'].to_numpy()[::-1]):
+            structure[(chains == chain) & (resids >= start) & (resids <= end)] = kind
+    df['structure'] = structure
     return df
 
 def residue_to_atoms(df):
@@ -2114,13 +2118,60 @@ def shorten_atom_names(df):
         else:
             return atom[0:2] if not atom[0:2].isdigit() else atom[0]
 
-    for index, row in df.iterrows():
-        if row['row'] == 'ATOM':
-            df.at[index, 'atom'] = shorten_atom(row['atom'])
-        elif row['row'] == 'HETATM':
-            df.at[index, 'atom'] = shorten_atom(row['atom'])
-
+    mask = df['row'].isin(['ATOM', 'HETATM'])
+    df.loc[mask, 'atom'] = df.loc[mask, 'atom'].astype(str).map(shorten_atom)
     return df
+
+
+def element_atom_names(df):
+    """
+    Replace atom names with their element symbol for colouring (e.g. 'CL' -> 'CL', 'CA' calcium -> 'CA',
+    'C1' -> 'C'). Name-based shortening misreads ions such as chlorine, calcium or sodium as C/C/N.
+    Falls back to shorten_atom_names for rows without an element.
+    """
+    df = shorten_atom_names(df.copy())
+    if 'element' in df.columns:
+        element = df['element'].fillna('').astype(str).str.strip().str.upper()
+        has_element = element != ''
+        df.loc[has_element, 'atom'] = element[has_element]
+    return df
+
+
+def polymer_atom_mask(df):
+    """
+    True for atoms that belong to the protein / nucleic acid polymer: ATOM records, plus HETATM residues
+    that carry a full backbone (modified residues such as selenomethionine, MSE, which
+    crystal structures record as HETATM). Without this, every modified residue breaks the backbone.
+    """
+    is_atom = (df['row'] == 'ATOM').to_numpy()
+    het = df[~is_atom]
+    if het.empty:
+        return is_atom
+    keys = ['chain', 'resid', 'residue']
+    names = het.groupby(keys)['atom'].agg(set)
+    polymer = names[names.map(lambda s: {'N', 'CA', 'C'} <= s or {'P', "C4'", "C3'"} <= s)]
+    if polymer.empty:
+        return is_atom
+    het_keys = pd.MultiIndex.from_frame(df[keys])
+    return is_atom | het_keys.isin(polymer.index)
+
+
+def backbone_segments(df, max_bond=2.5, scale=1.0):
+    """
+    Label consecutive backbone atoms with a segment id that changes at every chain break, so lines are
+    not drawn across missing residues (or from one chain end to an unrelated atom). Two consecutive
+    atoms are connected if they are in the same chain and closer than max_bond Angstrom
+    (covalent backbone bonds are 1.3-1.6 A). Pass unrounded coordinates scaled by `scale`.
+    Returns an array of strings like 'A:0', 'A:1', ...
+    """
+    if df.empty:
+        return np.array([], dtype=object)
+    coords = df[['X', 'Y', 'Z']].to_numpy(dtype=float)
+    chains = df['chain'].astype(str).to_numpy()
+    dist = np.linalg.norm(np.diff(coords, axis=0), axis=1)
+    breaks = (dist > max_bond * scale) | (chains[1:] != chains[:-1])
+    segment = np.concatenate([[0], np.cumsum(breaks)])
+    return np.char.add(np.char.add(chains.astype(str), ':'), segment.astype(str)).astype(object)
 
 
 def change_mode(config):

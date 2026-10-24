@@ -15,8 +15,8 @@ from UI.utilities import InformationBox
 
 # Version handling
 from packaging import version as packaging_version
-from importlib.metadata import version, PackageNotFoundError
 from PDB2MC.version import version
+from PDB2MC import resources
 
 help_window = None
 
@@ -212,12 +212,6 @@ class MainWindow(QMainWindow):
             self.hide()
         if text == "Skeleton":
             self.skeleton_window = skeleton_window.SkeletonWindow()
-            # enable hot-reload if requested via environment toggle
-            if ENABLE_HOT_RELOAD:
-                try:
-                    self.skeleton_window.enable_hot_reload(True)
-                except Exception:
-                    pass
             self.skeleton_window.show()
             self.hide()
         if text == "X-Ray":
@@ -252,27 +246,10 @@ class MainWindow(QMainWindow):
 
 def get_images_path():
     """
-    Returns the path to the images directory, depending on execution context.
+    Returns the UI directory (relative paths such as 'images/bg.gif' resolve against it),
+    for a source checkout, an installed package or a PyInstaller build.
     """
-    if getattr(sys, 'frozen', False):
-        # Compiled executable
-        import importlib.resources as importlib_resources
-        images_dir = importlib_resources.files('UI').joinpath('images')
-        return images_dir
-    else:
-        # Python script or installed package
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        images_dir = os.path.join(current_dir, '..', 'UI')
-        return images_dir
-
-def get_version(package_name):
-    """
-    Returns the installed version of a package, or None if not found.
-    """
-    try:
-        return version(package_name)
-    except PackageNotFoundError:
-        return None
+    return resources.ui_dir()
 
 def main():
     """

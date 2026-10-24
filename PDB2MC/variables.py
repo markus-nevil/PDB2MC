@@ -27,9 +27,9 @@ chain_blocks = {"0" : "white_concrete",
                 "3" : "yellow_concrete",
                 "4" : "lime_concrete",
                 "5" : "pink_concrete",
-                "6" : "light_concrete",
+                "6" : "light_gray_concrete",
                 "7" : "purple_concrete",
-                "8" : "light_concrete",
+                "8" : "light_blue_concrete",
                 "9" : "green_concrete",
                 "10": "orange_concrete"}
 

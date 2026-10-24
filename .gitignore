@@ -13,3 +13,4 @@ venv/
 PDB2MC.spec
 run_PDB2MC.spec
 PDB2MC.egg-info/
+.pytest_cache/
