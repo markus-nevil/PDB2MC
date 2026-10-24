@@ -7,7 +7,7 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 
 from PDB2MC import pdb_manipulation as pdbm
 import sys
-import pkg_resources
+from PDB2MC import resources
 
 
 class MyComboBox(QtWidgets.QComboBox):
@@ -205,7 +205,7 @@ class IncludedPDBPopup(QMainWindow):
             self.nothing = NothingSelected()
             self.nothing.show()
         else:
-            preset_file = os.path.join("presets", selected_text + ".pdb")
+            preset_file = os.path.join(get_presets_path(), selected_text + ".pdb")
             # check if the model is small enough for minecraft
             if not pdbm.check_model_size(preset_file, world_max=320):
                 self.info_box = InformationBox()  # Keep reference!
@@ -234,7 +234,7 @@ class FileExplorerPopup(QMainWindow):
         message_box = QMessageBox()
         message_box.setWindowTitle("Please wait")
         message_box.setText("Calculating model size...")
-        self.setWindowIcon(QIcon('images/icons/unknown_icon.png'))
+        self.setWindowIcon(QIcon(os.path.join(get_images_path(), 'images', 'icons', 'logo.png')))
         message_box.setStandardButtons(QMessageBox.StandardButton.NoButton)  # No buttons
         message_box.show()
         # Allow both .pdb and .cif files
@@ -242,19 +242,17 @@ class FileExplorerPopup(QMainWindow):
             self,
             "Select PDB or mmCIF file",
             "",
-            "Protein Databank files (*.pdb *.cif);;PDB files (*.pdb);;mmCIF files (*.cif);;All files (*)"
+            "Protein Databank files (*.pdb *.cif *.mmcif);;PDB files (*.pdb);;mmCIF files (*.cif *.mmcif);;All files (*)"
         )
         if file_name:
             try:
-                # Try to load the file using StructureData to catch errors early
-                from PDB2MC.structure_data import StructureData
-                if file_name.lower().endswith('.cif'):
-                    StructureData.from_mmcif(file_name)
-                else:
-                    StructureData.from_pdb(file_name)
+                # Load the file now to catch errors early; the parsed result is cached for later steps
+                pdbm.load_structure(file_name)
             except Exception as e:
                 QMessageBox.critical(self, "File Error", f"Failed to load file:\n{e}")
                 file_name = None
+            finally:
+                message_box.close()
         else:
             message_box.close()
             QMessageBox.warning(self, "No file selected", f"Please select a file.")
@@ -286,12 +284,12 @@ class MinecraftPopup(QMainWindow):
 
         # check for pack.mcmeta in the /datapacks/mcPDB folder and if not copy it from the python directory
         if not os.path.isfile(os.path.join(save_path, "datapacks/mcPDB/pack.mcmeta")):
-            pack_mcmeta_path = pkg_resources.resource_filename('PDB2MC', 'pack.mcmeta')
+            pack_mcmeta_path = resources.package_file('pack.mcmeta')
             copyfile(pack_mcmeta_path, os.path.join(save_path, "datapacks/mcPDB/pack.mcmeta"))
 
-        else:
-            if not os.path.isfile(os.path.join(save_path, "datapacks/mcPDB/pack.mcmeta")):
-                copyfile("../PDB2MC/pack.mcmeta", os.path.join(save_path, "datapacks/mcPDB/pack.mcmeta"))
+        # Structures are written to both the pre-1.21 and 1.21+ folders (see minecraft_functions.STRUCTURE_DIRS)
+        from PDB2MC import minecraft_functions as mcf
+        mcf.structure_dirs(directory_path)
 
         if directory_path:
             self.selected_directory = directory_path
@@ -629,29 +627,8 @@ class SequenceSelectorPopup(QMainWindow):
         self.close()
 
 def get_images_path():
-    if getattr(sys, 'frozen', False):
-        # The program is running as a compiled executable
-        images_dir = pkg_resources.resource_filename('UI', 'images')
-        images_dir = os.path.join(images_dir, '..')
-        return images_dir
-    else:
-        # The program is running as a Python script or it's installed in the Python environment
-        # Get the directory of the current script
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        # Construct the path to the UI/images directory
-        images_dir = os.path.join(current_dir, '..', 'UI')
-        return images_dir
+    """The UI directory; relative paths like 'images/icons/logo.png' resolve against it."""
+    return resources.ui_dir()
 
 def get_presets_path():
-    if getattr(sys, 'frozen', False):
-        # The program is running as a compiled executable
-        preset_dir = pkg_resources.resource_filename('UI', 'presets')
-        preset_dir = os.path.join(preset_dir)
-        return preset_dir
-    else:
-        # The program is running as a Python script or it's installed in the Python environment
-        # Get the directory of the current script
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        # Construct the path to the UI/images directory
-        preset_dir = os.path.join(current_dir, '..', 'UI', 'presets')
-        return preset_dir
+    return resources.presets_dir()

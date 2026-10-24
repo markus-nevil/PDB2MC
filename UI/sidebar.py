@@ -7,6 +7,17 @@ SIDEBAR_PADDING = 12           # horizontal padding inside sidebar
 SIDEBAR_BUTTON_HEIGHT = 30     # uniform button height (px)
 
 class Sidebar(QWidget):
+    """
+    Left-hand navigation column shared by the mode windows.
+    Emits mode_selected(<mode name>) and *_requested signals; windows connect to these instead of
+    wiring each button themselves (see base_mode_window.connect_sidebar).
+    """
+    mode_selected = QtCore.pyqtSignal(str)
+    help_requested = QtCore.pyqtSignal()
+    github_requested = QtCore.pyqtSignal()
+    rcsb_requested = QtCore.pyqtSignal()
+    tools_requested = QtCore.pyqtSignal()
+
     def __init__(self, parent=None, width: int | None = None, padding: int | None = None):
         super().__init__(parent)
         self.setObjectName("sidebar")
@@ -27,9 +38,9 @@ class Sidebar(QWidget):
         self.setSizePolicy(QtWidgets.QSizePolicy.Policy.Fixed, QtWidgets.QSizePolicy.Policy.Expanding)
 
         # Main vertical layout with horizontal padding
-        self.layout = QVBoxLayout(self)
-        self.layout.setContentsMargins(self._padding, 6, self._padding, 6)
-        self.layout.setSpacing(6)
+        self._layout = QVBoxLayout(self)
+        self._layout.setContentsMargins(self._padding, 6, self._padding, 6)
+        self._layout.setSpacing(6)
 
         # --- Top group: mode switch label + mode buttons ---
         self.switchModeLabel = QLabel("Switch Mode", parent=self)
@@ -42,7 +53,7 @@ class Sidebar(QWidget):
         self.switchModeLabel.setObjectName("switchModeLabel")
         self.switchModeLabel.setWordWrap(True)
         self.switchModeLabel.setFixedWidth(max(10, self._master_width - (self._padding * 2)))
-        self.layout.addWidget(self.switchModeLabel)
+        self._layout.addWidget(self.switchModeLabel)
 
         # Buttons factory
         def make_button(name, point=11):
@@ -70,16 +81,18 @@ class Sidebar(QWidget):
 
         for w in (self.CustomMode, self.SkeletonMode, self.XRayMode,
                   self.SpaceFillingMode, self.RibbonMode, self.AminoAcidMode):
-            self.layout.addWidget(w)
+            self._layout.addWidget(w)
+            # emit the full mode name; the visible text may be elided
+            w.clicked.connect(lambda _checked=False, mode=self._button_texts[w]: self.mode_selected.emit(mode))
 
         # divider
         self.modeInfoHLine = QFrame(parent=self)
         self.modeInfoHLine.setFrameShape(QFrame.Shape.HLine)
         self.modeInfoHLine.setFrameShadow(QFrame.Shadow.Sunken)
         self.modeInfoHLine.setObjectName("modeInfoHLine")
-        self.layout.addWidget(self.modeInfoHLine)
+        self._layout.addWidget(self.modeInfoHLine)
 
-        self.layout.addStretch(1)
+        self._layout.addStretch(1)
 
         # middle group: label + buttons
         self.mc2pdbLabel = QLabel("PDB2MC", parent=self)
@@ -90,7 +103,7 @@ class Sidebar(QWidget):
         self.mc2pdbLabel.setObjectName("mc2pdbLabel")
         self.mc2pdbLabel.setWordWrap(True)
         self.mc2pdbLabel.setFixedWidth(max(10, self._master_width - (self._padding * 2)))
-        self.layout.addWidget(self.mc2pdbLabel)
+        self._layout.addWidget(self.mc2pdbLabel)
 
         self.help = QPushButton("Help", parent=self)
         self.github = QPushButton("Github", parent=self)
@@ -106,14 +119,14 @@ class Sidebar(QWidget):
                 btn.setFixedHeight(self._button_height)
             except Exception:
                 pass
-            self.layout.addWidget(btn)
+            self._layout.addWidget(btn)
 
         # another divider + db label + rcsb button
         self.infoDatabaseHLine = QFrame(parent=self)
         self.infoDatabaseHLine.setFrameShape(QFrame.Shape.HLine)
         self.infoDatabaseHLine.setFrameShadow(QFrame.Shadow.Sunken)
         self.infoDatabaseHLine.setObjectName("infoDatabaseHLine")
-        self.layout.addWidget(self.infoDatabaseHLine)
+        self._layout.addWidget(self.infoDatabaseHLine)
 
         self.pdbDatabaseLabel = QLabel("PDB Database", parent=self)
         f3 = QtGui.QFont()
@@ -124,7 +137,7 @@ class Sidebar(QWidget):
         self.pdbDatabaseLabel.setWordWrap(True)
         self.pdbDatabaseLabel.setFixedWidth(max(10, self._master_width - (self._padding * 2)))
         self.pdbDatabaseLabel.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        self.layout.addWidget(self.pdbDatabaseLabel)
+        self._layout.addWidget(self.pdbDatabaseLabel)
 
         self.rcsbButton = QPushButton("RCSB.org", parent=self)
         f4 = QtGui.QFont()
@@ -137,9 +150,14 @@ class Sidebar(QWidget):
             self.rcsbButton.setFixedHeight(self._button_height)
         except Exception:
             pass
-        self.layout.addWidget(self.rcsbButton)
+        self._layout.addWidget(self.rcsbButton)
 
-        self.layout.addStretch(2)
+        self._layout.addStretch(2)
+
+        self.help.clicked.connect(self.help_requested)
+        self.github.clicked.connect(self.github_requested)
+        self.tools.clicked.connect(self.tools_requested)
+        self.rcsbButton.clicked.connect(self.rcsb_requested)
 
         # right-edge vertical separator (visual)
         self.vSepLine = QFrame(self)
@@ -164,25 +182,12 @@ class Sidebar(QWidget):
         self._elide_button_texts()
 
     def eventFilter(self, obj, event):
-        try:
-            if obj is self._parent_widget and event.type() == QtCore.QEvent.Type.Resize:
-                new_h = obj.height() if hasattr(obj, "height") else 0
-                if new_h > 0:
-                    try:
-                        self.setFixedHeight(new_h)
-                    except Exception:
-                        pass
-                if hasattr(self, "vSepLine"):
-                    w = max(0, self.width())
-                    self.vSepLine.setGeometry(max(0, w - 4), 0, 4, max(1, self.height()))
-        except Exception:
-            pass
-
-        try:
-            self._elide_button_texts()
-        except Exception:
-            pass
-
+        # Only parent resizes matter; this filter sees every parent event (paint, mouse move, ...)
+        if obj is self._parent_widget and event.type() == QtCore.QEvent.Type.Resize:
+            new_h = obj.height()
+            if new_h > 0:
+                # setFixedHeight triggers resizeEvent, which re-positions the separator and re-elides
+                self.setFixedHeight(new_h)
         return super().eventFilter(obj, event)
 
     def resizeEvent(self, event):

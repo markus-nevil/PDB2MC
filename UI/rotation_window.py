@@ -1,11 +1,17 @@
-from PyQt6.QtWidgets import QApplication, QWidgetAction, QMainWindow, QFileDialog, QMenuBar
-from PyQt6.QtOpenGL import QOpenGLWindow
+"""
+Experimental 3D preview of a structure's surface points (not yet wired into the main program).
+Requires PyOpenGL (pip install PyOpenGL), which is not a PDB2MC dependency.
+Run directly: python -m UI.rotation_window
+"""
+import sys
+
+from PyQt6.QtWidgets import QApplication, QMainWindow, QFileDialog
+from PyQt6.QtGui import QAction
+from PyQt6.QtOpenGLWidgets import QOpenGLWidget
 from PyQt6.QtCore import Qt
 from OpenGL.GL import *
-from OpenGL.GLUT import *
 from OpenGL.GLU import *
 import numpy as np
-import pandas as pd
 from PDB2MC import pdb_manipulation as pdbm
 
 class MainWindow(QMainWindow):
@@ -21,50 +27,43 @@ class MainWindow(QMainWindow):
         self.glWidget = GLWidget(self)
         self.setCentralWidget(self.glWidget)
 
-        openFile = QWidgetAction('Open', self)
+        openFile = QAction('Open', self)
         openFile.triggered.connect(self.showDialog)
         menubar = self.menuBar()
         fileMenu = menubar.addMenu('&File')
         fileMenu.addAction(openFile)
 
     def showDialog(self):
-        fname = QFileDialog.getOpenFileName(self, 'Open file', '/home')
+        fname = QFileDialog.getOpenFileName(self, 'Open file', '', 'Structure files (*.pdb *.cif)')
 
         if fname[0]:
             self.glWidget.load_points(fname[0])
 
-class GLWidget(QOpenGLWindow):
+class GLWidget(QOpenGLWidget):
     def __init__(self, parent):
-        QOpenGLWindow.__init__(self, parent)
+        super().__init__(parent)
         self.points = None
         self.rotX = 0.0
         self.rotY = 0.0
         self.lastPos = None
 
     def load_points(self, fname):
-        print("Loading points...")
-        pdb_df = pdbm.read_pdb(fname)
-        print("Points loaded.")
+        pdb_df = pdbm.structure_to_df(pdbm.load_structure(fname))
         rounded = pdbm.round_df(pdb_df)
-        print("Data rounded.")
         rounded = rounded.drop_duplicates(subset=['X', 'Y', 'Z'], keep='first')
-        print("Duplicates dropped.")
 
         # Limit the number of points
         if len(rounded) > 10000:  # Adjust this value as needed
-            print("Limiting points...")
             rounded = rounded.sample(10000)  # Adjust this value as needed
-            print("Points limited.")
 
-        print("Constructing surface array...")
-        tmp_points = pdbm.construct_surface_array(rounded)
-        print("Surface array constructed.")
-        # Downsample the points array
-        print("Downsampling points array...")
-        self.points = tmp_points[::2, ::2, ::2]
-        print(f"Points array shape: {self.points.shape}, dtype: {self.points.dtype}")
+        surface = pdbm.construct_surface_array(rounded)
+        # Occupied voxels -> point cloud centred on the origin and scaled to fit the view
+        points = np.argwhere(surface[::2, ::2, ::2] > 0).astype(np.float32)
+        if len(points):
+            points -= points.mean(axis=0)
+            points /= max(1.0, float(np.abs(points).max()))
+        self.points = points
         self.update()
-        print("Points loaded successfully.")
 
     def initializeGL(self):
         glClearColor(0.0, 0.0, 0.0, 1.0)
@@ -73,14 +72,14 @@ class GLWidget(QOpenGLWindow):
     def paintGL(self):
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
-        if self.points is not None:
+        if self.points is not None and len(self.points):
             glPushMatrix()
             glRotatef(self.rotX, 1.0, 0.0, 0.0)
             glRotatef(self.rotY, 0.0, 1.0, 0.0)
 
             glColor3f(1.0, 1.0, 1.0)
             glBegin(GL_POINTS)
-            for point in np.nditer(self.points):
+            for point in self.points:
                 glVertex3fv(point)
             glEnd()
             glPopMatrix()
@@ -89,26 +88,25 @@ class GLWidget(QOpenGLWindow):
         glViewport(0, 0, w, h)
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
-        gluPerspective(60.0, w/h, 0.01, 100.0)
+        gluPerspective(60.0, w / max(1, h), 0.01, 100.0)
         glMatrixMode(GL_MODELVIEW)
         glLoadIdentity()
-        gluLookAt(0.0, 0.0, 5.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0)
+        gluLookAt(0.0, 0.0, 3.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0)
 
     def mousePressEvent(self, event):
-        self.lastPos = event.pos()
+        self.lastPos = event.position()
 
     def mouseMoveEvent(self, event):
-        dx = event.x() - self.lastPos.x()
-        dy = event.y() - self.lastPos.y()
+        if self.lastPos is None:
+            self.lastPos = event.position()
+        dx = event.position().x() - self.lastPos.x()
+        dy = event.position().y() - self.lastPos.y()
 
-        if event.buttons() & Qt.MouseButton.LeftButton:
+        if event.buttons() & (Qt.MouseButton.LeftButton | Qt.MouseButton.RightButton):
             self.rotX += dy
             self.rotY += dx
-        elif event.buttons() & Qt.MouseButton.RightButton:
-            self.rotX += dy
-            self.rotY += dx
 
-        self.lastPos = event.pos()
+        self.lastPos = event.position()
         self.update()
 
 if __name__ == '__main__':

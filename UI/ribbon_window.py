@@ -8,7 +8,7 @@ import pandas as pd
 from PDB2MC import minecraft_functions as mcf, pdb_manipulation as pdbm, ribbon
 from .utilities import InformationBox, MyComboBox, IncludedPDBPopup, MinecraftPopup, FileExplorerPopup
 import sys
-import pkg_resources
+from PDB2MC import resources
 import shutil
 from PDB2MC.structure_data import StructureData
 
@@ -1049,7 +1049,7 @@ def create_icon(hex_color: str, size: int = 100) -> QIcon:
 def get_images_path():
     if getattr(sys, 'frozen', False):
         # The program is running as a compiled executable
-        images_dir = pkg_resources.resource_filename('UI', 'images')
+        images_dir = resources.images_dir()
         images_dir = os.path.join(images_dir, '..')
         return images_dir
     else:
