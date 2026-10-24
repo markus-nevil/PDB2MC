@@ -131,7 +131,7 @@ def delete_mcfunctions(directory, name):
             if filename.startswith(name) and filename.endswith(".nbt"):
                 os.remove(os.path.join(directory, filename))
     else:
-        print(f"Directory {directory} does not exist.")
+        print(f"Delete mcfunctions: Directory {directory} does not exist.")
 
 
 def delete_old_files(mc_dir, pdb_name):
@@ -575,9 +575,12 @@ def copy_directory_contents(src, dest):
             shutil.copy2(s, d)
 
 def finish_nbts(mc_dir, config_data, pdb_name):
-    nbt_dir = mc_dir.split(r"\datapacks/mcPDB/data/protein/functions")[0]
-    nbt_dir = nbt_dir + "/generated/mc/structures/"
+   # nbt_dir = mc_dir.split(r"\datapacks/mcPDB/data/protein/functions")[0]
+    nbt_dir = mc_dir.split(r"\datapacks/mcPDB/data/protein/functions")[0] + "/generated/mc/structures/"
+    nbt_dir_alt = mc_dir.split(r"\datapacks/mcPDB/data/protein/functions")[0] + "/generated/mc/structure/"
 
+    print(nbt_dir)
+    print(nbt_dir_alt)
     mcfiles = find_nbt(nbt_dir, pdb_name.lower())
 
     if config_data["simple"]:

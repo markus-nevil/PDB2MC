@@ -2,13 +2,16 @@ from PyQt6.QtWidgets import QApplication, QMainWindow, QCompleter, QDialog, QVBo
 from PyQt6.QtGui import QDesktopServices, QColor, QIcon, QPainter, QPixmap
 from PyQt6 import QtCore, QtGui, QtWidgets
 import os
-from .utilities import InformationBox, MyComboBox,IncludedPDBPopup, MinecraftPopup, FileExplorerPopup, SequenceSelectorPopup, get_presets_path
+import sys
+import importlib
+import pkg_resources
+from .utilities import InformationBox, MyComboBox, IncludedPDBPopup, MinecraftPopup, FileExplorerPopup, SequenceSelectorPopup, get_presets_path
 from PDB2MC.variables import decorative_blocks, hex_dict
 import pandas as pd
 from PDB2MC import minecraft_functions as mcf, pdb_manipulation as pdbm, skeleton
-import sys
-import pkg_resources
 from PyQt6.QtCore import QThread, pyqtSignal
+from .sidebar import Sidebar, SIDEBAR_WIDTH
+
 
 class WorkerThread(QThread):
     finished = pyqtSignal(object)
@@ -97,144 +100,133 @@ class PleaseWaitDialog(QDialog):
         else:
             self.status_label.setText("Done!")
 
+def get_images_path():
+    """
+    Return a deterministic images directory path.
+    For development: UI/images inside the package folder.
+    For frozen executables you may adapt this to your bundler needs.
+    """
+    try:
+        # Normal script location: folder/UI/images
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        images_dir = os.path.join(current_dir, 'images')
+        if os.path.isdir(images_dir):
+            return images_dir
+        # fallback: parent/UI/images
+        images_dir = os.path.normpath(os.path.join(current_dir, '..', 'UI', 'images'))
+        return images_dir
+    except Exception:
+        return os.path.join(os.path.dirname(os.path.abspath(__file__)), 'images')
+
 class SkeletonWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        # current_directory = os.path.basename(os.getcwd())
-        # if current_directory == "PDB2MC":
-        #     mcpdb_directory = os.path.join(os.getcwd(), ".." "UI")
-        #     os.chdir(mcpdb_directory)
-
-        # Only change working directory for resource loading, not before file selection
-        # os.chdir(get_images_path())  # <-- REMOVE this line from here
+        # Keep working directory unchanged (do not os.chdir)
 
         self.user_pdb_file = None
         self.user_minecraft_save = None
         self.setWindowTitle("Skeleton Mode")
-        # Set window icon and background after widgets are created
-        os.chdir(get_images_path())
-        self.setWindowIcon(QIcon('images/icons/logo.png'))
-        self.resize(450, 431)
+        # Set window icon using deterministic images path
+        try:
+            icon_path = os.path.join(get_images_path(), 'icons', 'logo.png')
+            if os.path.exists(icon_path):
+                self.setWindowIcon(QIcon(icon_path))
+            else:
+                # fallback relative path
+                fallback = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'images', 'icons', 'logo.png')
+                if os.path.exists(fallback):
+                    self.setWindowIcon(QIcon(fallback))
+        except Exception:
+            pass
+
+        self.resize(450, 450)
         self.centralwidget = QtWidgets.QWidget(parent=self)
         self.centralwidget.setObjectName("centralwidget")
-        self.switchModeLabel = QtWidgets.QLabel(parent=self.centralwidget)
-        font = QtGui.QFont()
-        font.setPointSize(11)
-        font.setBold(True)
-        font.setUnderline(True)
-        font.setWeight(100)
-        font.setKerning(True)
-        self.switchModeLabel.setFont(font)
-        self.switchModeLabel.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        self.switchModeLabel.setObjectName("switchModeLabel")
-        self.vSepLine = QtWidgets.QFrame(parent=self.centralwidget)
 
-        self.vSepLine.setFrameShadow(QtWidgets.QFrame.Shadow.Sunken)
-        self.vSepLine.setLineWidth(2)
-        self.vSepLine.setFrameShape(QtWidgets.QFrame.Shape.VLine)
-        self.vSepLine.setObjectName("vSepLine")
-        self.CustomMode = QtWidgets.QPushButton(parent=self.centralwidget)
+        # --- UI layout configuration (one place to modify positions/sizes) ---
+        # geometry tuple format: (X, Y, WIDTH, HEIGHT)
+        # indices: X = 0, Y = 1, WIDTH = 2, HEIGHT = 3
+        UI_GEOMETRY = {
+            "bg": (-90, -50, 881, 500),
+            "backboneColorLabel": (110, 10, 120, 21),
+            "backboneColorBox": (240, 10, 175, 22),
+            "showBackboneCheck": (240, 37, 121, 17),
+            "colorByBackboneCheck": (240, 53, 155, 21),
+            "bScaleLabel": (110, 80, 111, 21),
+            "backboneScaleSpinBox": (240, 80, 62, 22),
+            "pScaleLabel": (110, 108, 71, 21),
+            "pScaleSpinBox": (240, 108, 62, 22),
+            "sidechainColorLabel": (110, 150, 120, 21),
+            "sidechainColorBox": (240, 150, 175, 22),
+            "showSidechainCheck": (240, 175, 121, 17),
+            "otherColorLabel": (110, 210, 121, 21),
+            "otherColorBox": (240, 210, 175, 22),
+            "otherMoleculeCheck": (240, 238, 131, 17),
+            "aScaleLabel": (110, 260, 61, 21),
+            "aScaleSpinBox": (240, 260, 62, 22),
+            "selectPDBFileButton": (110, 315, 91, 23),
+            "orText": (210, 315, 31, 21),
+            "selectIncludedPDBButton": (250, 315, 141, 23),
+            "andText": (210, 350, 31, 21),
+            "selectMinecraftSaveButton": (250, 350, 141, 23),
+            "simpleOutputCheck": (110, 410, 100, 31),
+            "createFunctionsButton": (230, 385, 181, 31),
+            "modifyResiduesButton": (100, 370, 150, 31),
+            "selectedPDBLabel": (110, 340, 300, 21),
+            "selectedMinecraftLabel": (110, 370, 300, 21),
+        }
 
-        font = QtGui.QFont()
-        font.setPointSize(11)
-        self.CustomMode.setFont(font)
-        self.CustomMode.setObjectName("CustomMode")
-        self.SkeletonMode = QtWidgets.QPushButton(parent=self.centralwidget)
+        # small per-widget font sizes (point sizes); use None to keep default
+        UI_FONTS = {
+            "selectPDBFileButton": None,
+            "createFunctionsButton": 11,
+            "orText": 9,
+            "andText": 9,
+            "modifyResiduesButton": 10,
+            "selectedPDBLabel": None,
+            "selectedMinecraftLabel": None,
+        }
 
-        font = QtGui.QFont()
-        font.setPointSize(11)
-        self.SkeletonMode.setFont(font)
-        self.SkeletonMode.setObjectName("SkeletonMode")
-        self.XRayMode = QtWidgets.QPushButton(parent=self.centralwidget)
+        # --- Sidebar: instantiate the new Sidebar widget and place at left ---
+        try:
+            # Use sidebar master width constant so changing SIDEBAR_WIDTH updates placement
+            self.sidebar = Sidebar(self.centralwidget, width=SIDEBAR_WIDTH)
+        except Exception:
+            self.sidebar = QtWidgets.QWidget(self.centralwidget)
+            self.sidebar.setFixedWidth(SIDEBAR_WIDTH)
 
-        font = QtGui.QFont()
-        font.setPointSize(11)
-        self.XRayMode.setFont(font)
-        self.XRayMode.setObjectName("XRayMode")
-        self.SpaceFillingMode = QtWidgets.QPushButton(parent=self.centralwidget)
+        # initial placement: set geometry using centralwidget height if available
+        try:
+            initial_h = self.centralwidget.height() if self.centralwidget.height() > 0 else 400
+            self.sidebar.setGeometry(0, 0, SIDEBAR_WIDTH, initial_h)
+            if hasattr(self.sidebar, "setFixedHeight"):
+                self.sidebar.setFixedHeight(initial_h)
+        except Exception:
+            pass
 
-        font = QtGui.QFont()
-        font.setPointSize(8)
-        self.SpaceFillingMode.setFont(font)
-        self.SpaceFillingMode.setObjectName("SpaceFillingMode")
-        self.AminoAcidMode = QtWidgets.QPushButton(parent=self.centralwidget)
+        # --- Restore the remainder of the UI (from skeleton_old) ---
+        # Create widgets that belong in the content area / centralwidget.
+        # DO NOT recreate the left-side controls that Sidebar already owns.
 
-        font = QtGui.QFont()
-        font.setPointSize(8)
-        self.AminoAcidMode.setFont(font)
-        self.AminoAcidMode.setObjectName("AminoAcidMode")
-        self.RibbonMode = QtWidgets.QPushButton(parent=self.centralwidget)
-
-        font = QtGui.QFont()
-        font.setPointSize(11)
-        self.RibbonMode.setFont(font)
-        self.RibbonMode.setObjectName("RibbonMode")
-        self.github = QtWidgets.QPushButton(parent=self.centralwidget)
-
-        font = QtGui.QFont()
-        font.setPointSize(10)
-        self.github.setFont(font)
-        self.github.setObjectName("github")
-        self.help = QtWidgets.QPushButton(parent=self.centralwidget)
-
-        self.tools = QtWidgets.QPushButton(parent=self.centralwidget)
-        font = QtGui.QFont()
-        font.setPointSize(10)
-        self.tools.setFont(font)
-        self.tools.setObjectName("tools")
-
-        font = QtGui.QFont()
-        font.setPointSize(10)
-        self.help.setFont(font)
-        self.help.setObjectName("help")
-        self.rcsbButton = QtWidgets.QPushButton(parent=self.centralwidget)
-
-        font = QtGui.QFont()
-        font.setPointSize(9)
-        self.rcsbButton.setFont(font)
-        self.rcsbButton.setObjectName("rcsbButton")
-        self.mc2pdbLabel = QtWidgets.QLabel(parent=self.centralwidget)
-
-        font = QtGui.QFont()
-        font.setPointSize(11)
-        font.setBold(False)
-        font.setUnderline(False)
-        font.setWeight(100)
-        font.setKerning(True)
-        self.mc2pdbLabel.setFont(font)
-        self.mc2pdbLabel.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        self.mc2pdbLabel.setObjectName("mc2pdbLabel")
-        self.pdbDatabaseLabel = QtWidgets.QLabel(parent=self.centralwidget)
-
-        font = QtGui.QFont()
-        font.setPointSize(11)
-        font.setBold(False)
-        font.setUnderline(False)
-        font.setWeight(100)
-        font.setKerning(True)
-        self.pdbDatabaseLabel.setFont(font)
-        self.pdbDatabaseLabel.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        self.pdbDatabaseLabel.setObjectName("pdbDatabaseLabel")
-        self.modeInfoHLine = QtWidgets.QFrame(parent=self.centralwidget)
-
-        self.modeInfoHLine.setFrameShape(QtWidgets.QFrame.Shape.HLine)
-        self.modeInfoHLine.setFrameShadow(QtWidgets.QFrame.Shadow.Sunken)
-        self.modeInfoHLine.setObjectName("modeInfoHLine")
-        self.infoDatabaseHLine = QtWidgets.QFrame(parent=self.centralwidget)
-
-        self.infoDatabaseHLine.setFrameShape(QtWidgets.QFrame.Shape.HLine)
-        self.infoDatabaseHLine.setFrameShadow(QtWidgets.QFrame.Shadow.Sunken)
-        self.infoDatabaseHLine.setObjectName("infoDatabaseHLine")
         self.bg = QtWidgets.QLabel(parent=self.centralwidget)
-
         font = QtGui.QFont()
         font.setPointSize(7)
         self.bg.setFont(font)
         self.bg.setText("")
-        self.bg.setPixmap(QtGui.QPixmap("images/MC2PDB bg.png"))
+        # try to load background safely via images path
+        try:
+            bg_pix = os.path.join(get_images_path(), "MC2PDB bg.png")
+            if not os.path.exists(bg_pix):
+                # fallback path used in old code
+                bg_pix = os.path.join(os.path.dirname(os.path.abspath(__file__)), "images", "MC2PDB bg.png")
+            if os.path.exists(bg_pix):
+                self.bg.setPixmap(QtGui.QPixmap(bg_pix))
+        except Exception:
+            pass
         self.bg.setScaledContents(True)
         self.bg.setObjectName("bg")
 
+        # Color/option labels and comboboxes
         self.backboneColorLabel = QtWidgets.QLabel(parent=self.centralwidget)
         self.backboneColorLabel.setObjectName("backboneColorLabel")
 
@@ -256,6 +248,7 @@ class SkeletonWindow(QMainWindow):
         self.sidechainColorBox.setObjectName("sidechainColorBox")
         self.sidechainColorBox.setEditable(True)
 
+        # populate color comboboxes using helper create_icon
         icon_dict = {
             "red_concrete": "icon2",
             "orange_concrete": "icon3",
@@ -343,37 +336,50 @@ class SkeletonWindow(QMainWindow):
 
         for color_box in color_boxes:
             for value, icon in icon_dict.items():
-                color_box.addItem(create_icon(hex_dict[value]), value)
-                #color_box.addItem(eval(icon), value)
-        color_box.insertSeparator(16)
-        color_box.insertSeparator(33)
-        color_box.insertSeparator(50)
-        color_box.insertSeparator(67)
+                try:
+                    color_box.addItem(create_icon(hex_dict[value]), value)
+                except Exception:
+                    # fallback: add without icon if anything fails
+                    color_box.addItem(value)
+        # separators as in old UI
+        try:
+            color_box.insertSeparator(16)
+            color_box.insertSeparator(33)
+            color_box.insertSeparator(50)
+            color_box.insertSeparator(67)
+        except Exception:
+            pass
 
-        self.otherColorBox.setCurrentIndex(10)
-        self.sidechainColorBox.setCurrentIndex(13)
-        self.backboneColorBox.setCurrentIndex(13)
+        # Set default indices
+        try:
+            self.otherColorBox.setCurrentIndex(10)
+            self.sidechainColorBox.setCurrentIndex(13)
+            self.backboneColorBox.setCurrentIndex(13)
+        except Exception:
+            pass
 
-        otherCompleter = QCompleter(decorative_blocks)
-        otherCompleter.setCaseSensitivity(QtCore.Qt.CaseSensitivity.CaseInsensitive)
-        self.otherColorBox.setCompleter(otherCompleter)
-        sidechainCompleter = QCompleter(decorative_blocks)
-        sidechainCompleter.setCaseSensitivity(QtCore.Qt.CaseSensitivity.CaseInsensitive)
-        self.sidechainColorBox.setCompleter(sidechainCompleter)
-        backboneCompleter = QCompleter(decorative_blocks)
-        backboneCompleter.setCaseSensitivity(QtCore.Qt.CaseSensitivity.CaseInsensitive)
-        self.backboneColorBox.setCompleter(backboneCompleter)
+        # Completers
+        try:
+            otherCompleter = QCompleter(decorative_blocks)
+            otherCompleter.setCaseSensitivity(QtCore.Qt.CaseSensitivity.CaseInsensitive)
+            self.otherColorBox.setCompleter(otherCompleter)
+            sidechainCompleter = QCompleter(decorative_blocks)
+            sidechainCompleter.setCaseSensitivity(QtCore.Qt.CaseSensitivity.CaseInsensitive)
+            self.sidechainColorBox.setCompleter(sidechainCompleter)
+            backboneCompleter = QCompleter(decorative_blocks)
+            backboneCompleter.setCaseSensitivity(QtCore.Qt.CaseSensitivity.CaseInsensitive)
+            self.backboneColorBox.setCompleter(backboneCompleter)
+        except Exception:
+            pass
 
+        # Additional controls
         self.aScaleLabel = QtWidgets.QLabel(parent=self.centralwidget)
-
         self.aScaleLabel.setObjectName("aScaleLabel")
         self.otherMoleculeCheck = QtWidgets.QCheckBox(parent=self.centralwidget)
-
         self.otherMoleculeCheck.setChecked(True)
         self.otherMoleculeCheck.setObjectName("otherMoleculeCheck")
         self.otherMoleculeCheck.setToolTip("Check to show other non-protein, DNA, or RNA molecules.")
         self.aScaleSpinBox = QtWidgets.QDoubleSpinBox(parent=self.centralwidget)
-
         self.aScaleSpinBox.setDecimals(1)
         self.aScaleSpinBox.setMinimum(1.0)
         self.aScaleSpinBox.setMaximum(50.0)
@@ -382,25 +388,20 @@ class SkeletonWindow(QMainWindow):
         self.aScaleSpinBox.setObjectName("aScaleSpinBox")
         self.aScaleSpinBox.setToolTip("Change the diameter (rounded up) of each atom.")
         self.showBackboneCheck = QtWidgets.QCheckBox(parent=self.centralwidget)
-
         self.showBackboneCheck.setChecked(True)
         self.showBackboneCheck.setObjectName("showBackboneCheck")
         self.showBackboneCheck.setToolTip("Show the N-C-C backbone of the main models.")
         self.showSidechainCheck = QtWidgets.QCheckBox(parent=self.centralwidget)
-
         self.showSidechainCheck.setChecked(True)
         self.showSidechainCheck.setObjectName("showSidechainCheck")
         self.showSidechainCheck.setToolTip("Show amino acid R-groups")
         self.colorByBackboneCheck = QtWidgets.QCheckBox(parent=self.centralwidget)
-
         self.colorByBackboneCheck.setChecked(False)
         self.colorByBackboneCheck.setObjectName("colorByBackboneCheck")
         self.colorByBackboneCheck.setToolTip("Color the backbones of the main models by the molecule number.")
         self.pScaleLabel = QtWidgets.QLabel(parent=self.centralwidget)
-
         self.pScaleLabel.setObjectName("pScaleLabel")
         self.pScaleSpinBox = QtWidgets.QDoubleSpinBox(parent=self.centralwidget)
-
         self.pScaleSpinBox.setDecimals(1)
         self.pScaleSpinBox.setMinimum(1.0)
         self.pScaleSpinBox.setMaximum(50.0)
@@ -408,10 +409,8 @@ class SkeletonWindow(QMainWindow):
         self.pScaleSpinBox.setObjectName("pScaleSpinBox")
         self.pScaleSpinBox.setToolTip("Scale the entire model by this factor.")
         self.bScaleLabel = QtWidgets.QLabel(parent=self.centralwidget)
-
         self.bScaleLabel.setObjectName("bScaleLabel")
         self.backboneScaleSpinBox = QtWidgets.QDoubleSpinBox(parent=self.centralwidget)
-
         self.backboneScaleSpinBox.setDecimals(1)
         self.backboneScaleSpinBox.setMinimum(1.0)
         self.backboneScaleSpinBox.setMaximum(50.0)
@@ -419,25 +418,20 @@ class SkeletonWindow(QMainWindow):
         self.backboneScaleSpinBox.setObjectName("backboneScaleSpinBox")
         self.backboneScaleSpinBox.setToolTip("Scale the width of the backbone by this factor.")
         self.selectIncludedPDBButton = QtWidgets.QPushButton(parent=self.centralwidget)
-
         self.selectIncludedPDBButton.setObjectName("selectIncludedPDBButton")
         self.selectMinecraftSaveButton = QtWidgets.QPushButton(parent=self.centralwidget)
-
         self.selectMinecraftSaveButton.setObjectName("selectMinecraftSaveButton")
         self.simpleOutputCheck = QtWidgets.QCheckBox(parent=self.centralwidget)
-
         self.simpleOutputCheck.setChecked(True)
         self.simpleOutputCheck.setObjectName("simpleOutputCheck")
         self.simpleOutputCheck.setToolTip("Un-select to create individual commands for each molecule")
         self.selectPDBFileButton = QtWidgets.QPushButton(parent=self.centralwidget)
-
         font = QtGui.QFont()
         font.setBold(False)
         font.setWeight(50)
         self.selectPDBFileButton.setFont(font)
         self.selectPDBFileButton.setObjectName("pushButton_10")
         self.createFunctionsButton = QtWidgets.QPushButton(parent=self.centralwidget)
-
         self.createFunctionsButton.setToolTip("Add the selected PDB file to the Minecraft world")
         font = QtGui.QFont()
         font.setPointSize(11)
@@ -446,70 +440,46 @@ class SkeletonWindow(QMainWindow):
         self.createFunctionsButton.setFont(font)
         self.createFunctionsButton.setObjectName("pushButton_13")
         self.orText = QtWidgets.QLabel(parent=self.centralwidget)
-
         font = QtGui.QFont()
         font.setPointSize(9)
         self.orText.setFont(font)
         self.orText.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         self.orText.setObjectName("or")
         self.andText = QtWidgets.QLabel(parent=self.centralwidget)
-
         font = QtGui.QFont()
         font.setPointSize(9)
         self.andText.setFont(font)
         self.andText.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         self.andText.setObjectName("and")
 
-        self.bg.setGeometry(QtCore.QRect(-90, -50, 881, 500))
+        # Apply the centralized geometry and fonts to the created widgets
+        try:
+            for name, geom in UI_GEOMETRY.items():
+                try:
+                    w = getattr(self, name, None)
+                    if w is not None:
+                        w.setGeometry(QtCore.QRect(*geom))
+                except Exception:
+                    pass
+        except Exception:
+            pass
 
-        self.switchModeLabel.setGeometry(QtCore.QRect(0, 0, 101, 31))
-        self.CustomMode.setGeometry(QtCore.QRect(10, 30, 75, 23))
-        self.SkeletonMode.setGeometry(QtCore.QRect(10, 60, 75, 23))
-        self.XRayMode.setGeometry(QtCore.QRect(10, 90, 75, 23))
-        self.SpaceFillingMode.setGeometry(QtCore.QRect(10, 120, 75, 23))
-        self.RibbonMode.setGeometry(QtCore.QRect(10, 150, 75, 23))
-        self.AminoAcidMode.setGeometry(QtCore.QRect(10, 180, 75, 23))
-        self.modeInfoHLine.setGeometry(QtCore.QRect(10, 210, 71, 16))
-
-        self.mc2pdbLabel.setGeometry(QtCore.QRect(10, 215, 71, 21))
-        self.help.setGeometry(QtCore.QRect(10, 240, 75, 31))
-        self.github.setGeometry(QtCore.QRect(10, 280, 75, 31))
-        self.tools.setGeometry(QtCore.QRect(10, 320, 75, 31))
-        self.infoDatabaseHLine.setGeometry(QtCore.QRect(10, 350, 71, 16))
-
-        self.pdbDatabaseLabel.setGeometry(QtCore.QRect(5, 360, 91, 21))
-        self.rcsbButton.setGeometry(QtCore.QRect(10, 385, 75, 31))
-
-        self.vSepLine.setGeometry(QtCore.QRect(90, 0, 20, 431))
-
-        self.backboneColorLabel.setGeometry(QtCore.QRect(110, 10, 120, 21))
-        self.backboneColorBox.setGeometry(QtCore.QRect(240, 10, 175, 22))
-        self.showBackboneCheck.setGeometry(QtCore.QRect(240, 37, 121, 17))
-        self.colorByBackboneCheck.setGeometry(QtCore.QRect(240, 53, 155, 21))
-        self.bScaleLabel.setGeometry(QtCore.QRect(110, 80, 111, 21))
-        self.backboneScaleSpinBox.setGeometry(QtCore.QRect(240, 80, 62, 22))
-        self.pScaleLabel.setGeometry(QtCore.QRect(110, 108, 71, 21))
-        self.pScaleSpinBox.setGeometry(QtCore.QRect(240, 108, 62, 22))
-
-        self.sidechainColorLabel.setGeometry(QtCore.QRect(110, 150, 120, 21))
-        self.sidechainColorBox.setGeometry(QtCore.QRect(240, 150, 175, 22))
-        self.showSidechainCheck.setGeometry(QtCore.QRect(240, 175, 121, 17))
-
-        self.otherColorLabel.setGeometry(QtCore.QRect(110, 210, 121, 21))
-        self.otherColorBox.setGeometry(QtCore.QRect(240, 210, 175, 22))
-        self.otherMoleculeCheck.setGeometry(QtCore.QRect(240, 238, 131, 17))
-        self.aScaleLabel.setGeometry(QtCore.QRect(110, 260, 61, 21))
-        self.aScaleSpinBox.setGeometry(QtCore.QRect(240, 260, 62, 22))
-
-        self.selectPDBFileButton.setGeometry(QtCore.QRect(110, 315, 91, 23))
-        self.orText.setGeometry(QtCore.QRect(210, 315, 31, 21))
-        self.selectIncludedPDBButton.setGeometry(QtCore.QRect(250, 315, 141, 23))
-
-        self.andText.setGeometry(QtCore.QRect(210, 350, 31, 21))
-        self.selectMinecraftSaveButton.setGeometry(QtCore.QRect(250, 350, 141, 23))
-
-        self.simpleOutputCheck.setGeometry(QtCore.QRect(110, 385, 100, 31))
-        self.createFunctionsButton.setGeometry(QtCore.QRect(230, 385, 181, 31))
+        # Apply fonts where configured
+        try:
+            for name, pts in UI_FONTS.items():
+                try:
+                    if pts is None:
+                        continue
+                    w = getattr(self, name, None)
+                    if w is None:
+                        continue
+                    f = w.font() if hasattr(w, "font") else QtGui.QFont()
+                    f.setPointSize(int(pts))
+                    w.setFont(f)
+                except Exception:
+                    pass
+        except Exception:
+            pass
 
         # Add "Modify Residues" button (minimal placement; adjust graphics as needed)
         self.modifyResiduesButton = QtWidgets.QPushButton(parent=self.centralwidget)
@@ -518,7 +488,6 @@ class SkeletonWindow(QMainWindow):
         font.setPointSize(10)
         self.modifyResiduesButton.setFont(font)
         self.modifyResiduesButton.setObjectName("modifyResiduesButton")
-
 
         # Add labels to show selected file/folder
         self.selectedPDBLabel = QtWidgets.QLabel(parent=self.centralwidget)
@@ -531,90 +500,149 @@ class SkeletonWindow(QMainWindow):
         self.selectedMinecraftLabel.setObjectName("selectedMinecraftLabel")
         self.selectedMinecraftLabel.setText("No Minecraft save selected.")
 
+        # Finish setup
         self.bg.raise_()
-        self.switchModeLabel.raise_()
-        self.vSepLine.raise_()
-        self.CustomMode.raise_()
-        self.SkeletonMode.raise_()
-        self.XRayMode.raise_()
-        self.SpaceFillingMode.raise_()
-        self.AminoAcidMode.raise_()
-        self.RibbonMode.raise_()
-        self.github.raise_()
-        self.tools.raise_()
-        self.help.raise_()
-        self.rcsbButton.raise_()
-        self.mc2pdbLabel.raise_()
-        self.pdbDatabaseLabel.raise_()
-        self.modeInfoHLine.raise_()
-        self.infoDatabaseHLine.raise_()
-        self.backboneColorLabel.raise_()
-        self.sidechainColorLabel.raise_()
-        self.otherColorLabel.raise_()
-        self.otherColorBox.raise_()
-        self.backboneColorBox.raise_()
-        self.sidechainColorBox.raise_()
-        self.aScaleLabel.raise_()
-        self.otherMoleculeCheck.raise_()
-        self.aScaleSpinBox.raise_()
-        self.showBackboneCheck.raise_()
-        self.showSidechainCheck.raise_()
-        self.colorByBackboneCheck.raise_()
-        self.pScaleLabel.raise_()
-        self.pScaleSpinBox.raise_()
-        self.bScaleLabel.raise_()
-        self.backboneScaleSpinBox.raise_()
-        self.selectIncludedPDBButton.raise_()
-        self.selectMinecraftSaveButton.raise_()
-        self.simpleOutputCheck.raise_()
-        self.selectPDBFileButton.raise_()
-        self.createFunctionsButton.raise_()
-        self.modifyResiduesButton.raise_()
-        self.orText.raise_()
-        self.andText.raise_()
+        #self.vSepLine.raise_()
+        self.mc2pdbLabel = getattr(self.sidebar, "mc2pdbLabel", QtWidgets.QLabel(parent=self.centralwidget))
+        # ensure central widget set
         self.setCentralWidget(self.centralwidget)
 
-        self.retranslateUi(self)
+        # Make sure the right-hand controls are above the background.
+        # Use guarded raises so missing attributes won't crash startup.
+        try:
+            widgets_to_raise = (
+                getattr(self, "switchModeLabel", None),
+                getattr(self, "CustomMode", None),
+                getattr(self, "SkeletonMode", None),
+                getattr(self, "XRayMode", None),
+                getattr(self, "SpaceFillingMode", None),
+                getattr(self, "RibbonMode", None),
+                getattr(self, "AminoAcidMode", None),
+                getattr(self, "github", None),
+                getattr(self, "tools", None),
+                getattr(self, "help", None),
+                getattr(self, "rcsbButton", None),
+                getattr(self, "mc2pdbLabel", None),
+                getattr(self, "pdbDatabaseLabel", None),
+                getattr(self, "modeInfoHLine", None),
+                getattr(self, "infoDatabaseHLine", None),
+                getattr(self, "backboneColorLabel", None),
+                getattr(self, "backboneColorBox", None),
+                getattr(self, "showBackboneCheck", None),
+                getattr(self, "colorByBackboneCheck", None),
+                getattr(self, "backboneScaleSpinBox", None),
+                getattr(self, "pScaleLabel", None),
+                getattr(self, "pScaleSpinBox", None),
+                getattr(self, "sidechainColorLabel", None),
+                getattr(self, "sidechainColorBox", None),
+                getattr(self, "showSidechainCheck", None),
+                getattr(self, "otherColorLabel", None),
+                getattr(self, "otherColorBox", None),
+                getattr(self, "otherMoleculeCheck", None),
+                getattr(self, "aScaleLabel", None),
+                getattr(self, "aScaleSpinBox", None),
+                getattr(self, "selectPDBFileButton", None),
+                getattr(self, "selectIncludedPDBButton", None),
+                getattr(self, "selectMinecraftSaveButton", None),
+                getattr(self, "createFunctionsButton", None),
+                getattr(self, "simpleOutputCheck", None),
+                getattr(self, "modifyResiduesButton", None),
+                getattr(self, "selectPDBFileButton", None),
+                getattr(self, "orText", None),
+                getattr(self, "andText", None),
+                getattr(self, "selectedPDBLabel", None),
+                getattr(self, "selectedMinecraftLabel", None),
+            )
+            for w in widgets_to_raise:
+                try:
+                    if w is not None:
+                        w.raise_()
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+        # Make sure the sidebar itself is on top of the content area
+        try:
+            if hasattr(self, "sidebar") and self.sidebar is not None:
+                self.sidebar.raise_()
+        except Exception:
+            pass
+
+        # call retranslateUi and connections
+        self.retranslateUi()
         QtCore.QMetaObject.connectSlotsByName(self)
 
-        # Connect the QPushButton's clicked signal to a slot method
-        self.help.clicked.connect(self.handle_help_button)
-        self.rcsbButton.clicked.connect(self.handle_rscb_button)
-        self.github.clicked.connect(self.handle_github_button)
-        self.CustomMode.clicked.connect(self.handle_custom_mode)
-        self.SkeletonMode.clicked.connect(self.handle_skeleton_mode)
-        self.XRayMode.clicked.connect(self.handle_xray_mode)
-        self.SpaceFillingMode.clicked.connect(self.handle_space_filling_mode)
-        self.AminoAcidMode.clicked.connect(self.handle_amino_acid_mode)
-        self.RibbonMode.clicked.connect(self.handle_ribbon_mode)
-        self.selectIncludedPDBButton.clicked.connect(self.handle_included_pdb_button)
-        self.selectPDBFileButton.clicked.connect(self.handle_select_pdb_file_button)
-        self.selectMinecraftSaveButton.clicked.connect(self.handle_select_minecraft_button)
-        self.createFunctionsButton.clicked.connect(self.handle_make_function_button)
-        self.tools.clicked.connect(self.handle_tool_mode)
-        self.modifyResiduesButton.clicked.connect(self.handle_modify_residues_button)
+        # Make the main window non-resizable by the user (locks current size)
+        try:
+            self.setFixedSize(self.size())
+        except Exception:
+            pass
 
-        self.otherColorBox.focusOut.connect(lambda: self.check_input(self.otherColorBox, decorative_blocks))
-        self.backboneColorBox.focusOut.connect(lambda: self.check_input(self.backboneColorBox, decorative_blocks))
-        self.sidechainColorBox.focusOut.connect(lambda: self.check_input(self.sidechainColorBox, decorative_blocks))
+        # Connect sidebar buttons if present
+        try:
+            if hasattr(self.sidebar, "help"):
+                self.sidebar.help.clicked.connect(self.handle_help_button)
+            if hasattr(self.sidebar, "rcsbButton"):
+                self.sidebar.rcsbButton.clicked.connect(self.handle_rscb_button)
+            if hasattr(self.sidebar, "github"):
+                self.sidebar.github.clicked.connect(self.handle_github_button)
+            if hasattr(self.sidebar, "CustomMode"):
+                self.sidebar.CustomMode.clicked.connect(self.handle_custom_mode)
+            if hasattr(self.sidebar, "SkeletonMode"):
+                self.sidebar.SkeletonMode.clicked.connect(self.handle_skeleton_mode)
+            if hasattr(self.sidebar, "XRayMode"):
+                self.sidebar.XRayMode.clicked.connect(self.handle_xray_mode)
+            if hasattr(self.sidebar, "SpaceFillingMode"):
+                self.sidebar.SpaceFillingMode.clicked.connect(self.handle_space_filling_mode)
+            if hasattr(self.sidebar, "AminoAcidMode"):
+                self.sidebar.AminoAcidMode.clicked.connect(self.handle_amino_acid_mode)
+            if hasattr(self.sidebar, "RibbonMode"):
+                self.sidebar.RibbonMode.clicked.connect(self.handle_ribbon_mode)
+        except Exception:
+            pass
 
-        #self.showSidechainCheck.stateChanged.connect(lambda: self.check_input(self.sidechainColorBox, decorative_blocks))
-        #self.showBackboneCheck.stateChanged.connect(lambda: self.check_input(self.backboneColorBox, decorative_blocks))
-        self.showBackboneCheck.stateChanged.connect(self.on_showBackboneCheck_changed)
-        self.showSidechainCheck.stateChanged.connect(self.on_showSidechainCheck_changed)
-        self.colorByBackboneCheck.stateChanged.connect(self.on_colorByBackboneCheck_changed)
-        self.otherMoleculeCheck.stateChanged.connect(self.on_otherMoleculeCheck_changed)
+        # Connect remaining UI signals
+        try:
+            self.selectIncludedPDBButton.clicked.connect(self.handle_included_pdb_button)
+            self.selectPDBFileButton.clicked.connect(self.handle_select_pdb_file_button)
+            self.selectMinecraftSaveButton.clicked.connect(self.handle_select_minecraft_button)
+            self.createFunctionsButton.clicked.connect(self.handle_make_function_button)
+            self.tools = getattr(self.sidebar, "tools", getattr(self, "tools", None))
+            if self.tools is not None:
+                self.tools.clicked.connect(self.handle_tool_mode)
+            self.modifyResiduesButton.clicked.connect(self.handle_modify_residues_button)
+        except Exception:
+            pass
 
+        # focusOut handlers and state changes
+        try:
+            if hasattr(self.otherColorBox, "focusOut"):
+                self.otherColorBox.focusOut.connect(lambda: self.check_input(self.otherColorBox, decorative_blocks))
+            if hasattr(self.backboneColorBox, "focusOut"):
+                self.backboneColorBox.focusOut.connect(lambda: self.check_input(self.backboneColorBox, decorative_blocks))
+            if hasattr(self.sidechainColorBox, "focusOut"):
+                self.sidechainColorBox.focusOut.connect(lambda: self.check_input(self.sidechainColorBox, decorative_blocks))
+        except Exception:
+            pass
+
+        try:
+            self.showBackboneCheck.stateChanged.connect(self.on_showBackboneCheck_changed)
+            self.showSidechainCheck.stateChanged.connect(self.on_showSidechainCheck_changed)
+            self.colorByBackboneCheck.stateChanged.connect(self.on_colorByBackboneCheck_changed)
+            self.otherMoleculeCheck.stateChanged.connect(self.on_otherMoleculeCheck_changed)
+        except Exception:
+            pass
+
+    # event handlers and helpers (copied/restored from skeleton_old.py, adapted)
     def on_showBackboneCheck_changed(self, state):
         if not self.colorByBackboneCheck.isChecked():
             self.backboneColorBox.setEnabled(state != 0)
-            #self.backboneColorBox.setCurrentText("gray_concrete")
-        self.backboneScaleSpinBox.setEnabled(state !=0)
+        self.backboneScaleSpinBox.setEnabled(state != 0)
 
     def on_showSidechainCheck_changed(self, state):
         if not self.colorByBackboneCheck.isChecked():
             self.sidechainColorBox.setEnabled(state != 0)
-            #self.sidechainColorBox.setCurrentText("gray_concrete")
 
     def on_colorByBackboneCheck_changed(self, state):
         self.backboneColorBox.setEnabled(state == 0)
@@ -624,18 +652,14 @@ class SkeletonWindow(QMainWindow):
         self.otherColorBox.setEnabled(state != 0)
         self.aScaleSpinBox.setEnabled(state != 0)
 
-
     def check_input(self, combobox, valid_options):
         text = combobox.currentText()
-        #ensure that text is lowercase
         text = text.lower()
-        #replace any space characters with '_'
         text = text.replace(' ', '_')
         if text not in decorative_blocks:
             self.show_information_box(title_text=f"Invalid block input",
                                       text=f"{text} is not a valid block option.",
                                       icon_path="images/icons/icon_bad.png")
-            #QMessageBox.warning(self, "Invalid Input", f"{text} is not a valid option.")
             combobox.setCurrentIndex(0)
         else:
             if combobox.findText(text) <= 0:
@@ -644,74 +668,56 @@ class SkeletonWindow(QMainWindow):
             combobox.setCurrentText(text)
             combobox.setCurrentIndex(combobox.findText(text))
 
-    # Slot methods to handle QPushButton clicks
     def handle_select_pdb_file_button(self):
-        self.selectPDB = FileExplorerPopup()
-        self.user_pdb_file = self.selectPDB.selected_file
-
-        # Show recommended scale popup after file selection (for both .pdb and .cif)
-        if self.user_pdb_file:
-            # from .utilities import InformationBox
-            # from PDB2MC import pdb_manipulation as pdbm
-            try:
-                world_max = 320
-                # First check if model fits in Minecraft
-                if not pdbm.check_model_size(self.user_pdb_file, world_max=world_max):
-                    self.info_box = InformationBox()  # Keep reference!
-                    self.info_box.set_text(f"The chosen model is too large for Minecraft.")
-                    self.info_box.set_title("Model too large!")
+        try:
+            self.selectPDB = FileExplorerPopup()
+            self.user_pdb_file = self.selectPDB.selected_file
+            if self.user_pdb_file:
+                try:
+                    world_max = 320
+                    if not pdbm.check_model_size(self.user_pdb_file, world_max=world_max):
+                        self.info_box = InformationBox()
+                        self.info_box.set_text(f"The chosen model is too large for Minecraft.")
+                        self.info_box.set_title("Model too large!")
+                        self.info_box.set_icon("images/icons/icon_bad.png")
+                        self.info_box.show()
+                    else:
+                        size_factor = pdbm.check_max_size(self.user_pdb_file, world_max=world_max)
+                        size_factor = str(round(size_factor, 2))
+                        self.info_box = InformationBox()
+                        self.info_box.set_text(
+                            f"The suggested maximum protein scale is: {size_factor}x\n\nSet 'Protein Scale' below this for best results.")
+                        self.info_box.set_title("Maximum scale")
+                        self.info_box.set_icon("images/icons/icon_info.png")
+                        self.info_box.show()
+                except Exception as e:
+                    self.info_box = InformationBox()
+                    self.info_box.set_text(f"Could not determine recommended scale.\nError: {e}")
+                    self.info_box.set_title("Scale error")
                     self.info_box.set_icon("images/icons/icon_bad.png")
                     self.info_box.show()
-                else:
-                    size_factor = pdbm.check_max_size(self.user_pdb_file, world_max=world_max)
-                    print("Multiplier is: ", size_factor)  # For debugging
-                    size_factor = str(round(size_factor, 2))
-                    self.info_box = InformationBox()  # Keep reference!
-                    self.info_box.set_text(
-                        f"The suggested maximum protein scale is: {size_factor}x\n\nSet 'Protein Scale' below this for best results.")
-                    self.info_box.set_title("Maximum scale")
-                    self.info_box.set_icon("images/icons/icon_info.png")
-                    self.info_box.show()
-
-                # # --- TESTING: Show SequenceSelectorPopup after file selection ---
-                # from PDB2MC.structure_data import StructureData
-                # try:
-                #     if self.user_pdb_file.lower().endswith('.cif'):
-                #         structure = StructureData.from_mmcif(self.user_pdb_file)
-                #     else:
-                #         structure = StructureData.from_pdb(self.user_pdb_file)
-                #     print("okay gonna do it.")
-                #     self.seq_selector = SequenceSelectorPopup(structure)
-                #     self.seq_selector.show()
-                # except Exception as e:
-                #     QMessageBox.critical(self, "File Error", f"Failed to load structure for sequence selection:\n{e}")
-                # # -------------------------------------------------------------
-
-            except Exception as e:
-                self.info_box = InformationBox()  # Keep reference!
-                self.info_box.set_text(f"Could not determine recommended scale.\nError: {e}")
-                self.info_box.set_title("Scale error")
-                self.info_box.set_icon("images/icons/icon_bad.png")
-                self.info_box.show()
+        except Exception as e:
+            print(f"Error selecting PDB file: {e}")
 
     def handle_select_minecraft_button(self):
-        self.selectMinecraft = MinecraftPopup()
-        if self.selectMinecraft.selected_directory is None:
-            self.show_information_box(title_text=f"Error",
-                                      text=f"Remember to select a Minecraft save.",
-                                      icon_path="images/icons/icon_bad.png")
-            return
-        self.user_minecraft_save = self.selectMinecraft.selected_directory
+        try:
+            self.selectMinecraft = MinecraftPopup()
+            if self.selectMinecraft.selected_directory is None:
+                self.show_information_box(title_text=f"Error",
+                                          text=f"Remember to select a Minecraft save.",
+                                          icon_path="images/icons/icon_bad.png")
+                return
+            self.user_minecraft_save = self.selectMinecraft.selected_directory
+        except Exception as e:
+            print(f"Error selecting Minecraft save: {e}")
 
     def handle_modify_residues_button(self):
-        # Only open the selector if a structure file has been chosen
         if not getattr(self, "user_pdb_file", None):
             self.show_information_box(title_text="No structure selected",
                                       text="Please select a PDB or mmCIF file first.",
                                       icon_path="images/icons/icon_bad.png")
             return
         try:
-            # Load StructureData so the popup receives the expected object
             from PDB2MC.structure_data import StructureData
             if self.user_pdb_file.lower().endswith('.cif'):
                 structure = StructureData.from_mmcif(self.user_pdb_file)
@@ -721,7 +727,6 @@ class SkeletonWindow(QMainWindow):
             QMessageBox.critical(self, "File Error", f"Failed to load structure for sequence selection:\n{e}")
             return
 
-        # Keep reference to the popup so it isn't GC'd; capture its output when it closes
         try:
             popup = SequenceSelectorPopup(structure)
             self.seq_selector = popup
@@ -731,15 +736,17 @@ class SkeletonWindow(QMainWindow):
             print(f"Error opening SequenceSelectorPopup: {e}")
 
     def handle_included_pdb_button(self):
-        self.includedPDB = IncludedPDBPopup()
-        self.includedPDB.show()
-        self.includedPDB.selected.connect(self.save_selected_text)
+        try:
+            self.includedPDB = IncludedPDBPopup()
+            self.includedPDB.show()
+            self.includedPDB.selected.connect(self.save_selected_text)
+        except Exception as e:
+            print(f"Error opening IncludedPDBPopup: {e}")
 
     def save_selected_text(self, text):
         self.user_pdb_file = f"presets/{text}.pdb"
 
     def handle_make_function_button(self):
-        # Create a dictionary to store the user options
         config_data = {'atoms': {}}
         config_data['atoms']['O'] = 'red_wool'
         config_data['atoms']['N'] = 'blue_wool'
@@ -771,22 +778,19 @@ class SkeletonWindow(QMainWindow):
             config_data['pdb_file'] = self.user_pdb_file
             config_data['save_path'] = self.user_minecraft_save
 
-            # Show modal progress dialog
             self.wait_dialog = PleaseWaitDialog(self)
             self.wait_dialog.show()
 
-            # Use WorkerThread for background processing
             self.worker = WorkerThread(config_data)
             self.worker.progress.connect(self.wait_dialog.set_progress)
             self.worker.finished.connect(self.on_worker_finished)
             self.worker.start()
 
-    def on_worker_progress(self, value):
-        # No longer needed, handled by PleaseWaitDialog
-        pass
-
     def on_worker_finished(self, result):
-        self.wait_dialog.close()
+        try:
+            self.wait_dialog.close()
+        except Exception:
+            pass
         if result.get("result") == "done":
             lower = result.get("lower", "")
             self.show_information_box(
@@ -802,32 +806,33 @@ class SkeletonWindow(QMainWindow):
             )
 
     def show_information_box(self, title_text, text, icon_path):
-        self.info_box = InformationBox()
-        self.info_box.set_text(text)
-        self.info_box.set_title(title_text)
-        self.info_box.set_icon(icon_path)
-        self.info_box.show()
+        try:
+            self.info_box = InformationBox()
+            self.info_box.set_text(text)
+            self.info_box.set_title(title_text)
+            self.info_box.set_icon(icon_path)
+            self.info_box.show()
+        except Exception:
+            QMessageBox.information(self, title_text, text)
 
     def handle_github_button(self):
         QDesktopServices.openUrl(QtCore.QUrl("https://github.com/markus-nevil/mcpdb"))
 
     def handle_help_button(self):
-        from UI.help_window import HelpWindow
-        help_window = HelpWindow.instance()
-        if help_window.isVisible():
-            # If a HelpWindow already exists, bring it to the front
-            help_window.raise_()
-            help_window.activateWindow()
-        else:
-            # If no HelpWindow exists, create a new one
-            help_window.show()
-
-        # Move the HelpWindow to the center of the current screen
-        frame_geometry = help_window.frameGeometry()
-        screen_center = self.screen().availableGeometry().center()
-        frame_geometry.moveCenter(screen_center)
-        help_window.move(frame_geometry.topLeft())
-        #QDesktopServices.openUrl(QtCore.QUrl("https://github.com/markus-nevil/mcpdb/blob/main/README.md"))
+        try:
+            from UI.help_window import HelpWindow
+            help_window = HelpWindow.instance()
+            if help_window.isVisible():
+                help_window.raise_()
+                help_window.activateWindow()
+            else:
+                help_window.show()
+            frame_geometry = help_window.frameGeometry()
+            screen_center = self.screen().availableGeometry().center()
+            frame_geometry.moveCenter(screen_center)
+            help_window.move(frame_geometry.topLeft())
+        except Exception:
+            pass
 
     def handle_rscb_button(self):
         QDesktopServices.openUrl(QtCore.QUrl("https://www.rcsb.org/"))
@@ -842,6 +847,7 @@ class SkeletonWindow(QMainWindow):
             print(f"Error in handle_custom_mode: {e}")
 
     def handle_skeleton_mode(self):
+        # already in skeleton mode; no-op or refresh if needed
         try:
             pass
         except Exception as e:
@@ -854,7 +860,7 @@ class SkeletonWindow(QMainWindow):
             self.tool_window.show()
             self.hide()
         except Exception as e:
-            print(f"Error in handle_space_filling_mode: {e}")
+            print(f"Error in handle_tool_mode: {e}")
 
     def handle_xray_mode(self):
         try:
@@ -892,80 +898,44 @@ class SkeletonWindow(QMainWindow):
         except Exception as e:
             print(f"Error in handle_ribbon_mode: {e}")
 
-    def retranslateUi(self, SkeletonWindow):
+    def retranslateUi(self):
         _translate = QtCore.QCoreApplication.translate
-        self.switchModeLabel.setText(_translate("SkeletonWindow", "Switch Mode"))
-        self.CustomMode.setText(_translate("SkeletonWindow", "Custom"))
-        self.SkeletonMode.setText(_translate("SkeletonWindow", "Skeleton"))
-        self.XRayMode.setText(_translate("SkeletonWindow", "X-Ray"))
-        self.SpaceFillingMode.setText(_translate("SkeletonWindow", "Space Filling"))
-        self.AminoAcidMode.setText(_translate("SkeletonWindow", "Amino Acids"))
-        self.RibbonMode.setText(_translate("SkeletonWindow", "Ribbon"))
-        self.github.setText(_translate("SkeletonWindow", "Github"))
-        self.tools.setText(_translate("SkeletonWindow", "Tools"))
-        self.help.setText(_translate("SkeletonWindow", "Help"))
-        self.rcsbButton.setText(_translate("SkeletonWindow", "RCSB.org"))
-        self.mc2pdbLabel.setText(_translate("SkeletonWindow", "PDB2MC"))
-        self.pdbDatabaseLabel.setText(_translate("SkeletonWindow", "PDB Database"))
-        self.backboneColorLabel.setText(_translate("SkeletonWindow", "Select backbone color:"))
-        self.sidechainColorLabel.setText(_translate("SkeletonWindow", "Select sidechain color:"))
-        self.otherColorLabel.setText(_translate("SkeletonWindow", "Select other color:"))
-        self.aScaleLabel.setText(_translate("SkeletonWindow", "Atom scale:"))
-        self.otherMoleculeCheck.setText(_translate("SkeletonWindow", "Show other molecules"))
-        self.showBackboneCheck.setText(_translate("SkeletonWindow", "Show backbone"))
-        self.showSidechainCheck.setText(_translate("SkeletonWindow", "Show sidechain"))
-        self.colorByBackboneCheck.setText(_translate("SkeletonWindow", "Color backbone by chain"))
-        self.pScaleLabel.setText(_translate("SkeletonWindow", "Protein scale:"))
-        self.bScaleLabel.setText(_translate("SkeletonWindow", "Backbone scale:"))
-        self.selectIncludedPDBButton.setText(_translate("SkeletonWindow", "Select Included PDB File"))
-        self.selectMinecraftSaveButton.setText(_translate("SkeletonWindow", "Select Minecraft Save"))
-        self.simpleOutputCheck.setText(_translate("SkeletonWindow", "Simple output"))
-        self.selectPDBFileButton.setText(_translate("SkeletonWindow", "Select PDB File"))
-        self.modifyResiduesButton.setText(_translate("SkeletonWindow", "Modify Residues"))
-        self.createFunctionsButton.setText(_translate("SkeletonWindow", "Create Minecraft Functions"))
-        self.orText.setText(_translate("SkeletonWindow", "or"))
-        self.andText.setText(_translate("SkeletonWindow", "and"))
+        # Sidebar text handled by Sidebar; set texts for right-side widgets
+        try:
+            self.setWindowTitle(_translate("SkeletonWindow", "Skeleton Mode"))
+            self.backboneColorLabel.setText(_translate("SkeletonWindow", "Select backbone color:"))
+            self.sidechainColorLabel.setText(_translate("SkeletonWindow", "Select sidechain color:"))
+            self.otherColorLabel.setText(_translate("SkeletonWindow", "Select other color:"))
+            self.aScaleLabel.setText(_translate("SkeletonWindow", "Atom scale:"))
+            self.otherMoleculeCheck.setText(_translate("SkeletonWindow", "Show other molecules"))
+            self.showBackboneCheck.setText(_translate("SkeletonWindow", "Show backbone"))
+            self.showSidechainCheck.setText(_translate("SkeletonWindow", "Show sidechain"))
+            self.colorByBackboneCheck.setText(_translate("SkeletonWindow", "Color backbone by chain"))
+            self.pScaleLabel.setText(_translate("SkeletonWindow", "Protein scale:"))
+            self.bScaleLabel.setText(_translate("SkeletonWindow", "Backbone scale:"))
+            self.selectIncludedPDBButton.setText(_translate("SkeletonWindow", "Select Included PDB File"))
+            self.selectMinecraftSaveButton.setText(_translate("SkeletonWindow", "Select Minecraft Save"))
+            self.simpleOutputCheck.setText(_translate("SkeletonWindow", "Simple output"))
+            self.selectPDBFileButton.setText(_translate("SkeletonWindow", "Select PDB File"))
+            self.modifyResiduesButton.setText(_translate("SkeletonWindow", "Modify Residues"))
+            self.createFunctionsButton.setText(_translate("SkeletonWindow", "Create Minecraft Functions"))
+            self.orText.setText(_translate("SkeletonWindow", "or"))
+            self.andText.setText(_translate("SkeletonWindow", "and"))
+        except Exception:
+            pass
 
-
+# Helper utilities restored from old file
 def set_combobox_by_text(combobox, text):
     index = combobox.findText(text)
     if index >= 0:  # If the text is found
         combobox.setCurrentIndex(index)
 
 def create_icon(hex_color: str, size: int = 100) -> QIcon:
-    #print(hex_color)
-
-    # Create a QPixmap object
     pixmap = QPixmap(size, size)
-    # Create a QPainter object and begin painting on the QPixmap
     painter = QPainter(pixmap)
-    # Set the brush color to the desired color
     color = QColor(hex_color)
     painter.setBrush(color)
-    # Draw a rectangle on the QPixmap
     painter.drawRect(0, 0, size, size)
-    # End the painting process
     painter.end()
-    # Create a QIcon object from the QPixmap
     icon = QIcon(pixmap)
     return icon
-
-def get_images_path():
-    if getattr(sys, 'frozen', False):
-        # The program is running as a compiled executable
-        images_dir = pkg_resources.resource_filename('UI', 'images')
-        images_dir = os.path.join(images_dir, '..')
-        return images_dir
-    else:
-        # The program is running as a Python script or it's installed in the Python environment
-        # Get the directory of the current script
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        # Construct the path to the UI/images directory
-        images_dir = os.path.join(current_dir, '..', 'UI')
-        return images_dir
-
-if __name__ == "__main__":
-    app = QApplication([])
-    main_window = SkeletonWindow()
-    main_window.show()
-    app.exec()

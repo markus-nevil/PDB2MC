@@ -20,6 +20,7 @@ from PDB2MC.version import version
 
 help_window = None
 
+
 class MainWindow(QMainWindow):
     """
     Main application window for PDB2MC.
@@ -211,6 +212,12 @@ class MainWindow(QMainWindow):
             self.hide()
         if text == "Skeleton":
             self.skeleton_window = skeleton_window.SkeletonWindow()
+            # enable hot-reload if requested via environment toggle
+            if ENABLE_HOT_RELOAD:
+                try:
+                    self.skeleton_window.enable_hot_reload(True)
+                except Exception:
+                    pass
             self.skeleton_window.show()
             self.hide()
         if text == "X-Ray":
