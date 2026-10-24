@@ -57,6 +57,10 @@ This guide includes a quick start, glossary of terms, description of features, a
 
 To run the test suite: `pip install ".[test]"` then `python -m pytest`.
 
+Models can also be built without the window, with each mode's default settings:
+`python -m PDB2MC.cli Skeleton path/to/model.pdb "<path to>/.minecraft/saves/<world>" --scale 2`
+(options: `--by-chain`, `--no-hetatm`, `--mesh`).
+
 > [!NOTE]
 > Minecraft 1.21 renamed the world folders that hold structures (`generated/mc/structures` → `generated/mc/structure`)
 > and functions (`functions` → `function`). PDB2MC writes every file to both, so models work in older and newer versions.
@@ -256,8 +260,8 @@ for understanding the connection between overall shape and the bonds between ato
 
 
 > [!WARNING]
-> Space Filling mode will take a long time for `PDB2MC` to run and may take Minecraft a long
-time to process.
+> Space Filling models of large structures at high scales contain many blocks and may take Minecraft a long
+> time to place. Only the outer layer of the surface is placed, which keeps the block count down.
 
 5. Amino Acid 
 : This mode creates a model where the amino acids are represented by a single sphere. This is no longer a true representation
@@ -282,7 +286,9 @@ or DNA/RNA chain to which they belong. This mode is useful for visualizing the s
 
    - `Scale determination: `Once a PDB file is loaded, the program will determine the size of the model and suggest a
    maximum scale for the model. This is to prevent the model from being too large for Minecraft's limited up-and-down (Y) axis.
-   In the current version, this appears as a pop-up.
+   `Protein Scale` is set to this maximum, rounded down to a whole number; you can still change it.
+   - `Switching modes: `The selected model, Minecraft save, residue changes and chain colors carry over when you switch
+   to another mode.
    - `Rotation of model: `Once the user starts generating the model, the model will rotate such that the shortest dimension
    will become the up-and-down (Y) axis. This is to prevent the model from being too large for Minecraft.
    - `Removal of Hydrogen and Water: `Due to the nature of X-ray crystallography, hydrogen atoms are often not captured
@@ -291,7 +297,9 @@ or DNA/RNA chain to which they belong. This mode is useful for visualizing the s
    - `Removal of ambiguous residues: `Some PDB files contain amino acids that are not fully resolved. This means that the
    exact orientation of amino acid residues are not known. The ambiguous residues are removed from the visualization.
    - `Color of chains: `In modes that color the backbone of the protein by default or optionally, the chains will be colored
-   based on a preset set of brightly colored blocks. This may be made customizable in the future versions.
+   based on a list of blocks. Checking "Color backbone by chain" (or "Color model by chain") opens this list: type block
+   names (with autocomplete) to add them, reorder or remove them, or press "Default" for the preset bright colors. Chain 1
+   uses the first block, chain 2 the second, and the list repeats when a model has more chains than blocks.
    - `Minecraft datapack: `When a new Minecraft world first has model functions generated, a "datapack" is required. 
    The program will automatically generate the datapack file structure and place the required pack.mcmeta file in the datapack.
    
@@ -331,18 +339,27 @@ displayed as a "ball-and-stick" model.
 : Selecting this option will reduce the number of blocks to display a "cloud" of blocks rather than a full sphere for each atom.
 This is another method to visualize the interior and bond structures of models without being occluded by the atoms.
 
-10. `Help` button
+10. `Modify Residues`
+: Opens the sequence of every chain. Select residues (click, shift-click or drag) and choose:
+   - `Assign Block Type`: every block of those residues, in every part of the model (atoms, backbone, sidechain, ribbon
+   or surface), uses this block instead of its normal color.
+   - `Hide Selection`: those residues are left out of the model entirely.
+   - `Clear Changes`: undoes the changes of the selected residues, or of all residues when nothing is selected.
+
+   Press `Okay` to use the changes; they apply in every mode until another structure file is selected.
+
+11. `Help` button
 : Pressing this button will open a new window with a link to this guide.
 
-11. `Github` button
+12. `Github` button
 : Pressing this button will open a new window with a link to the Github repository for this program.
 
-12. `RCSB.org` button
+13. `RCSB.org` button
 : Pressing this button will open a new window with a link to the RCSB PDB website. This is where you can look up and download
 PDB files for your own models.
 
 <a id="default-atom-colors"></a>
-13. Default atom colors
+14. Default atom colors
 : Below is a table of the default colors for each atom. These are the colors that will be used if the user does not select
 alternatives.
 

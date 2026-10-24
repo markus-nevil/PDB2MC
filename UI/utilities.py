@@ -22,23 +22,14 @@ class InformationBox(QMainWindow):
 
         # Set window properties
         self.setWindowTitle("Custom Popup")
-        os.chdir(get_images_path())
-
-        self.setWindowIcon(QIcon('images/icons/logo.png'))
-
-        # Set background image
-        self.setStyleSheet("background-image: url(images/MC2PDB bg.png);")
+        self.setWindowIcon(QIcon(resources.image('icons', 'logo.png')))
+        self.setStyleSheet(background_style())
         self.resize(500, 150)
 
-        labelTitle = QtWidgets.QLabel(self)
-        pixmap = QtGui.QPixmap("images/icons/icon_info.png")
-        pixmap = pixmap.scaled(200, 200)
-        labelTitle.setScaledContents(True)
-        labelTitle.setGeometry(QtCore.QRect(37, 37, 75, 75))
-
-        labelTitle.setPixmap(pixmap)
-        labelTitle.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
-        # removed: self.layout().addWidget(labelTitle)
+        self.icon_label = QtWidgets.QLabel(self)
+        self.icon_label.setScaledContents(True)
+        self.icon_label.setGeometry(QtCore.QRect(37, 37, 75, 75))
+        self.set_icon(resources.image('icons', 'icon_info.png'))
 
         # Create labels
         self.label1 = QLabel("test", self)
@@ -94,15 +85,10 @@ class InformationBox(QMainWindow):
 
     # function that changes the icon image between 3 choices: icon_good, icon_bad, icon_info
     def set_icon(self, icon):
-        labelTitle = QtWidgets.QLabel(self)
-        pixmap = QtGui.QPixmap(icon)
-        pixmap = pixmap.scaled(200, 200)
-        labelTitle.setScaledContents(True)
-        labelTitle.setGeometry(QtCore.QRect(37, 37, 75, 75))
-
-        labelTitle.setPixmap(pixmap)
-        labelTitle.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
-        # removed: self.layout().addWidget(labelTitle)
+        # Relative paths such as 'images/icons/icon_bad.png' are relative to the UI folder
+        if not os.path.isabs(icon):
+            icon = os.path.join(get_images_path(), icon)
+        self.icon_label.setPixmap(QtGui.QPixmap(icon).scaled(200, 200))
 
     #Function to change the window title
     def set_title(self, title):
@@ -157,12 +143,8 @@ class IncludedPDBPopup(QMainWindow):
         super().__init__()
         self.setWindowTitle("Select one included PDB model")
         self.resize(350, 200)
-        os.chdir(get_images_path())
-
-        self.setWindowIcon(QIcon('images/icons/logo.png'))
-
-        # Set background image
-        self.setStyleSheet("background-image: url(images/MC2PDB bg.png);")
+        self.setWindowIcon(QIcon(resources.image('icons', 'logo.png')))
+        self.setStyleSheet(background_style())
 
         #Create a selectable list where user can select one item
         self.listWidget = QListWidget(self)
@@ -205,22 +187,7 @@ class IncludedPDBPopup(QMainWindow):
             self.nothing = NothingSelected()
             self.nothing.show()
         else:
-            preset_file = os.path.join(get_presets_path(), selected_text + ".pdb")
-            # check if the model is small enough for minecraft
-            if not pdbm.check_model_size(preset_file, world_max=320):
-                self.info_box = InformationBox()  # Keep reference!
-                self.info_box.set_text(f"The chosen model is too large for Minecraft.")
-                self.info_box.set_title("Model too large!")
-                self.info_box.set_icon("images/icons/icon_bad.png")
-                self.info_box.show()
-            else:
-                size_factor = pdbm.check_max_size(preset_file, world_max=320)
-                size_factor = str(round(size_factor, 2))
-                self.info_box = InformationBox()  # Keep reference!
-                self.info_box.set_text(f"The suggested maximum protein scale is: {size_factor}x\n\nSet 'Protein Scale' below this for best results.")
-                self.info_box.set_title("Maximum scale")
-                self.info_box.set_icon("images/icons/icon_info.png")
-                self.info_box.show()
+            # The window that receives `selected` checks the size and sets the scale
             self.selected.emit(selected_text)
             self.close()
             return selected_text
@@ -297,8 +264,12 @@ class MinecraftPopup(QMainWindow):
 class SequenceSelectorPopup(QMainWindow):
     """
     Popup window for selecting and annotating sequence regions from a StructureData object.
-    Allows selection of ranges per chain, and assignment of block type, hide, or add chain options.
+    Selected residues can be given their own block or hidden; "Clear Changes" undoes both for the
+    selection (or for everything when nothing is selected). "Okay" emits selection_made with
+    {chain: {resid: ['hide', 'block:<name>']}}, which every mode applies to its model.
     """
+    selection_made = pyqtSignal(dict)
+
     # Add a local three_to_one conversion table
     _three_to_one_dict = {
         'ALA': 'A', 'ARG': 'R', 'ASN': 'N', 'ASP': 'D', 'CYS': 'C',
@@ -317,12 +288,10 @@ class SequenceSelectorPopup(QMainWindow):
         resname = str(resname).upper()
         return SequenceSelectorPopup._three_to_one_dict.get(resname, '?')
 
-    def __init__(self, structure_data):
+    def __init__(self, structure_data, modifications=None):
         super().__init__()
-        self.setWindowTitle("Sequence Selector")
-        os.chdir(get_images_path())
-        self.setWindowIcon(QIcon('images/icons/logo.png'))
-        self.setStyleSheet("background-image: url(images/MC2PDB bg.png);")
+        self.setWindowTitle("Modify Residues")
+        self.setWindowIcon(QIcon(resources.image('icons', 'logo.png')))
 
         # --- Dynamically set window height based on number of chains ---
         min_height = 420
@@ -341,7 +310,7 @@ class SequenceSelectorPopup(QMainWindow):
         self._last_active_chain = None  # Track most recently interacted chain (fixes bug)
 
         # Title label
-        self.title_label = QLabel("Select sequence regions for annotation", self)
+        self.title_label = QLabel("Select residues, then give them a block or hide them", self)
         self.title_label.setFont(QFont("Arial", 14))
         self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.title_label.setGeometry(0, 10, 900, 30)
@@ -413,15 +382,46 @@ class SequenceSelectorPopup(QMainWindow):
         self.hide_btn.setGeometry(260, total_height - 60, 120, 35)
         self.hide_btn.clicked.connect(self.assign_hide)
 
-        self.add_chain_btn = QPushButton("Add Chain", self)
-        self.add_chain_btn.setGeometry(400, total_height - 60, 120, 35)
-        self.add_chain_btn.clicked.connect(self.assign_add_chain)
+        self.clear_btn = QPushButton("Clear Changes", self)
+        self.clear_btn.setGeometry(400, total_height - 60, 120, 35)
+        self.clear_btn.setToolTip("Undo the changes of the selected residues (of all residues when none are selected)")
+        self.clear_btn.clicked.connect(self.clear_changes)
 
         self.okay_btn = QPushButton("Okay", self)
         self.okay_btn.setGeometry(550, total_height - 60, 100, 35)
         self.okay_btn.clicked.connect(self.finish_selection)
 
         self.options = {}
+        self.selection_output = {}
+        self.load_modifications(modifications or {})
+
+    def load_modifications(self, modifications):
+        """Show earlier choices ({chain: {resid: [options]}}) so they can be changed."""
+        for chain, residues in modifications.items():
+            if chain not in self.chain_widgets:
+                continue
+            for resnum, options in residues.items():
+                resnum = str(resnum)
+                for option in options:
+                    if option == "hide":
+                        self._add_option(chain, resnum, "hide")
+                        self._mark_modified(chain, resnum, "hide")
+                    elif option.startswith("block:"):
+                        self._add_option(chain, resnum, option)
+                        self._mark_modified(chain, resnum, "block")
+                        self.block_assignments[chain][resnum] = option.split(":", 1)[1]
+            self._update_item_colors(chain)
+
+    def clear_changes(self):
+        chain, selected = self._get_current_selection()
+        targets = {chain: selected} if chain is not None and selected else {
+            ch: list(self.modified_items.get(ch, {})) for ch in self.chain_order}
+        for ch, resnums in targets.items():
+            for resnum in resnums:
+                self.options.get(ch, {}).pop(resnum, None)
+                self.modified_items.get(ch, {}).pop(resnum, None)
+                self.block_assignments.get(ch, {}).pop(resnum, None)
+            self._update_item_colors(ch)
 
     def assign_block_type(self):
         chain, selected = self._get_current_selection()
@@ -437,6 +437,11 @@ class SequenceSelectorPopup(QMainWindow):
         label = QLabel("Choose block type for selection:")
         layout.addWidget(label)
         combo = QtWidgets.QComboBox(block_dialog)
+        combo.setEditable(True)
+        completer = QtWidgets.QCompleter(decorative_blocks, combo)
+        completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        completer.setFilterMode(Qt.MatchFlag.MatchContains)
+        combo.setCompleter(completer)
         for block in decorative_blocks:
             icon = QIcon()
             if block in hex_dict:
@@ -450,7 +455,10 @@ class SequenceSelectorPopup(QMainWindow):
         btns.accepted.connect(block_dialog.accept)
         btns.rejected.connect(block_dialog.reject)
         if block_dialog.exec() == QtWidgets.QDialog.DialogCode.Accepted:
-            block_type = combo.currentText()
+            block_type = combo.currentText().strip().lower().replace(' ', '_')
+            if block_type not in decorative_blocks:
+                QMessageBox.warning(self, "Invalid block", f"{block_type} is not a valid block option.")
+                return
             for resnum in selected:
                 self._remove_block_assignment(chain, resnum)
                 self._add_option(chain, resnum, f"block:{block_type}")
@@ -474,16 +482,6 @@ class SequenceSelectorPopup(QMainWindow):
         for resnum in selected:
             self._add_option(chain, resnum, "hide")
             self._mark_modified(chain, resnum, "hide")
-        self._update_item_colors(chain)
-
-    def assign_add_chain(self):
-        chain, selected = self._get_current_selection()
-        if chain is None or not selected:
-            QMessageBox.warning(self, "No selection", "Please select a sequence region.")
-            return
-        for resnum in selected:
-            self._add_option(chain, resnum, "add_chain")
-            self._mark_modified(chain, resnum, "add_chain")
         self._update_item_colors(chain)
 
     def _on_chain_selection_changed(self, chain_id):
@@ -553,34 +551,14 @@ class SequenceSelectorPopup(QMainWindow):
             resnum = item.data(QtCore.Qt.ItemDataRole.UserRole)
             types = self.modified_items.get(chain, {}).get(resnum, set())
             block_type = self.block_assignments.get(chain, {}).get(resnum, None)
-            # Color logic:
-            # "hide": dark grey bg, black text (takes precedence)
-            # "block": use block color bg, white text
-            # "add_chain": red bg, white text
-            # "block"+"add_chain": purple bg, white text
-            # If both "hide" and others: always dark grey/black
-            # If "add_chain" and block: text red, bg block color
-            # If only block: bg block color, white text
-            # If only add_chain: red bg, white text
-            # If both block and add_chain: purple bg, white text
-            # If "hide" and anything: always dark grey/black
+            # Hidden residues are dark grey; residues with a block show its colour
             if "hide" in types:
-                item.setForeground(QtGui.QColor("black"))
-                item.setBackground(QtGui.QColor(60, 60, 60))
-            elif "block" in types and "add_chain" in types:
                 item.setForeground(QtGui.QColor("white"))
-                item.setBackground(QtGui.QColor(128, 0, 128))  # purple
+                item.setBackground(QtGui.QColor(60, 60, 60))
             elif "block" in types:
-                # Use block color for background
                 color = hex_dict.get(block_type, "#1e90ff") if block_type else "#1e90ff"
                 item.setBackground(QtGui.QColor(color))
                 item.setForeground(QtGui.QColor("white"))
-                # If "add_chain" is also present, text turns red
-                if "add_chain" in types:
-                    item.setForeground(QtGui.QColor("red"))
-            elif "add_chain" in types:
-                item.setForeground(QtGui.QColor("white"))
-                item.setBackground(QtGui.QColor(220, 20, 60))  # red
             else:
                 item.setForeground(QtGui.QColor("black"))
                 item.setBackground(QtGui.QColor(255, 255, 255))
@@ -621,10 +599,13 @@ class SequenceSelectorPopup(QMainWindow):
 
         # Save output to instance so external callers can read it after the popup closes.
         self.selection_output = output
-
-        print("Sequence selection output:")
-        print(output)
+        self.selection_made.emit(output)
         self.close()
+
+def background_style():
+    """Style sheet that puts the PDB2MC background image behind a window."""
+    return f"background-image: url({resources.image('MC2PDB bg.png').replace(os.sep, '/')});"
+
 
 def get_images_path():
     """The UI directory; relative paths like 'images/icons/logo.png' resolve against it."""
