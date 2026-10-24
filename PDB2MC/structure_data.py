@@ -1,5 +1,6 @@
 import os
 import re
+import numpy as np
 import pandas as pd
 
 # Helper function for nucleic acid detection
@@ -9,6 +10,18 @@ NUCLEOTIDE_CODES = {'A', 'C', 'G', 'T', 'U', 'DA', 'DC', 'DG', 'DT', 'DU', 'ADE'
 HYDROGEN_ELEMENTS = {'H', 'D'}
 
 STRUCTURAL_INFO_COLUMNS = ['chain', 'residue1', 'resid1', 'residue2', 'resid2', 'structure']
+
+WATER_RESIDUES = {'HOH', 'WAT', 'DOD', 'H2O'}
+
+# Covalent radii (Angstrom) used to infer HETATM bonds that the file does not list
+COVALENT_RADII = {
+    'C': 0.76, 'N': 0.71, 'O': 0.66, 'S': 1.05, 'P': 1.07, 'SE': 1.20, 'F': 0.57, 'CL': 1.02,
+    'BR': 1.20, 'I': 1.39, 'B': 0.84, 'SI': 1.11, 'FE': 1.32, 'ZN': 1.22, 'MG': 1.41, 'CA': 1.76,
+    'MN': 1.39, 'CO': 1.26, 'NI': 1.24, 'CU': 1.32, 'MO': 1.54, 'W': 1.62, 'V': 1.53, 'NA': 1.66,
+    'K': 2.03, 'HG': 1.32, 'PT': 1.36, 'AU': 1.36, 'AS': 1.19, 'CD': 1.44,
+}
+DEFAULT_COVALENT_RADIUS = 1.0
+BOND_TOLERANCE = 0.45
 
 
 def is_nucleotide_residue(residue):
@@ -80,6 +93,66 @@ def _clean_structural_info(rows):
     return info.reset_index(drop=True)
 
 
+def infer_bonds(atoms):
+    """
+    Bonds between the atoms of one residue, from their distances: two atoms are bonded when they are
+    closer than the sum of their covalent radii plus BOND_TOLERANCE. Returns (atom_num1, atom_num2) pairs.
+    """
+    if len(atoms) < 2:
+        return []
+    coords = np.array([(a['x'], a['y'], a['z']) for a in atoms], dtype=float)
+    radii = np.array([COVALENT_RADII.get(a['element'], DEFAULT_COVALENT_RADIUS) for a in atoms])
+    dist = np.linalg.norm(coords[:, None, :] - coords[None, :, :], axis=2)
+    limit = radii[:, None] + radii[None, :] + BOND_TOLERANCE
+    i, j = np.nonzero(np.triu((dist <= limit) & (dist > 0.4), k=1))
+    return [(atoms[a]['atom_num'], atoms[b]['atom_num']) for a, b in zip(i, j)]
+
+
+def complete_hetatm_bonds(atoms, bonds, links=()):
+    """
+    Final HETATM bond list of a structure: `bonds` as given (CONECT / chem_comp_bond), plus
+    `links` (LINK / struct_conn: pairs of (chain, resid, atom name) keys), plus bonds inferred from
+    distances for every HETATM residue that has no bond inside it yet. Many files (e.g. the GFP
+    chromophore) have no CONECT records at all, which left those molecules as loose atoms with no
+    connection to the backbone. Returns a list of {'atom_num1', 'atom_num2'} dicts without duplicates.
+    """
+    seen = set()
+    result = []
+
+    def add(num1, num2):
+        pair = (min(num1, num2), max(num1, num2))
+        if num1 != num2 and pair not in seen:
+            seen.add(pair)
+            result.append({'atom_num1': num1, 'atom_num2': num2})
+
+    for bond in bonds:
+        add(bond['atom_num1'], bond['atom_num2'])
+
+    by_key = {}
+    for atom in atoms:
+        by_key.setdefault((atom['chain'], atom['resid'], atom['atom']), atom)
+    for key1, key2 in links:
+        a1, a2 = by_key.get(key1), by_key.get(key2)
+        if a1 is not None and a2 is not None and (a1['hetatm'] or a2['hetatm']):
+            add(a1['atom_num'], a2['atom_num'])
+
+    residues = {}
+    for atom in atoms:
+        if atom['hetatm'] and atom['residue'] not in WATER_RESIDUES:
+            residues.setdefault((atom['chain'], atom['resid'], atom['residue']), []).append(atom)
+    residue_of = {atom['atom_num']: key for key, members in residues.items() for atom in members}
+    bonded_inside = set()
+    for bond in result:
+        key = residue_of.get(bond['atom_num1'])
+        if key is not None and key == residue_of.get(bond['atom_num2']):
+            bonded_inside.add(key)
+    for key, members in residues.items():
+        if key not in bonded_inside:
+            for num1, num2 in infer_bonds(members):
+                add(num1, num2)
+    return result
+
+
 class StructureData:
     def __init__(self):
         self.atoms = []
@@ -140,6 +213,7 @@ class StructureData:
         structural_rows = []
         cmpnd_lines = []
         conect = []
+        links = []
         altlocs = _AltlocFilter()
         model_count = 0
         atoms_done = False
@@ -180,6 +254,12 @@ class StructureData:
                     atoms_done = True
                 elif record == 'CONECT':
                     conect.append(line)
+                elif record == 'LINK  ':
+                    try:
+                        links.append(((line[21].strip(), int(line[22:26]), line[12:16].strip()),
+                                      (line[51].strip(), int(line[52:56]), line[42:46].strip())))
+                    except (ValueError, IndexError):
+                        pass
                 elif record == 'HEADER':
                     instance.metadata['header'] = line[10:].strip()
                     if len(line) >= 66:
@@ -229,6 +309,7 @@ class StructureData:
                 if pair not in seen:
                     seen.add(pair)
                     instance.bonds.append({'atom_num1': src, 'atom_num2': tgt})
+        instance.bonds = complete_hetatm_bonds(instance.atoms, instance.bonds, links)
 
         instance._build_sequences()
         stem = os.path.splitext(os.path.basename(file_path))[0]
@@ -395,7 +476,23 @@ class StructureData:
                         for a2 in by_name.get(atom2, ()):
                             if a1['atom_num'] != a2['atom_num']:
                                 bonds.append({'atom_num1': a1['atom_num'], 'atom_num2': a2['atom_num']})
-        instance.bonds = bonds
+
+        # Covalent links (the mmCIF version of PDB LINK records)
+        links = []
+        conn_fields = ['_struct_conn.conn_type_id',
+                       '_struct_conn.ptnr1_auth_asym_id', '_struct_conn.ptnr1_auth_seq_id',
+                       '_struct_conn.ptnr1_label_atom_id',
+                       '_struct_conn.ptnr2_auth_asym_id', '_struct_conn.ptnr2_auth_seq_id',
+                       '_struct_conn.ptnr2_label_atom_id']
+        if all(field in mmcif_dict for field in conn_fields):
+            for kind, c1, r1, n1, c2, r2, n2 in zip(*(mmcif_dict[f] for f in conn_fields)):
+                if not kind.lower().startswith('covale'):
+                    continue
+                try:
+                    links.append(((c1, int(r1), n1), (c2, int(r2), n2)))
+                except ValueError:
+                    continue
+        instance.bonds = complete_hetatm_bonds(instance.atoms, bonds, links)
 
         instance._build_sequences()
         instance.metadata['source_file'] = file_path
