@@ -14,14 +14,11 @@ setup(
     install_requires=[
         'PyQt6',
         'pandas>=2.0',
-        # nbt-structure-utils requires numpy < 2
-        'numpy>=1.24,<2',
+        'numpy>=1.24',
         'markdown',
-        'opencv-python',
         'scipy',
-        'tifffile',
         'biopython',             # mmCIF parsing
-        'nbt-structure-utils',   # writing .nbt structure files
+        'NBT',                   # reading .nbt structure files (PDB2MC.nbt_writer writes them)
         'requests',              # update check
         'packaging',             # update check version comparison
     ],
@@ -43,6 +40,7 @@ setup(
     entry_points={
         'console_scripts': [
             'PDB2MC = PDB2MC.run_PDB2MC:main',
+            'PDB2MC-build = PDB2MC.cli:main',
         ],
     },
     package_data={

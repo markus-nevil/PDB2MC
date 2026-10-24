@@ -1,166 +1,100 @@
-from PDB2MC import pdb_manipulation as pdbm
-from PDB2MC import minecraft_functions as mcf
-from itertools import cycle
+"""Ribbon mode: smoothed backbone with flat helix/sheet ribbons (or helix rods), nucleic acid ladders."""
 import pandas as pd
-import re
+
+from PDB2MC import pdb_manipulation as pdbm
+from PDB2MC.build import ModelBuilder, hetatm_blocks
+
+AMINO_ACIDS = ["ALA", "ARG", "ASN", "ASP", "CYS", "GLN", "GLU", "GLY", "HIS", "ILE", "LEU", "LYS", "MET",
+               "PHE", "PRO", "SER", "THR", "TRP", "TYR", "VAL", "MSE"]
+NUCLEOTIDES = ["A", "C", "G", "U", "DA", "DC", "DG", "DT", "DI"]
+RIBOSE_ATOMS = ["C1'", "C2'", "C3'", "C4'", "O4'"]
+BASE_ATOMS = ["N1", "C2", "N3", "C4", "C5", "C6", "N7", "C8", "N9"]
+RIBBON_BACKBONE_ATOMS = ['C', 'N', 'CA', "C4'", "C3'"]
+SMOOTHNESS = 5000
 
 
-def run_mode(config_data, pdb_name, structure, mc_dir, hetatom_df, hetatm_bonds):
-    # Build main DataFrame from StructureData atoms
-    ribbon_master_df = pd.DataFrame(structure.atoms)
-    # Standardize coordinate and atom columns
-    if 'x' in ribbon_master_df.columns:
-        ribbon_master_df = ribbon_master_df.rename(columns={'x': 'X', 'y': 'Y', 'z': 'Z'})
-    if 'hetatm' in ribbon_master_df.columns:
-        ribbon_master_df['row'] = ribbon_master_df['hetatm'].apply(lambda h: 'HETATM' if h else 'ATOM')
-    else:
-        ribbon_master_df['row'] = 'ATOM'
-    if 'atom' in ribbon_master_df.columns:
-        ribbon_master_df['atom'] = ribbon_master_df['atom'].astype(str)
-    # Apply coordinate transformations
-    ribbon_master_df = pdbm.scale_coordinates(ribbon_master_df, config_data['scale'])
-    ribbon_master_df = pdbm.move_coordinates(ribbon_master_df)
-    ribbon_master_df = pdbm.rotate_to_y(ribbon_master_df)
-    ribbon_master_df = pdbm.round_df(ribbon_master_df)
+def protein_ribbon(chain_df, vectors_df, bar_helix, scale):
+    """Ribbon blocks for one protein chain: flat helices/sheets, plus helix rods with bar_helix."""
+    intermediate = pdbm.find_intermediate_points(chain_df, keep_columns=True, atoms=["CA", "C", "N"])
+    ribbon = pdbm.interpolate_dataframe(intermediate, smoothness=SMOOTHNESS)
+    structure = chain_df['structure']
+    if structure.str.contains('helix').any() or structure.str.contains('sheet').any():
+        try:
+            ribbon = pdbm.flank_coordinates(ribbon, vectors_df, bar=bar_helix)
+        except Exception:
+            # flanking needs C=O vectors for every residue; draw the plain trace when they are missing
+            pass
+    if bar_helix and structure.str.contains('helix').any():
+        trace = pdbm.find_intermediate_points(chain_backbone(chain_df), fill_columns=True, keep_columns=True)
+        trace = pdbm.interpolate_dataframe(trace, SMOOTHNESS)
+        # process_bars draws a rod across each gap that removing the helices leaves in the trace
+        coil = trace[~trace['structure'].str.contains('helix')].reset_index(drop=True)
+        bars = pdbm.process_bars(coil, size=scale * 2)
+        ribbon = pd.concat([ribbon, bars[['X', 'Y', 'Z']]], ignore_index=True)
+    return ribbon[['X', 'Y', 'Z']]
 
-    # Annotate secondary structure using StructureData
-    ribbon_master_df = pdbm.add_structure_from_structured_data(ribbon_master_df, structure)
 
-    intermediate = pd.DataFrame()
-    bar_helix = config_data['bar_style']
+def chain_backbone(chain_df):
+    return chain_df[chain_df['atom'].isin(RIBBON_BACKBONE_ATOMS)]
 
-    # --- HETATM handling ---
-    hetatom_df_local = None
-    hetatm_bonds_local = None
-    if config_data["show_hetatm"]:
-        # Extract HETATM rows before removing them from main DataFrame
-        hetatom_df_local = pdbm.filter_type_atom(ribbon_master_df, remove_type="ATOM", remove_atom="H")
-        hetatm_bonds_local = pdbm.get_hetatm_bond_lines_from_df(hetatom_df_local, structure.bonds)
 
-    # Remove HETATM rows for main ribbon processing
-    ribbon_master_df = ribbon_master_df[~ribbon_master_df['row'].str.startswith('HETATM')]
+def protein_backbone(chain_df, bar_helix):
+    """Smoothed backbone trace; with helix rods / ribbons the trace is only drawn outside them."""
+    trace = pdbm.find_intermediate_points(chain_backbone(chain_df), fill_columns=True, keep_columns=True)
+    trace = pdbm.interpolate_dataframe(trace, SMOOTHNESS)
+    if bar_helix:
+        trace = trace[~trace['structure'].str.contains('helix') & ~trace['structure'].str.contains('sheet')]
+    return trace[['X', 'Y', 'Z']]
 
-    # Precompute vectors for backbone and DNA
-    vectors_master_df = pdbm.CO_vectors(ribbon_master_df, width=1)
-    dna_vectors_master_df = pdbm.DNA_vectors(ribbon_master_df, width=1)
 
-    # Chain coloring and atom lists for nucleic acids
-    cycle_sequence = cycle(range(1, 11))
-    ribose_list = ["C1'", "C2'", "C3'", "C4'", "O4'"]
-    base_list = ["N1", "C2", "N3", "C4", "C5", "C6", "N7", "C8", "N9"]
+def nucleic_backbone(chain_df, dna_vectors):
+    trace = pdbm.find_intermediate_points(chain_backbone(chain_df), keep_columns=True)
+    trace = pdbm.interpolate_dataframe(trace, SMOOTHNESS)
+    return pdbm.flank_DNA(trace, dna_vectors)[['X', 'Y', 'Z']]
 
-    # Iterate through each chain and process ribbon/backbone
-    for chain, num in zip(enumerate(pdbm.enumerate_chains(ribbon_master_df)), cycle_sequence):
-        pdb_ribbon = f"{pdb_name}_{chain[1]}_ribbon"
-        pdb_bonds = f"{pdb_name}_{chain[1]}_bonds"
 
-        ribbon_df = pdbm.get_chain(ribbon_master_df, chain[1])
+def build(builder):
+    """Write <name>_<chain>_ribbon and <name>_<chain>_backbone per chain, plus _hetatm and _hetatm_bonds."""
+    config = builder.config
+    by_chain = config["by_chain"]
+    bar_helix = config.get('bar_style', False)
+    atoms = builder.df
+    df = atoms[atoms['polymer']].drop(columns=['polymer', 'segment'])
+    df = pdbm.add_structure_from_structured_data(df, builder.structure)
 
-        # Protein chain: process ribbon and backbone
-        if ribbon_df["residue"].isin([
-            "ALA", "ARG", "ASN", "ASP", "CYS", "GLN", "GLU", "GLY", "HIS",
-            "ILE", "LEU", "LYS", "MET", "PHE", "PRO", "SER", "THR", "TRW",
-            "TYR", "VAL"
-        ]).any():
-            vectors_df = pdbm.get_chain(vectors_master_df, chain[1])
-            ribbon_intermediate_df = pdbm.find_intermediate_points(ribbon_df, keep_columns=True, atoms=["CA", "C", "N"])
-            ribbon_interpolated_df = pdbm.interpolate_dataframe(ribbon_intermediate_df, smoothness=5000)
-            # Flank coordinates if helix/sheet present
-            if ribbon_df['structure'].str.contains('helix').any() or ribbon_df['structure'].str.contains('sheet').any():
-                try:
-                    flanked_df = pdbm.flank_coordinates(ribbon_interpolated_df, vectors_df, bar=bar_helix)
-                except Exception:
-                    flanked_df = ribbon_interpolated_df
-            else:
-                flanked_df = ribbon_interpolated_df
+    vectors = pdbm.CO_vectors(df, width=1)
+    dna_vectors = pdbm.DNA_vectors(df, width=1)
+    chains = pdbm.enumerate_chains(df)
+    builder.report(5)
 
-        # Nucleic acid chain: process sidechain
-        elif ribbon_df["residue"].isin([
-            "A", "C", "G", "U", "DA", "DC", "DG", "DT", "DI"
-        ]).any():
-            branch_ribbon_df = ribbon_df[ribbon_df["atom"].isin(ribose_list + base_list)]
-            flanked_df = pdbm.sidechain(branch_ribbon_df)
-
-        # Skip chains with no recognized residues
+    for i, chain in enumerate(chains):
+        chain_df = pdbm.get_chain(df, chain)
+        colour = str(builder.numbers.get(chain, 1))
+        residues = chain_df["residue"]
+        if residues.isin(AMINO_ACIDS).any():
+            ribbon = protein_ribbon(chain_df, pdbm.get_chain(vectors, chain), bar_helix, config['scale'])
+            backbone = protein_backbone(chain_df, bar_helix) if config["backbone"] else None
+        elif residues.isin(NUCLEOTIDES).any():
+            ribbon = pdbm.sidechain(chain_df[chain_df["atom"].isin(RIBOSE_ATOMS + BASE_ATOMS)])[['X', 'Y', 'Z']]
+            backbone = nucleic_backbone(chain_df, dna_vectors) if config["backbone"] else None
         else:
             continue
 
-        # Optionally add backbone bars for protein chains
-        if bar_helix and ribbon_df["residue"].isin([
-            "ALA", "ARG", "ASN", "ASP", "CYS", "GLN", "GLU", "GLY", "HIS",
-            "ILE", "LEU", "LYS", "MET", "PHE", "PRO", "SER", "THR", "TRW",
-            "TYR", "VAL"
-        ]).any():
-            backbone = pdbm.atom_subset(ribbon_df, ['C', 'N', 'CA', "C4'", "C3'"], include=True)
-            backbone = backbone[~backbone['row'].str.startswith('HETATM')]
-            backbone = backbone[~backbone['chain'].isin(backbone['chain'].unique()[1:])]
-            if ribbon_df["residue"].isin([
-                "ALA", "ARG", "ASN", "ASP", "CYS", "GLN", "GLU", "GLY", "HIS",
-                "ILE", "LEU", "LYS", "MET", "PHE", "PRO", "SER", "THR", "TRW",
-                "TYR", "VAL"
-            ]).any():
-                intermediate = pdbm.find_intermediate_points(backbone, fill_columns=True, keep_columns=True)
-                intermediate = pdbm.interpolate_dataframe(intermediate, 5000)
-                if ribbon_df['structure'].str.contains('helix').any():
-                    intermediate = intermediate[~intermediate['structure'].str.contains('helix')]
-                    intermediate = intermediate.reset_index(drop=True)
-                    result_df = pdbm.process_bars(intermediate, size=config_data['scale'] * 2)
-                # Add dummy columns to result_df
-                result_df['row'] = "A"
-                result_df['atom_num'] = 1
-                result_df['atom'] = "C"
-                result_df['residue'] = "ALA"
-                result_df['chain'] = "A"
-                result_df['resid'] = 1
-                result_df['structure'] = "helix"
-                flanked_df = pd.concat([flanked_df, result_df], ignore_index=True)
+        ribbon = ribbon.astype(float).round().astype(int)
+        ribbon['atom'] = colour if by_chain else "ribbon_atom"
+        builder.write(ribbon, f"{chain}_ribbon", atoms=chain_df)
+        if backbone is not None and not backbone.empty:
+            backbone = backbone.astype(float).round().astype(int)
+            backbone['atom'] = colour if by_chain else "backbone_atom"
+            builder.write(backbone, f"{chain}_backbone", atoms=chain_df)
+        builder.report(5 + int(85 * (i + 1) / max(len(chains), 1)))
 
-        # Set atom type for output
-        flanked_df['atom'] = num if config_data["by_chain"] else "ribbon_atom"
-        mcf.create_nbt(flanked_df, pdb_ribbon, air=False, dir=mc_dir, blocks=config_data['atoms'])
+    if config["show_hetatm"]:
+        spheres, bonds = hetatm_blocks(atoms, builder.structure, config)
+        builder.write(spheres, "hetatm")
+        builder.write(bonds, "hetatm_bonds")
+    builder.report(100)
 
-        # Backbone output
-        pdb_backbone = f"{pdb_name}_{chain[1]}_backbone"
-        backbone = pdbm.atom_subset(ribbon_df, ['C', 'N', 'CA', "C4'", "C3'"], include=True)
-        backbone = backbone[~backbone['row'].str.startswith('HETATM')]
-        backbone = backbone[~backbone['chain'].isin(backbone['chain'].unique()[1:])]
 
-        if ribbon_df["residue"].isin([
-            "ALA", "ARG", "ASN", "ASP", "CYS", "GLN", "GLU", "GLY", "HIS",
-            "ILE", "LEU", "LYS", "MET", "PHE", "PRO", "SER", "THR", "TRW",
-            "TYR", "VAL"
-        ]).any():
-            intermediate = pdbm.find_intermediate_points(backbone, fill_columns=True, keep_columns=True)
-            intermediate = pdbm.interpolate_dataframe(intermediate, 5000)
-            if bar_helix:
-                if ribbon_df['structure'].str.contains('helix').any():
-                    intermediate = intermediate[~intermediate['structure'].str.contains('helix')]
-                if ribbon_df['structure'].str.contains('sheet').any():
-                    intermediate = intermediate[~intermediate['structure'].str.contains('sheet')]
-                intermediate = intermediate.filter(['X', 'Y', 'Z'])
-        elif ribbon_df["residue"].isin([
-            "A", "C", "G", "U", "DA", "DC", "DG", "DT", "DI"
-        ]).any():
-            intermediate = pdbm.find_intermediate_points(backbone, keep_columns=True)
-            intermediate = pdbm.interpolate_dataframe(intermediate, 5000)
-            intermediate = pdbm.flank_DNA(intermediate, dna_vectors_master_df)
-            intermediate = intermediate.filter(['X', 'Y', 'Z'])
-
-        intermediate[['X', 'Y', 'Z']] = intermediate[['X', 'Y', 'Z']].astype(int)
-        intermediate['atom'] = num if config_data["by_chain"] else "backbone_atom"
-        mcf.create_nbt(intermediate, pdb_backbone, air=False, dir=mc_dir, blocks=config_data['atoms'])
-
-    # Output HETATM spheres and bonds if requested
-    if config_data["show_hetatm"]:
-        if hetatom_df_local is not None and not hetatom_df_local.empty:
-            pdb_hetatm = f"{pdb_name}_hetatm"
-            coord = pdbm.rasterized_sphere(1.5)
-            center = pdbm.sphere_center(1.5)
-            shortened = pdbm.shorten_atom_names(hetatom_df_local)
-            spheres = pdbm.add_sphere_coordinates(coord, center, shortened)
-            spheres['atom'] = spheres['atom'].apply(lambda x: re.sub(r'P[A-Z]', 'P', x, count=1))
-            mcf.create_nbt(spheres, pdb_hetatm, air=False, dir=mc_dir, blocks=config_data['atoms'])
-
-            pdb_hetatm_bonds = f"{pdb_name}_hetatm_bonds"
-            if hetatm_bonds_local is not None and not hetatm_bonds_local.empty:
-                mcf.create_nbt(hetatm_bonds_local, pdb_hetatm_bonds, air=False, dir=mc_dir, blocks=config_data['atoms'])
+def run_mode(config_data, pdb_name, structure, mc_dir, progress=None):
+    build(ModelBuilder(config_data, structure, mc_dir, name=pdb_name, progress=progress))
