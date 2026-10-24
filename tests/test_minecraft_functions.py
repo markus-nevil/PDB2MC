@@ -14,10 +14,15 @@ def read_blocks(path):
     return {tuple(int(v.value) for v in b["pos"]): palette[b["state"].value] for b in n["blocks"]}
 
 
+windows_only = pytest.mark.skipif(os.sep != "\\", reason="backslash is only a path separator on Windows")
+
+
 @pytest.mark.parametrize("path", [
-    r"C:\Users\me\AppData\Roaming\.minecraft\saves\My World\datapacks/mcPDB/data/protein/functions",
+    pytest.param(r"C:\Users\me\AppData\Roaming\.minecraft\saves\My World\datapacks/mcPDB/data/protein/functions",
+                 marks=windows_only),
     "C:/Users/me/AppData/Roaming/.minecraft/saves/My World/datapacks/mcPDB/data/protein/functions",
-    r"C:\Users\me\AppData\Roaming\.minecraft\saves\My World\datapacks\mcPDB\data\protein\function",
+    pytest.param(r"C:\Users\me\AppData\Roaming\.minecraft\saves\My World\datapacks\mcPDB\data\protein\function",
+                 marks=windows_only),
 ])
 def test_world_dir_handles_any_separator_mix(path):
     assert os.path.normpath(mcf.world_dir(path)).endswith(os.path.normpath("saves/My World"))
