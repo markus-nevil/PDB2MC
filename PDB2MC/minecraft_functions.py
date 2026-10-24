@@ -7,7 +7,7 @@ import re
 import shutil
 import numpy as np
 from concurrent.futures import ThreadPoolExecutor
-from nbt_structure_utils import NBTStructure, BlockData, Vector
+from PDB2MC.nbt_writer import write_structure, read_positions
 
 # Minecraft 1.21 renamed the world's generated/<namespace>/structures folder to structure (and the datapack
 # functions folder to function). Every .nbt is written to all of these folders so models load in both
@@ -109,7 +109,12 @@ def extract_remarks_from_pdb(pdb_file, pdb_name):
 
 
 def _block_for_atom(atom, block_dict):
-    """Block for one 'atom' label: chain numbers, dark chain numbers ('3b'), else the atom/element colour."""
+    """
+    Block for one 'atom' label: the lookup's own entry (atoms, elements and, when the model has a chain
+    colour list, chain numbers), else the default chain colours ('3', dark '3b'), else the "other" colour.
+    """
+    if atom in block_dict:
+        return block_dict[atom]
     if atom.isdigit():
         return variables.chain_blocks.get(atom, 'gray_concrete')
     if atom.endswith('b') and atom in variables.dark_skeleton_blocks:
@@ -384,33 +389,8 @@ def create_simple_function(name, directory):
     # create_structure_from_mcfunction(pdb_name, directory, functions)
 
 
-# function that reads a .mcfunction file and uses nbt-structure-utils to make a structure from the setblock lines
-def create_structure_from_mcfunction(name, directory, functions):
-    pdb_name = name.lower()
-    nbtstructure = NBTStructure()
-
-    dirs = structure_dirs(directory)
-
-    # iterate through each line in functions
-    for line in functions:
-        block_type = line.split(' ')[4]
-        block_type = str(block_type.split(':')[1])
-        x = int(line.split(' ')[1].split('~')[1])
-        y = int(line.split(' ')[2].split('~')[1])
-        z = int(line.split(' ')[3].split('~')[1])
-        nbtstructure.set_block(Vector(x, y, z), BlockData(block_type))
-
-    nbt_file = os.path.join(dirs[0], f"{pdb_name}.nbt")
-    nbtstructure.get_nbt(pressurize=False, align_to_origin=False).write_file(filename=nbt_file)
-    _mirror_files([nbt_file], dirs[0], dirs)
-
-
 def _write_structure(coords, block_types, path):
-    nbtstructure = NBTStructure()
-    for (x, y, z), block in zip(coords, block_types):
-        nbtstructure.set_block(Vector(int(x), int(y), int(z)), BlockData(block))
-    nbtstructure.get_nbt(pressurize=False, align_to_origin=False).write_file(filename=path)
-    return path
+    return write_structure(path, coords, block_types)
 
 
 def process_nbt_chunk(chunk, block_dict, air, dir, name, idx, delete_too=False):
@@ -433,6 +413,12 @@ def process_nbt_chunk(chunk, block_dict, air, dir, name, idx, delete_too=False):
             block_types = np.array([_block_for_atom(a, block_dict) for a in labels], dtype=object)[inverse]
     else:
         block_types = np.full(len(chunk), block_dict.get('backbone_atom', 'pink_concrete'), dtype=object)
+
+    # Per-block overrides (residues given their own block with "Modify Residues")
+    if 'block' in chunk.columns:
+        override = chunk['block'].to_numpy(dtype=object)
+        has_override = ~pd.isna(override)
+        block_types[has_override] = override[has_override]
 
     if air:
         block_types[:] = 'air'
@@ -506,12 +492,9 @@ def create_individual_nbt_functions(mcfiles, directory):
 
 
 def process_nbt_file(nbt_dir, filename):
-    nbt_structure = NBTStructure(os.path.join(nbt_dir, filename))
-    for block in nbt_structure.blocks:
-        nbt_structure.set_block(block, BlockData('air'))
-    nbt_file = os.path.join(nbt_dir, f"delete_{filename}")
-    nbt_structure.get_nbt(pressurize=False, align_to_origin=False).write_file(filename=nbt_file)
-    return nbt_file
+    """Write delete_<filename>: the same positions as <filename>, all air."""
+    coords = read_positions(os.path.join(nbt_dir, filename))
+    return write_structure(os.path.join(nbt_dir, f"delete_{filename}"), coords, ['air'] * len(coords))
 
 
 def create_nbt_delete(pdb_name, mc_dir):
@@ -549,74 +532,6 @@ def create_nbt_delete_function(mcfiles, pdb_name, directory):
         for item in mcfiles['group']:
             f.write(f'place template {STRUCTURE_NAMESPACE}:{item}\n')
     return [os.path.join(directory, f"clear_{lower_pdb_name}.mcfunction")]
-
-
-def adjust_y_coords(directory, pdb_name, nbtFile=False):
-    min_y = None
-    files = []
-
-    if not nbtFile:
-        # Collect all relevant files and their Y values in one pass
-        y_values = []
-        for filename in os.listdir(directory):
-            if pdb_name in filename and filename.endswith(".mcfunction"):
-                files.append(filename)
-                with open(os.path.join(directory, filename), 'r') as f:
-                    for line in f:
-                        if line.startswith("setblock ~ ~-1 ~ minecraft:obsidian replace"):
-                            continue
-                        if 'setblock' in line:
-                            try:
-                                y = int(float(line.split(' ')[2].split('~')[1]))
-                                y_values.append(y)
-                            except (IndexError, ValueError):
-                                continue
-        if y_values:
-            min_y = min(y_values)
-        else:
-            return  # No Y values found, nothing to adjust
-
-        # Adjust Y values in the files
-        for filename in files:
-            file_path = os.path.join(directory, filename)
-            with open(file_path, 'r') as f:
-                lines = f.readlines()
-            with open(file_path, 'w') as f:
-                for line in lines:
-                    if line.startswith("setblock ~ ~-1 ~ minecraft:obsidian replace") or 'setblock' not in line:
-                        f.write(line)
-                        continue
-                    parts = line.split(' ')
-                    try:
-                        y = int(float(parts[2].split('~')[1]))
-                        adjusted_y = y - min_y
-                        parts[2] = f"~{adjusted_y}"
-                        line = ' '.join(parts)
-                    except (IndexError, ValueError):
-                        pass
-                    f.write(line)
-    else:
-        # NBT file handling
-        dirs = structure_dirs(directory)
-        nbt_dir = dirs[0]
-
-        nbt_y_values = []
-        for filename in os.listdir(nbt_dir):
-            if pdb_name in filename and filename.endswith(".nbt"):
-                files.append(filename)
-                nbt_structure = NBTStructure(os.path.join(nbt_dir, filename))
-                nbt_y_values.append(nbt_structure.get_min_coords().y)
-        if nbt_y_values:
-            min_y = min(nbt_y_values)
-        else:
-            return
-
-        for filename in files:
-            nbt_structure = NBTStructure(os.path.join(nbt_dir, filename))
-            nbt_structure.translate(Vector(0, -min_y, 0))
-            nbt_structure.get_nbt(pressurize=False, align_to_origin=False).write_file(
-                filename=os.path.join(nbt_dir, filename))
-        _mirror_files([os.path.join(nbt_dir, f) for f in files], nbt_dir, dirs)
 
 
 def copy_directory_contents(src, dest):
