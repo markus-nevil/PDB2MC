@@ -62,8 +62,9 @@ Models can also be built without the window, with each mode's default settings:
 (options: `--by-chain`, `--no-hetatm`, `--mesh`).
 
 > [!NOTE]
-> Minecraft 1.21 renamed the world folders that hold structures (`generated/mc/structures` → `generated/mc/structure`)
-> and functions (`functions` → `function`). PDB2MC writes every file to both, so models work in older and newer versions.
+> PDB2MC supports Minecraft 1.19 and newer. Minecraft 1.21 renamed the world folders that hold structures
+> (`generated/mc/structures` → `generated/mc/structure`) and functions (`functions` → `function`); PDB2MC writes
+> every file to both, so models work before and after 1.21.
 
 > [!IMPORTANT]
 > Due to the size of even small models, it is recommended to prepare a special Minecraft world with minimal other blocks to generate models.
@@ -249,9 +250,11 @@ visualization of the atoms are set to glass blocks and the bonds are set to opaq
 
 
 4. Space Filling 
-: This mode creates a model where the atoms are represented by the approximate "Solvent-Accessible Surface Area". This 
-is roughly the shape of the cloud of electrons that surrounds each atom which prevents "solvents" like water from entering
-the interior of large bio-molecules. This gives the general appearance of what a protein would look like if
+: This mode creates a model of the "Solvent-Accessible Surface" (SAS): the surface traced by the centre of a
+water-sized ball (radius 1.4 Å, `SASA_radius` in `PDB2MC/space_filling.py`) rolled over the atoms, each atom being a
+sphere of its van der Waals radius. It is computed with the Shrake–Rupley algorithm: points are spread over a sphere
+of radius (van der Waals radius + `SASA_radius`) around every atom, and the points not inside any other atom's sphere
+form the surface. It shows the space that "solvents" like water cannot enter around large bio-molecules. This gives the general appearance of what a protein would look like if
 it were scaled up. Inside the protein, the bonds are created as a `skeleton` model, thus exploration of the interior is useful
 for understanding the connection between overall shape and the bonds between atoms.
 <p align = "center">
