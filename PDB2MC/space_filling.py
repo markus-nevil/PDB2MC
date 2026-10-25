@@ -1,11 +1,15 @@
 """
-Space Filling mode: a smooth molecular surface around the protein / nucleic acid, coloured by the nearest
-atom (or by chain), with the backbone and sidechains as a darker skeleton inside and HETATMs as spheres.
+Space Filling mode: the solvent accessible surface (SAS) of the protein / nucleic acid, coloured by atom
+element (or by chain), with the backbone and sidechains as a darker skeleton inside and HETATMs as spheres.
 
-Every part is computed on one grid in the model's block coordinates, so the surface, skeleton and
-HETATMs always line up. (The previous version computed the surface in its own array and moved it back
-by matching centroids, which left the parts misaligned.) Only the outer layer of the surface is placed:
-blocks enclosed on all six sides can never be seen, and cavities inside the protein are filled.
+The SAS is the surface traced by the centre of a probe ball (a water molecule, radius SASA_radius) rolled
+over the atoms. It is found with the Shrake-Rupley algorithm: test points are spread over a sphere of
+radius (van der Waals radius + SASA_radius) around every atom, and a point is on the surface when it is
+not inside any other atom's sphere: a probe centred there touches its atom without overlapping any other.
+The accessible points are placed as blocks; surfaces of cavities closed off inside the molecule are left
+out, since they can never be seen.
+
+Every part uses the model's own block coordinates, so the surface, skeleton and HETATMs line up.
 """
 import math
 
@@ -15,46 +19,105 @@ from scipy import ndimage
 from scipy.spatial import cKDTree
 
 from PDB2MC import pdb_manipulation as pdbm
-from PDB2MC.build import EMPTY_BLOCKS, ModelBuilder, backbone_lines, bond_lines, sidechain_blocks
+from PDB2MC.build import RESIDUE_COLUMN, ModelBuilder, backbone_lines, bond_lines, sidechain_blocks
 
-# Surface shape, in Angstrom (multiplied by the protein scale): an isolated atom becomes a ball of
-# SURFACE_RADIUS; SURFACE_SMOOTHING blends neighbouring atoms into one smooth surface
-SURFACE_RADIUS = 1.6
-SURFACE_SMOOTHING = 0.8
+# Radius of the probe ball rolled over the atoms, in Angstrom (1.4 = a water molecule)
+SASA_radius = 1.4
+# Van der Waals radii in Angstrom (Bondi 1964; metals from Alvarez 2013)
+VDW_RADII = {'H': 1.20, 'C': 1.70, 'N': 1.55, 'O': 1.52, 'S': 1.80, 'P': 1.80, 'SE': 1.90, 'F': 1.47,
+             'CL': 1.75, 'BR': 1.85, 'I': 1.98, 'MG': 1.73, 'NA': 2.27, 'K': 2.75, 'CA': 2.31,
+             'FE': 2.04, 'ZN': 2.01, 'CU': 1.96, 'MN': 2.05}
+DEFAULT_VDW_RADIUS = 1.80
+# Shrake-Rupley test points per square block of sphere surface; enough that the placed blocks
+# have no holes
+POINT_DENSITY = 4.0
+MIN_POINTS = 60
+# Test points handled at once (memory: ~50 bytes each)
+CHUNK_POINTS = 2_000_000
 # Share of surface blocks kept for "mesh-style" models
 MESH_KEEP = 0.10
 MESH_SEED = 0
 
+_FACES = [(1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1)]
 
-def surface_shell(points, scale, return_solid=False):
+
+def vdw_radii(elements):
+    return np.array([VDW_RADII.get(str(e).strip().upper(), DEFAULT_VDW_RADIUS) for e in elements])
+
+
+def sphere_points(n):
+    """n roughly evenly spaced unit vectors (golden spiral)."""
+    i = np.arange(n) + 0.5
+    phi = np.arccos(1 - 2 * i / n)
+    theta = math.pi * (1 + 5 ** 0.5) * i
+    return np.column_stack([np.cos(theta) * np.sin(phi), np.sin(theta) * np.sin(phi), np.cos(phi)])
+
+
+def accessible_points(centres, radii):
     """
-    Outer layer of a smooth surface around integer `points` ((n, 3) array), as an (m, 3) int array.
-
-    The points are blurred with a Gaussian into a density; voxels above the density an isolated point
-    has at SURFACE_RADIUS are inside. Enclosed cavities are filled and only voxels with an empty face
-    neighbour are returned.
+    Shrake-Rupley: test points on a sphere of radius radii[i] around each centre, kept when they are
+    not inside any other sphere. Returns (points (m, 3), index of the sphere each point is on).
     """
-    radius = SURFACE_RADIUS * scale
-    sigma = max(SURFACE_SMOOTHING * scale, 0.5)
-    pad = int(math.ceil(radius + 3 * sigma)) + 1
-    origin = points.min(axis=0) - pad
-    shape = points.max(axis=0) - origin + pad + 1
-    grid = np.zeros(shape, dtype=np.float32)
-    np.add.at(grid, tuple((points - origin).T), 1.0)
-    density = ndimage.gaussian_filter(grid, sigma=sigma, mode='constant')
-    threshold = math.exp(-radius ** 2 / (2 * sigma ** 2)) / (2 * math.pi * sigma ** 2) ** 1.5
-    solid = ndimage.binary_fill_holes(density >= threshold)
-    shell = solid & ~ndimage.binary_erosion(solid)
-    coords = np.argwhere(shell) + origin
-    if return_solid:
-        return coords, (solid, origin)
-    return coords
+    centres = np.asarray(centres, dtype=float)
+    radii = np.asarray(radii, dtype=float)
+    if not len(centres):
+        return np.zeros((0, 3)), np.zeros(0, dtype=int)
+    counts = np.maximum(MIN_POINTS, np.ceil(4 * math.pi * radii ** 2 * POINT_DENSITY)).astype(int)
+    # Atoms share a few radii (one per element), so the "inside another sphere" test is one fixed-radius
+    # neighbour count per radius. A point lies on its own sphere; the small margin keeps that sphere
+    # from counting, and a point exactly on another sphere's edge counts as accessible.
+    # The most common radius (carbon) first: it covers most points, so later queries have fewer to test
+    values, sizes = np.unique(radii, return_counts=True)
+    trees = [(r, cKDTree(centres[radii == r])) for r in values[np.argsort(-sizes)]]
+    points, owners = [], []
+    for chunk in np.array_split(np.arange(len(centres)), max(1, int(counts.sum() // CHUNK_POINTS))):
+        test, owner = [], []
+        for n in np.unique(counts[chunk]):
+            atoms = chunk[counts[chunk] == n]
+            test.append((centres[atoms, None, :] + radii[atoms, None, None] * sphere_points(n)).reshape(-1, 3))
+            owner.append(np.repeat(atoms, n))
+        test, owner = np.concatenate(test), np.concatenate(owner)
+        covered = np.zeros(len(test), dtype=bool)
+        for r, tree in trees:
+            open_points = ~covered
+            distance, _ = tree.query(test[open_points], k=1, distance_upper_bound=r * (1 - 1e-9) - 1e-9, workers=-1)
+            covered[open_points] = np.isfinite(distance)
+        points.append(test[~covered])
+        owners.append(owner[~covered])
+    return np.concatenate(points), np.concatenate(owners)
 
 
-def colour_by_nearest(coords, atoms, labels):
-    """Label of the nearest atom for every coordinate."""
-    _, nearest = cKDTree(atoms[['X', 'Y', 'Z']].to_numpy(dtype=float)).query(coords)
-    return np.asarray(labels, dtype=object)[nearest]
+def outer_voxels(coords):
+    """The voxels of `coords` that touch the space outside the molecule (drops closed-off cavities)."""
+    origin = coords.min(axis=0) - 1
+    shape = coords.max(axis=0) - origin + 2
+    filled = np.zeros(shape, dtype=bool)
+    filled[tuple((coords - origin).T)] = True
+    empty_parts, _ = ndimage.label(~filled)
+    outside = empty_parts == empty_parts[0, 0, 0]
+    padded = np.pad(outside, 1)
+    local = coords - origin + 1
+    touches = np.zeros(len(coords), dtype=bool)
+    for dx, dy, dz in _FACES:
+        touches |= padded[local[:, 0] + dx, local[:, 1] + dy, local[:, 2] + dz]
+    return touches
+
+
+def sas_surface(atoms, scale):
+    """
+    Solvent accessible surface blocks of `atoms` (with unrounded Xf/Yf/Zf block coordinates and
+    'element'). Returns (coords (m, 3) int, index into atoms of the atom each block belongs to).
+    """
+    centres = atoms[['Xf', 'Yf', 'Zf']].to_numpy(dtype=float)
+    radii = (vdw_radii(atoms['element']) + SASA_radius) * scale
+    points, owners = accessible_points(centres, radii)
+    if not len(points):
+        return np.zeros((0, 3), dtype=int), np.zeros(0, dtype=int)
+    voxels = np.rint(points).astype(int)
+    coords, first = np.unique(voxels, axis=0, return_index=True)
+    owners = owners[first]
+    keep = outer_voxels(coords)
+    return coords[keep], owners[keep]
 
 
 def mesh_sample(blocks):
@@ -82,13 +145,16 @@ def build(builder):
 
     parts = []
     if not polymer.empty:
-        coords = surface_shell(polymer[['X', 'Y', 'Z']].to_numpy(dtype=int), scale)
+        polymer = polymer.reset_index(drop=True)
+        coords, owner = sas_surface(polymer, scale)
         if by_chain:
-            labels = polymer['chain'].map(lambda c: str(builder.numbers.get(c, 1)))
+            labels = polymer['chain'].map(lambda c: str(builder.numbers.get(c, 1))).to_numpy(dtype=object)
         else:
-            labels = pdbm.element_atom_names(polymer)['atom']
+            labels = pdbm.element_atom_names(polymer)['atom'].to_numpy(dtype=object)
+        residues = (polymer['chain'].astype(str) + ":" + polymer['resid'].astype(int).astype(str)).to_numpy()
         surface = pd.DataFrame(coords, columns=['X', 'Y', 'Z'])
-        surface['atom'] = colour_by_nearest(coords, polymer, labels)
+        surface['atom'] = labels[owner]
+        surface[RESIDUE_COLUMN] = residues[owner]
         if config.get('mesh'):
             surface = mesh_sample(surface)
         parts.append((surface, "surface", polymer))
