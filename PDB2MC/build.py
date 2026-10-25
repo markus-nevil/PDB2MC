@@ -9,6 +9,7 @@ atoms, backbone, surface and HETATMs always line up.
 ModelBuilder.write() also applies the user's residue modifications ("Modify Residues") and the chain
 colour list to every part, so each mode gets them without extra code.
 """
+import re
 from collections import deque
 
 import numpy as np
@@ -47,6 +48,8 @@ def prepare_coordinates(structure, scale):
     segment = pd.Series(None, index=df.index, dtype=object)
     segment[backbone_mask] = pdbm.backbone_segments(df[backbone_mask], scale=scale)
     df['segment'] = segment
+    # Unrounded block coordinates, for modes that need sub-block precision (space filling)
+    df[['Xf', 'Yf', 'Zf']] = df[['X', 'Y', 'Z']].to_numpy(dtype=float)
     return pdbm.round_df(df).reset_index(drop=True)
 
 
@@ -84,6 +87,10 @@ def valid_chain_blocks(chain_blocks):
 
 # --- residue modifications ---
 
+# Optional column of a part giving each block's residue as 'chain:resid' (see ResidueModifications.apply)
+RESIDUE_COLUMN = 'residue_key'
+
+
 class ResidueModifications:
     """
     "Modify Residues" choices: {chain: {resid: ['hide', 'block:<name>', ...]}} as made by
@@ -116,8 +123,13 @@ class ResidueModifications:
     def apply(self, part, atoms):
         """
         part: blocks (X, Y, Z[, atom]); atoms: the atoms the part was built from (X, Y, Z, chain, resid).
-        Returns part without hidden residues and with a 'block' column for assigned blocks.
+        Blocks belong to the residue of their nearest atom, or to RESIDUE_COLUMN ('chain:resid') when the
+        part has it. Returns part without hidden residues and with a 'block' column for assigned blocks.
         """
+        if part is not None and RESIDUE_COLUMN in part.columns:
+            owner = part[RESIDUE_COLUMN].to_numpy(dtype=object)
+            part = part.drop(columns=RESIDUE_COLUMN)
+            return self._apply_owner(part, owner) if self else part
         if not self or part is None or part.empty or atoms is None or atoms.empty:
             return part
         keys = (atoms['chain'].astype(str) + ":" + atoms['resid'].astype(int).astype(str)).to_numpy()
@@ -126,7 +138,9 @@ class ResidueModifications:
             return part
         tree = cKDTree(atoms[['X', 'Y', 'Z']].to_numpy(dtype=float))
         _, nearest = tree.query(part[['X', 'Y', 'Z']].to_numpy(dtype=float))
-        owner = keys[nearest]
+        return self._apply_owner(part, keys[nearest])
+
+    def _apply_owner(self, part, owner):
         part = part.copy()
         if self.blocks:
             block = pd.Series(owner).map(self.blocks).to_numpy()
@@ -289,6 +303,11 @@ def hetatm_blocks(df, structure, config_data, mesh=False):
 
 # --- builder ---
 
+def safe_name(text):
+    """Lowercase text with characters Minecraft does not allow in file names replaced by '_'."""
+    return re.sub(r"[^a-z0-9_.-]", "_", str(text).lower())
+
+
 class ModelBuilder:
     """
     Everything a mode needs to build one model: the prepared atoms (`df`), chain colour numbers, the
@@ -309,10 +328,24 @@ class ModelBuilder:
         self.blocks = {**config_data['atoms'], **chain_block_dict(self.chain_blocks)}
         self.mods = ResidueModifications(config_data.get('residue_mods'))
         self.written = []
+        self._part_names = set()
 
     def report(self, value):
         """Progress of the mode's own work, 0-100."""
         self._progress(value)
+
+    def part_name(self, suffix):
+        """
+        <name>_<suffix> as a valid, unused Minecraft file name. Names are lowercase, so chains that differ
+        only in case (mmCIF chains 'AA' and 'aa') would share a file; later ones get _2, _3, ...
+        """
+        base = safe_name(f"{self.name}_{suffix}")
+        name, n = base, 1
+        while name in self._part_names:
+            n += 1
+            name = f"{base}_{n}"
+        self._part_names.add(name)
+        return name
 
     def write(self, blocks, suffix, atoms=None, block_lookup=None):
         """
@@ -323,7 +356,7 @@ class ModelBuilder:
             return []
         blocks = self.mods.apply(blocks, self.df if atoms is None else atoms)
         lookup = self.blocks if block_lookup is None else {**chain_block_dict(self.chain_blocks), **block_lookup}
-        paths = mcf.create_nbt(blocks, f"{self.name}_{suffix}", air=False, dir=self.mc_dir, blocks=lookup)
+        paths = mcf.create_nbt(blocks, self.part_name(suffix), air=False, dir=self.mc_dir, blocks=lookup)
         self.written.extend(paths)
         return paths
 

@@ -195,7 +195,11 @@ def test_hide_and_block_apply_to_every_mode(mode, mc_dir):
         _, nearest = tree.query(np.array([(x - 40, y, z - 40) for x, y, z in all_blocks]))
         assert (blocks[keys[nearest] == owner(chain, coloured)] == "diamond_block").all()
         assert not (keys[nearest] == owner(chain, hidden)).any()
-    assert sum(map(len, modified.values())) < sum(map(len, plain.values()))
+    if mode == "Space Filling":
+        # the surface is recomputed without the hidden residue; the gap it leaves can add surface
+        assert modified['surface'] != plain['surface']
+    else:
+        assert sum(map(len, modified.values())) < sum(map(len, plain.values()))
 
 
 # --- chain colours ---
@@ -224,19 +228,51 @@ def test_space_filling_by_chain_uses_list(mc_dir):
 
 # --- space filling ---
 
-def test_surface_encloses_atoms_and_skeleton():
+def test_shrake_rupley_points():
+    # a lone sphere keeps every test point, on its surface
+    points, owner = space_filling.accessible_points([[0, 0, 0]], [2.0])
+    assert len(points) >= space_filling.MIN_POINTS and (owner == 0).all()
+    assert np.allclose(np.linalg.norm(points, axis=1), 2.0)
+    # two overlapping spheres: no kept point lies inside the other sphere
+    centres = np.array([[0.0, 0, 0], [2.0, 0, 0]])
+    points, owner = space_filling.accessible_points(centres, [2.0, 1.5])
+    assert set(owner) == {0, 1}
+    other = centres[1 - owner]
+    assert (np.linalg.norm(points - other, axis=1) >= np.array([2.0, 1.5])[1 - owner] - 1e-6).all()
+    # a sphere inside a bigger one has no accessible points
+    points, owner = space_filling.accessible_points([[0, 0, 0], [0.5, 0, 0]], [3.0, 1.0])
+    assert set(owner) == {0}
+
+
+def test_sas_is_probe_centre_distance_from_atoms():
     structure, atoms = atoms_of(preset("Helix"))
-    polymer = atoms[atoms['polymer']]
-    points = polymer[['X', 'Y', 'Z']].to_numpy(dtype=int)
-    shell, (solid, origin) = space_filling.surface_shell(points, 1.0, return_solid=True)
-    inside = solid[tuple((points - origin).T)]
-    assert inside.all()
-    # the shell is the outer layer of the solid: every shell block touches empty space
-    padded = np.pad(solid, 1)
-    s = shell - origin + 1
-    neighbours = [padded[s[:, 0] + dx, s[:, 1] + dy, s[:, 2] + dz]
-                  for dx, dy, dz in [(1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1)]]
-    assert (~np.array(neighbours)).any(axis=0).all()
+    polymer = atoms[atoms['polymer']].reset_index(drop=True)
+    coords, owner = space_filling.sas_surface(polymer, 1.0)
+    radii = space_filling.vdw_radii(polymer['element']) + space_filling.SASA_radius
+    centres = polymer[['Xf', 'Yf', 'Zf']].to_numpy()
+    # every block is (within rounding) one probe radius beyond the van der Waals surface of its atom
+    distance = np.linalg.norm(coords - centres[owner], axis=1)
+    assert np.abs(distance - radii[owner]).max() <= 0.87
+    # and no closer than that to any atom
+    from scipy.spatial import cKDTree
+    gap, nearest = cKDTree(centres).query(coords)
+    assert (gap >= radii[nearest] - 0.87).all()
+
+
+@pytest.mark.parametrize("name, scale", [("Helix", 1.0), ("GFP", 1.0), ("GFP", 2.0)])
+def test_sas_surface_is_closed(name, scale):
+    from scipy import ndimage
+    structure, atoms = atoms_of(preset(name)) if scale == 1.0 else (None, build.prepare_coordinates(
+        pdbm.load_structure(preset(name)), scale))
+    polymer = atoms[atoms['polymer']].reset_index(drop=True)
+    coords, _ = space_filling.sas_surface(polymer, scale)
+    origin = coords.min(axis=0) - 1
+    grid = np.zeros(coords.max(axis=0) - origin + 2, dtype=bool)
+    grid[tuple((coords - origin).T)] = True
+    empty, _ = ndimage.label(~grid)
+    outside = empty == empty[0, 0, 0]
+    # no atom can be reached from outside without passing through the surface
+    assert not outside[tuple((polymer[['X', 'Y', 'Z']].to_numpy(dtype=int) - origin).T)].any()
 
 
 def test_space_filling_parts_line_up(mc_dir):
@@ -275,6 +311,19 @@ def test_cli(tmp_path, capsys):
     assert "build_helix" in capsys.readouterr().out
     assert (world / "datapacks" / "mcPDB" / "pack.mcmeta").exists()
     assert any(f.startswith("helix_backbone") for f in os.listdir(world / "generated" / "mc" / "structure"))
+
+
+def test_chains_differing_in_case_keep_their_own_files(tmp_path, mc_dir):
+    # mmCIF chain ids are case sensitive ('A' and 'a'); Minecraft file names are lowercase
+    text = open(preset("Helix")).read()
+    atom_lines = [line for line in text.splitlines(keepends=True) if line.startswith("ATOM")]
+    second = [line[:21] + "a" + line[22:] for line in atom_lines]
+    first = [line[:21] + "A" + line[22:] for line in atom_lines]
+    path = tmp_path / "cases.pdb"
+    path.write_text("".join(first) + "TER\n" + "".join(second) + "END\n")
+    parts = build_parts("Ribbon", mc_dir, str(path))
+    assert {"a_backbone", "a_backbone_2"} <= set(parts)
+    assert build.safe_name("My Model:A") == "my_model_a"
 
 
 def test_unknown_mode():
