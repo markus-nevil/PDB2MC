@@ -1,0 +1,10 @@
+fastapi>=0.115
+uvicorn[standard]>=0.30
+python-multipart>=0.0.9
+httpx>=0.27
+# PDB2MC itself (installed with --no-deps from the repo) needs these; PyQt6 is only for the desktop app
+pandas>=2.0
+numpy>=1.24
+scipy
+biopython
+NBT
