@@ -1,15 +1,22 @@
 # PDB2MC public server: Paper (+ BlueMap, Geyser, Floodgate), the web builder, Cloudflare tunnel and DDNS.
 # Fill in the <...> values; secrets belong in the platform's secret store, not in git.
 services:
-  src:            # checks out the builder branch
+  src:            # checks out the latest PDB2MC release (kept as is when a release has no web builder)
     image: alpine/git:latest
     entrypoint: ["/bin/sh", "-c"]
     command:
-      - >
-        if [ -d /src/.git ]; then git -c safe.directory=/src -C /src fetch --depth 1 origin "$$REF" && git -c safe.directory=/src -C /src reset --hard FETCH_HEAD;
-        else git clone --depth 1 --branch "$$REF" https://github.com/markus-nevil/PDB2MC.git /src; fi;
+      - |
+        G="git -c safe.directory=/src -C /src"
+        [ -d /src/.git ] || git clone --depth 1 https://github.com/markus-nevil/PDB2MC.git /src
+        TAG=$$(wget -qO- https://api.github.com/repos/markus-nevil/PDB2MC/releases/latest | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p' | head -n 1)
+        if [ -z "$$TAG" ]; then
+          echo "Latest release unknown; keeping $$($$G describe --tags --always)"
+        elif $$G fetch --depth 1 origin "refs/tags/$$TAG:refs/tags/$$TAG" && $$G cat-file -e "$$TAG:web/deploy/start-web.sh" 2>/dev/null; then
+          $$G checkout --force --detach "$$TAG" && echo "Using release $$TAG"
+        else
+          echo "Release $$TAG has no web builder; keeping $$($$G describe --tags --always)"
+        fi
         chown -R 1000:1000 /src
-    environment: { REF: web-builder }
     volumes: ["<base>/src:/src"]
   frontend:       # builds web/frontend into web/frontend/dist
     image: node:22-alpine

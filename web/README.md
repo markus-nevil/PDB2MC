@@ -12,7 +12,8 @@ example), choose a PDB2MC mode, and the model is built on a plot of a shared Min
 - Structures that visitors build (uploads and RCSB downloads) are kept in `<state>/library`, stored once
   per file content, and offered to later visitors ("Saved by visitors"). An identical model (same file,
   mode, scale and options) is not built twice: the visitor is sent to its plot and its timer restarts.
-- `deploy/` – container entry point and a compose template.
+- `deploy/` – container entry point and a compose template. The server runs the latest GitHub release:
+  restarting the app checks out the newest release tag (and rebuilds the frontend).
 - `tests/` – `python -m pytest web/tests` (uses a fake Minecraft console).
 
 Run locally: `pip install -r web/server/requirements.txt`, build the frontend (`npm ci && npm run build` in
