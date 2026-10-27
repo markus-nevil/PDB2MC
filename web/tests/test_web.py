@@ -1,0 +1,240 @@
+import os
+import socket
+import struct
+import sys
+import threading
+import time
+
+import pytest
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(HERE, "..", "server"))
+sys.path.insert(0, os.path.join(HERE, "..", ".."))
+
+from fastapi.testclient import TestClient  # noqa: E402
+
+from pdb2mc_web import inputs, settings  # noqa: E402
+from pdb2mc_web.app import create_app  # noqa: E402
+from pdb2mc_web.jobs import Builder  # noqa: E402
+from pdb2mc_web.rcon import Rcon  # noqa: E402
+from pdb2mc_web.store import PlotStore  # noqa: E402
+from pdb2mc_web.world import World, plot_bounds, plot_center  # noqa: E402
+
+
+class FakeConsole:
+    """Stands in for the RCON connection; records commands."""
+
+    def __init__(self):
+        self.commands = []
+
+    def command(self, text):
+        self.commands.append(text)
+        if text.startswith("execute if loaded"):
+            return "Test passed"
+        if " run function " in text:
+            return f"Running function {text.rsplit(' ', 1)[1]}"
+        return ""
+
+
+@pytest.fixture
+def env(tmp_path, monkeypatch):
+    monkeypatch.setattr(settings, "STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setattr(settings, "WORLD_DIR", str(tmp_path / "data" / "world"))
+    os.makedirs(settings.STATE_DIR)
+    console = FakeConsole()
+    world = World(console)
+    builder = Builder(world, PlotStore())
+    builder._prepare_world()
+    builder._ready.set()
+    return builder, world, console
+
+
+def build_now(builder, token, mode="Skeleton", scale=1.0, options=None, client="1.2.3.4"):
+    job = builder.submit(token, mode, scale, options or {}, client)
+    builder._queue.get_nowait()
+    builder._process(job)
+    return builder.status(job.id)
+
+
+def test_plot_layout():
+    x1, z1, x2, z2 = plot_bounds(1)
+    assert x2 - x1 + 1 == settings.PLOT_SIZE == z2 - z1 + 1
+    assert x1 % 16 == 0 and z1 % 16 == 0      # whole chunks, so one forceload covers a plot
+    assert plot_center(2)[0] - plot_center(1)[0] == settings.PLOT_PITCH
+    assert plot_center(settings.PLOTS_PER_ROW + 1) == (settings.PLOT_PITCH, settings.PLOT_PITCH)
+
+
+def test_setup_writes_plot_pack_and_rules(env):
+    builder, world, console = env
+    pack = os.path.join(world.pack_dir, "data")
+    for folder in ("function", "functions"):
+        assert os.path.exists(os.path.join(pack, "plots", folder, "goto.mcfunction"))
+        assert os.path.exists(os.path.join(pack, "minecraft", "tags", folder, "tick.json"))
+    assert "minecraft:reload" in console.commands
+    assert "reload" not in console.commands            # Paper's /reload would reload plugins
+    assert any(c.startswith("gamerule doMobSpawning") for c in console.commands)
+
+
+def test_preset_build_is_placed_and_expires(env):
+    builder, world, console = env
+    summary = inputs.from_preset("Helix")
+    assert summary["max_scale"] >= summary["suggested_scale"] >= 1
+    status = build_now(builder, summary["token"], scale=2.0, options={"by_chain": True, "evil": "x"})
+    assert status["status"] == "done", status["message"]
+    plot = status["plot"]
+    assert plot["number"] == 1 and plot["command"] == "/trigger plot set 1"
+    stored = builder.store.plots()[1]
+    assert stored["name"] == "m000001"
+    x, y, z = stored["origin"]
+    assert f"execute positioned {x} {y} {z} run function protein:build_m000001" in console.commands
+    # loaded before placing, released afterwards
+    x1, z1, x2, z2 = plot_bounds(1)
+    assert console.commands.index(f"forceload add {x1} {z1} {x2} {z2}") < console.commands.index(
+        f"execute positioned {x} {y} {z} run function protein:build_m000001") < console.commands.index(
+        f"forceload remove {x1} {z1} {x2} {z2}")
+    # the model sits on the plot, on the ground, under the height limit
+    low, high, blocks = world.model_extent("m000001")
+    assert blocks == stored["blocks"] > 0
+    assert y + low[1] == settings.GROUND_Y and y + high[1] <= settings.TOP_Y
+    assert x1 <= x + low[0] and x + high[0] <= x2 and z1 <= z + low[2] and z + high[2] <= z2
+    goto = open(os.path.join(world.pack_dir, "data", "plots", "function", "goto.mcfunction")).read()
+    assert "matches 1 run tp @s" in goto
+
+    builder.store.add(1, dict(stored, expires=0))
+    builder._cleanup()
+    assert builder.store.plots() == {}
+    assert f"execute positioned {x} {y} {z} run function protein:clear_m000001" in console.commands
+    assert world.model_files("m000001") == []
+    assert "matches 1 run tp" not in open(os.path.join(world.pack_dir, "data", "plots", "function",
+                                                       "goto.mcfunction")).read()
+
+
+def test_failed_clear_keeps_files_for_retry(env):
+    builder, world, console = env
+    status = build_now(builder, inputs.from_preset("ATP")["token"])
+    assert status["status"] == "done"
+    stored = builder.store.plots()[1]
+    builder.store.add(1, dict(stored, expires=0))
+    console.command = lambda text: (_ for _ in ()).throw(OSError("server down"))
+    builder._cleanup()
+    assert 1 in builder.store.plots() and world.model_files(stored["name"])
+
+
+def test_every_mode_builds(env):
+    builder, world, console = env
+    token = inputs.from_preset("Helix")["token"]
+    for i, mode in enumerate(["Custom", "X-Ray", "Space Filling", "Ribbon", "Amino Acids"]):
+        status = build_now(builder, token, mode=mode, client=f"10.0.0.{i}")
+        assert status["status"] == "done", (mode, status["message"])
+    assert sorted(builder.store.plots()) == [1, 2, 3, 4, 5]
+    names = {p["name"] for p in builder.store.plots().values()}
+    assert len(names) == 5                       # every build gets its own model name
+
+
+def test_too_large_scale_and_full_world(env, monkeypatch):
+    builder, world, console = env
+    summary = inputs.from_preset("Helix")
+    with pytest.raises(inputs.InputError):
+        builder.submit(summary["token"], "Skeleton", summary["max_scale"] + 1, {}, "a")
+    monkeypatch.setattr(settings, "MAX_PLOTS", 0)
+    status = build_now(builder, summary["token"])
+    assert status["status"] == "error" and "Every plot" in status["message"]
+
+
+def test_build_timeout_is_reported(env, monkeypatch):
+    builder, world, console = env
+    monkeypatch.setattr(settings, "BUILD_TIMEOUT", 0)
+    status = build_now(builder, inputs.from_preset("Helix")["token"])
+    assert status["status"] == "error" and "longer than" in status["message"]
+    assert os.listdir(os.path.join(settings.STATE_DIR, "models")) == []
+
+
+def test_one_build_per_visitor(env):
+    builder, world, console = env
+    token = inputs.from_preset("Helix")["token"]
+    builder.submit(token, "Skeleton", 1, {}, "same")
+    with pytest.raises(inputs.InputError):
+        builder.submit(token, "Skeleton", 1, {}, "same")
+
+
+def test_input_validation(env, tmp_path):
+    with pytest.raises(inputs.InputError):
+        inputs.from_pdb_id("../etc")
+    with pytest.raises(inputs.InputError):
+        inputs.get("../../secret")
+    with pytest.raises(inputs.InputError):
+        inputs.from_upload("x.exe", open(__file__, "rb"))
+    bad = tmp_path / "bad.pdb"
+    bad.write_text("not a structure\n")
+    with pytest.raises(inputs.InputError):
+        inputs.from_upload("bad.pdb", open(bad, "rb"))
+
+
+def test_api(env, monkeypatch):
+    builder, world, console = env
+    client = TestClient(create_app(builder))
+    config = client.get("/api/config").json()
+    assert {m["name"] for m in config["modes"]} >= {"Skeleton", "Space Filling"} and "GFP" in config["presets"]
+    chosen = client.post("/api/structures", data={"preset": "Helix"}).json()
+    with open(os.path.join(HERE, "..", "..", "UI", "presets", "ATP.pdb"), "rb") as f:
+        uploaded = client.post("/api/structures", files={"file": ("atp.pdb", f)}).json()
+    assert uploaded["atoms"] > 0 and uploaded["source"] == "atp.pdb"
+    assert client.post("/api/structures", data={}).status_code == 400
+    job = client.post("/api/builds", json={"token": chosen["token"], "mode": "Ribbon", "scale": 1}).json()
+    assert job["status"] == "queued" and job["position"] == 1
+    assert client.get(f"/api/builds/{job['id']}").json()["status"] == "queued"
+    assert client.get("/api/builds/nope").status_code == 404
+    # one build per hour: a second request from the same visitor is refused
+    monkeypatch.setattr(settings, "BUILDS_PER_HOUR", 1)
+    limited = TestClient(create_app(builder))
+    body = {"token": chosen["token"], "mode": "Ribbon", "scale": 1}
+    assert limited.post("/api/builds", json=body).status_code == 400       # already has a queued build
+    assert limited.post("/api/builds", json=body).status_code == 429
+    # behind the tunnel, visitors are told apart by CF-Connecting-IP, but only from the trusted proxy
+    assert limited.post("/api/builds", json=body, headers={"cf-connecting-ip": "9.9.9.9"}).status_code == 429
+    monkeypatch.setattr(settings, "TRUSTED_PROXIES", {"testclient"})
+    for visitor in ("9.9.9.9", "8.8.8.8"):
+        response = limited.post("/api/builds", json=body, headers={"cf-connecting-ip": visitor})
+        assert response.status_code == 200, response.text
+
+
+class FakeRconServer(threading.Thread):
+    def __init__(self, password):
+        super().__init__(daemon=True)
+        self.password = password
+        self.sock = socket.socket()
+        self.sock.bind(("127.0.0.1", 0))
+        self.sock.listen()
+        self.port = self.sock.getsockname()[1]
+
+    def run(self):
+        conn, _ = self.sock.accept()
+
+        def read():
+            size = struct.unpack("<i", conn.recv(4))[0]
+            data = b""
+            while len(data) < size:
+                data += conn.recv(size - len(data))
+            return struct.unpack("<ii", data[:8]) + (data[8:-2].decode(),)
+
+        def send(request_id, kind, body):
+            payload = struct.pack("<ii", request_id, kind) + body.encode() + b"\x00\x00"
+            conn.sendall(struct.pack("<i", len(payload)) + payload)
+
+        request_id, kind, body = read()
+        send(request_id if body == self.password else -1, 2, "")
+        while True:
+            try:
+                request_id, kind, body = read()
+            except Exception:
+                return
+            send(request_id, 0, f"echo {body}")
+
+
+def test_rcon_client():
+    server = FakeRconServer("pw")
+    server.start()
+    rcon = Rcon("127.0.0.1", server.port, "pw", timeout=5)
+    assert rcon.command("list") == "echo list"
+    assert rcon.command("time set noon") == "echo time set noon"
+    rcon.close()
