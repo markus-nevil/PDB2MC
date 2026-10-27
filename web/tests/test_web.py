@@ -104,6 +104,7 @@ def test_preset_build_is_placed_and_expires(env):
     builder._cleanup()
     assert builder.store.plots() == {}
     assert f"execute positioned {x} {y} {z} run function protein:clear_m000001" in console.commands
+    assert f"setblock {x} {y - 1} {z} minecraft:grass_block" in console.commands    # obsidian marker removed
     assert world.model_files("m000001") == []
     assert "matches 1 run tp" not in open(os.path.join(world.pack_dir, "data", "plots", "function",
                                                        "goto.mcfunction")).read()

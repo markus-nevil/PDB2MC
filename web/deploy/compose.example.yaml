@@ -6,7 +6,7 @@ services:
     entrypoint: ["/bin/sh", "-c"]
     command:
       - >
-        if [ -d /src/.git ]; then git -C /src fetch --depth 1 origin "$$REF" && git -C /src reset --hard FETCH_HEAD;
+        if [ -d /src/.git ]; then git -c safe.directory=/src -C /src fetch --depth 1 origin "$$REF" && git -c safe.directory=/src -C /src reset --hard FETCH_HEAD;
         else git clone --depth 1 --branch "$$REF" https://github.com/markus-nevil/PDB2MC.git /src; fi;
         chown -R 1000:1000 /src
     environment: { REF: web-builder }
@@ -37,7 +37,9 @@ services:
       TYPE: PAPER
       VERSION: LATEST
       MEMORY: 6G
-      MODRINTH_PROJECTS: "bluemap,geyser,floodgate"
+      MODRINTH_PROJECTS: bluemap
+      # Geyser publishes only beta builds on Modrinth; take Geyser and Floodgate from GeyserMC
+      PLUGINS: "https://download.geysermc.org/v2/projects/geyser/versions/latest/builds/latest/downloads/spigot,https://download.geysermc.org/v2/projects/floodgate/versions/latest/builds/latest/downloads/spigot"
       ENABLE_RCON: "true"
       RCON_PASSWORD: "<rcon password>"
       MODE: spectator

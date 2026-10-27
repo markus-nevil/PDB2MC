@@ -189,6 +189,13 @@ class World:
         Remove a model's blocks from its plot, then its files. If removing the blocks fails the files
         are kept (the clear function needs them) and the error is raised, so the caller retries later.
         """
-        self._with_plot_loaded(number, lambda: self._run_function(f"clear_{name}", origin))
+        def clear_blocks():
+            self._run_function(f"clear_{name}", origin)
+            # build_ functions put an obsidian marker under the origin; clear_ leaves it
+            x, y, z = origin
+            ground = "grass_block" if y - 1 == settings.GROUND_Y - 1 else "air"
+            self.run(f"setblock {x} {y - 1} {z} minecraft:{ground}")
+
+        self._with_plot_loaded(number, clear_blocks)
         self.delete_model(name)
         self.run("bluemap update world")
