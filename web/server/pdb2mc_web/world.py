@@ -31,28 +31,78 @@ GAMERULES = [(("advance_time", "doDaylightCycle"), "false"), (("advance_weather"
              (("fire_spread_radius_around_player",), "0"), (("doFireTick",), "false")]
 
 
-def plot_center(number):
-    """Centre (x, z) of plot `number` (1-based); plots are laid out in rows east of spawn."""
-    col, row = (number - 1) % settings.PLOTS_PER_ROW, (number - 1) // settings.PLOTS_PER_ROW
-    return settings.PLOT_PITCH * (col + 1), settings.PLOT_PITCH * row
+# Plots are square blocks of grid cells: a cell is PLOT_SIZE blocks wide with PLOT_PITCH - PLOT_SIZE blocks
+# of space to the next one, PLOTS_PER_ROW cells to a row, east of spawn. A model takes the smallest k x k
+# block of free cells it fits in (k up to MAX_PLOT_CELLS). A 1 x 1 plot covers one cell exactly.
+GAP = settings.PLOT_PITCH - settings.PLOT_SIZE
+GRID_X0 = settings.PLOT_PITCH - settings.PLOT_SIZE // 2
+GRID_Z0 = -(settings.PLOT_SIZE // 2)
 
 
-def plot_bounds(number):
-    """(x1, z1, x2, z2) of the buildable area of a plot, inclusive."""
-    cx, cz = plot_center(number)
-    half = settings.PLOT_SIZE // 2
-    return cx - half, cz - half, cx + half - 1, cz + half - 1
+def cells_needed(width):
+    """Side k of the k x k cells a model `width` blocks wide needs (may exceed MAX_PLOT_CELLS)."""
+    return max(1, -(-(width + GAP) // settings.PLOT_PITCH))
 
 
-def teleport_target(number):
+def max_plot_width():
+    return settings.MAX_PLOT_CELLS * settings.PLOT_PITCH - GAP
+
+
+def cells_bounds(col, row, size):
+    """(x1, z1, x2, z2), inclusive, of the size x size cells starting at (col, row)."""
+    x1 = GRID_X0 + col * settings.PLOT_PITCH
+    z1 = GRID_Z0 + row * settings.PLOT_PITCH
+    span = size * settings.PLOT_PITCH - GAP
+    return x1, z1, x1 + span - 1, z1 + span - 1
+
+
+def plot_cells(number, plot):
+    """(col, row, size) of a plot; plots made before plots could grow were one cell, by number."""
+    if plot.get("cells"):
+        return tuple(plot["cells"])
+    return (number - 1) % settings.PLOTS_PER_ROW, (number - 1) // settings.PLOTS_PER_ROW, 1
+
+
+def plot_bounds(number, plot):
+    return cells_bounds(*plot_cells(number, plot))
+
+
+def find_cells(plots, size):
+    """(col, row) of the first free size x size block of cells, or None."""
+    taken = set()
+    for number, plot in plots.items():
+        col, row, k = plot_cells(number, plot)
+        taken |= {(col + i, row + j) for i in range(k) for j in range(k)}
+    for row in range(settings.PLOT_ROWS - size + 1):
+        for col in range(settings.PLOTS_PER_ROW - size + 1):
+            if not any((col + i, row + j) in taken for i in range(size) for j in range(size)):
+                return col, row
+    return None
+
+
+def center(bounds):
+    x1, z1, x2, z2 = bounds
+    return (x1 + x2 + 1) // 2, (z1 + z2 + 1) // 2
+
+
+def teleport_target(bounds):
     """Where /trigger plot puts a player: just outside the plot's south edge, facing its centre."""
-    cx, cz = plot_center(number)
-    return cx, settings.GROUND_Y + 2, cz + settings.PLOT_SIZE // 2 + 6
+    cx, _ = center(bounds)
+    return cx, settings.GROUND_Y + 2, bounds[3] + 6
 
 
-def map_link(number):
-    cx, cz = plot_center(number)
-    return f"{settings.MAP_URL}/#world:{cx}:{settings.GROUND_Y + 40}:{cz}:260:0:0.9:0:0:perspective"
+def map_link(bounds):
+    cx, cz = center(bounds)
+    distance = 260 + (bounds[2] - bounds[0])
+    return f"{settings.MAP_URL}/#world:{cx}:{settings.GROUND_Y + 40}:{cz}:{distance}:0:0.9:0:0:perspective"
+
+
+def chunk_batches(bounds):
+    """The bounds split into pieces of at most 16 x 16 chunks (the limit of one forceload command)."""
+    x1, z1, x2, z2 = bounds
+    for bx in range(x1 >> 4, (x2 >> 4) + 1, 16):
+        for bz in range(z1 >> 4, (z2 >> 4) + 1, 16):
+            yield bx * 16, bz * 16, min(bx + 15, x2 >> 4) * 16 + 15, min(bz + 15, z2 >> 4) * 16 + 15
 
 
 def _write_both(base, dirs, filename, text):
@@ -94,8 +144,9 @@ class World:
                     f"tp @s 0 {settings.GROUND_Y} 0\nscoreboard players set @s spawn 0\n")
         lines = ["tag @s add pdb2mc_miss\n"]
         for number, plot in sorted(plots.items()):
-            x, y, z = teleport_target(number)
-            cx, cz = plot_center(number)
+            bounds = plot_bounds(number, plot)
+            x, y, z = teleport_target(bounds)
+            cx, cz = center(bounds)
             title = json.dumps(f"Plot {number}: {plot.get('title') or plot['name']}")
             lines += [f"execute if score @s plot matches {number} run tp @s {x} {y} {z} facing {cx} {y + 25} {cz}\n",
                       f"execute if score @s plot matches {number} run tellraw @s {{\"text\":{title},\"color\":\"aqua\"}}\n",
@@ -142,18 +193,18 @@ class World:
             raise ValueError("The model has no blocks.")
         return positions.min(axis=0).tolist(), positions.max(axis=0).tolist(), len(positions)
 
-    def origin_for(self, number, low, high):
-        """Execution position that centres a model of extent low..high on plot `number`, on the ground."""
-        cx, cz = plot_center(number)
+    def origin_for(self, bounds, low, high):
+        """Execution position that centres a model of extent low..high on a plot, on the ground."""
+        cx, cz = center(bounds)
         return (cx - (low[0] + high[0]) // 2, settings.GROUND_Y - low[1], cz - (low[2] + high[2]) // 2)
 
     def delete_model(self, name):
         mcf.delete_old_files(self.functions_dir, name)
 
     # --- placing ---
-    def _wait_loaded(self, number, timeout=60):
-        x1, z1, x2, z2 = plot_bounds(number)
-        corners = [(x1, z1), (x2, z2), (x1, z2), (x2, z1)]
+    def _wait_loaded(self, bounds, timeout=120):
+        corners = [(x, z) for x1, z1, x2, z2 in chunk_batches(bounds)
+                   for x, z in ((x1, z1), (x2, z2), (x1, z2), (x2, z1))]
         deadline = time.time() + timeout
         while time.time() < deadline:
             if all("passed" in self.run(f"execute if loaded {x} {settings.GROUND_Y} {z}").lower()
@@ -162,15 +213,17 @@ class World:
             time.sleep(0.5)
         raise RuntimeError("The plot's chunks did not load in time.")
 
-    def _with_plot_loaded(self, number, action):
-        x1, z1, x2, z2 = plot_bounds(number)
-        self.run(f"forceload add {x1} {z1} {x2} {z2}")
+    def _with_plot_loaded(self, bounds, action):
+        batches = list(chunk_batches(bounds))
+        for x1, z1, x2, z2 in batches:
+            self.run(f"forceload add {x1} {z1} {x2} {z2}")
         try:
-            self._wait_loaded(number)
+            self._wait_loaded(bounds)
             return action()
         finally:
             self.run("save-all")
-            self.run(f"forceload remove {x1} {z1} {x2} {z2}")
+            for x1, z1, x2, z2 in batches:
+                self.run(f"forceload remove {x1} {z1} {x2} {z2}")
 
     def _run_function(self, name, origin):
         x, y, z = origin
@@ -179,12 +232,12 @@ class World:
             raise RuntimeError(f"Minecraft did not find function {name}: {output}")
         return output
 
-    def place(self, number, name, origin):
+    def place(self, bounds, name, origin):
         self.reload()
-        self._with_plot_loaded(number, lambda: self._run_function(f"build_{name}", origin))
+        self._with_plot_loaded(bounds, lambda: self._run_function(f"build_{name}", origin))
         self.run("bluemap update world")
 
-    def clear(self, number, name, origin):
+    def clear(self, bounds, name, origin):
         """
         Remove a model's blocks from its plot, then its files. If removing the blocks fails the files
         are kept (the clear function needs them) and the error is raised, so the caller retries later.
@@ -196,6 +249,6 @@ class World:
             ground = settings.GROUND_BLOCK if y - 1 == settings.GROUND_Y - 1 else "air"
             self.run(f"setblock {x} {y - 1} {z} minecraft:{ground}")
 
-        self._with_plot_loaded(number, clear_blocks)
+        self._with_plot_loaded(bounds, clear_blocks)
         self.delete_model(name)
         self.run("bluemap update world")

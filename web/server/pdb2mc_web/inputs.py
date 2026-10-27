@@ -16,6 +16,7 @@ import httpx
 from PDB2MC import build, pdb_manipulation as pdbm, resources
 
 from . import library, settings
+from .world import max_plot_width
 
 EXTENSIONS = (".pdb", ".ent", ".cif", ".mmcif")
 PDB_ID = re.compile(r"^[0-9][A-Za-z0-9]{3}$")
@@ -39,11 +40,12 @@ def presets():
 
 
 def max_scale(structure):
-    """Largest scale (one decimal) at which the model fits on a plot and below the build height."""
+    """Largest scale (one decimal) at which the model fits below the build height and on the largest plot."""
     df = build.prepare_coordinates(structure, 1.0)
     extent = (df[['X', 'Y', 'Z']].max() - df[['X', 'Y', 'Z']].min() + 1).to_dict()
     by_height = (settings.TOP_Y - settings.GROUND_Y) / (extent['Y'] + SIZE_MARGIN)
-    by_width = settings.PLOT_SIZE / (max(extent['X'], extent['Z']) + SIZE_MARGIN)
+    # plots grow with the model, up to the largest plot
+    by_width = max_plot_width() / (max(extent['X'], extent['Z']) + SIZE_MARGIN)
     return math.floor(min(by_height, by_width, settings.MAX_SCALE) * 10) / 10
 
 
