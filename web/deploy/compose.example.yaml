@@ -1,0 +1,86 @@
+# PDB2MC public server: Paper (+ BlueMap, Geyser, Floodgate), the web builder, Cloudflare tunnel and DDNS.
+# Fill in the <...> values; secrets belong in the platform's secret store, not in git.
+services:
+  src:            # checks out the builder branch
+    image: alpine/git:latest
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >
+        if [ -d /src/.git ]; then git -c safe.directory=/src -C /src fetch --depth 1 origin "$$REF" && git -c safe.directory=/src -C /src reset --hard FETCH_HEAD;
+        else git clone --depth 1 --branch "$$REF" https://github.com/markus-nevil/PDB2MC.git /src; fi;
+        chown -R 1000:1000 /src
+    environment: { REF: web-builder }
+    volumes: ["<base>/src:/src"]
+  frontend:       # builds web/frontend into web/frontend/dist
+    image: node:22-alpine
+    user: "1000:1000"
+    working_dir: /src/web/frontend
+    command: ["sh", "-c", "npm ci --no-audit --no-fund && npm run build"]
+    environment: { npm_config_cache: /tmp/npm }
+    depends_on: { src: { condition: service_completed_successfully } }
+    volumes: ["<base>/src:/src"]
+  prepare:        # folders, ownership, BlueMap config (it refuses to start until the download is accepted)
+    image: busybox:latest
+    command:
+      - sh
+      - -c
+      - >
+        mkdir -p /data/plugins/BlueMap /state &&
+        ( [ -f /data/plugins/BlueMap/core.conf ] || printf 'accept-download: true\ndata: "bluemap"\nrender-thread-count: 2\nmetrics: false\n' > /data/plugins/BlueMap/core.conf ) &&
+        chown -R 1000:1000 /data /state
+    volumes: ["<base>/minecraft:/data", "<base>/state:/state"]
+  minecraft:
+    image: itzg/minecraft-server:latest
+    depends_on: { prepare: { condition: service_completed_successfully } }
+    environment:
+      EULA: "TRUE"
+      TYPE: PAPER
+      VERSION: LATEST
+      MEMORY: 6G
+      MODRINTH_PROJECTS: bluemap
+      # Geyser publishes only beta builds on Modrinth; take Geyser and Floodgate from GeyserMC
+      PLUGINS: "https://download.geysermc.org/v2/projects/geyser/versions/latest/builds/latest/downloads/spigot,https://download.geysermc.org/v2/projects/floodgate/versions/latest/builds/latest/downloads/spigot"
+      ENABLE_RCON: "true"
+      RCON_PASSWORD: "<rcon password>"
+      MODE: spectator
+      FORCE_GAMEMODE: "true"
+      DIFFICULTY: peaceful
+      LEVEL_TYPE: FLAT
+      # one layer of white concrete at y = -64 (players stand at -63, PDB2MC_GROUND_Y)
+      GENERATOR_SETTINGS: '{"layers":[{"block":"minecraft:white_concrete","height":1}],"biome":"minecraft:plains"}'
+      GENERATE_STRUCTURES: "false"
+      SPAWN_ANIMALS: "false"
+      SPAWN_MONSTERS: "false"
+      SPAWN_NPCS: "false"
+      ALLOW_NETHER: "false"
+      SPAWN_PROTECTION: "0"
+      MAX_PLAYERS: "40"
+      VIEW_DISTANCE: "12"
+      ENFORCE_SECURE_PROFILE: "false"
+      MOTD: "PDB2MC - build molecules at build.pdb2mc.com"
+    volumes: ["<base>/minecraft:/data"]
+    # ports: 25565/tcp (Java), 19132/udp (Bedrock via Geyser), 8100/tcp (BlueMap), 25575/tcp (RCON, internal)
+  web:
+    image: python:3.12-slim
+    user: "1000:1000"
+    command: ["sh", "/src/web/deploy/start-web.sh"]
+    depends_on:
+      frontend: { condition: service_completed_successfully }
+      minecraft: { condition: service_started }
+    environment:
+      RCON_HOST: minecraft
+      RCON_PASSWORD: "<rcon password>"
+      PDB2MC_TRUSTED_PROXIES: "<cloudflared address>"
+      HOME: /state
+    volumes: ["<base>/src:/src:ro", "<base>/minecraft:/data", "<base>/state:/state"]
+  cloudflared:    # routes build.<domain> -> web:8000 and map.<domain> -> minecraft:8100
+    image: cloudflare/cloudflared:latest
+    command: ["tunnel", "--no-autoupdate", "run"]
+    environment: { TUNNEL_TOKEN: "<tunnel token>" }
+  ddns:           # keeps play.<domain> (DNS only, not proxied) pointing at the home address
+    image: favonia/cloudflare-ddns:latest
+    environment:
+      CLOUDFLARE_API_TOKEN: "<zone DNS edit token>"
+      DOMAINS: play.pdb2mc.com
+      PROXIED: "false"
+      IP6_PROVIDER: none
