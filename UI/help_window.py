@@ -5,7 +5,7 @@ from PyQt6.QtGui import QDesktopServices, QIcon
 from PyQt6 import QtCore, QtGui, QtWidgets
 import sys
 import re
-import pkg_resources
+from PDB2MC import resources
 
 class HelpWindow(QMainWindow):
     _instance = None  # Class variable to hold the single instance

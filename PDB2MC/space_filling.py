@@ -1,130 +1,193 @@
-from PDB2MC import minecraft_functions as mcf
-import pandas as pd
+"""
+Space Filling mode: the solvent accessible surface (SAS) of the protein / nucleic acid, coloured by atom
+element (or by chain), with the backbone and sidechains as a darker skeleton inside and HETATMs as spheres.
+
+The SAS is the surface traced by the centre of a probe ball (a water molecule, radius SASA_radius) rolled
+over the atoms. It is found with the Shrake-Rupley algorithm: test points are spread over a sphere of
+radius (van der Waals radius + SASA_radius) around every atom, and a point is on the surface when it is
+not inside any other atom's sphere: a probe centred there touches its atom without overlapping any other.
+The accessible points are placed as blocks; surfaces of cavities closed off inside the molecule are left
+out, since they can never be seen.
+
+Every part uses the model's own block coordinates, so the surface, skeleton and HETATMs line up.
+"""
+import math
+
 import numpy as np
+import pandas as pd
+from scipy import ndimage
+from scipy.spatial import cKDTree
+
 from PDB2MC import pdb_manipulation as pdbm
-from PDB2MC import variables as var
-from itertools import cycle
+from PDB2MC.build import RESIDUE_COLUMN, ModelBuilder, backbone_lines, bond_lines, sidechain_blocks
 
-def run_mode(config_data, pdb_name, atom_df, mc_dir, atom_df2, hetatom_df, hetatm_bonds, structure=None):
-    # structure: StructureData object, if provided
-    print("Running space filling mode")
-    cycle_sequence = cycle(range(1, 11))
-    space_filling_master_df = atom_df
-    space_filling_total_df = pd.DataFrame()
-    point_df = pd.DataFrame()
-    atoms_only_df = pd.DataFrame()
-    nbt_exports = []
+# Radius of the probe ball rolled over the atoms, in Angstrom (1.4 = a water molecule)
+SASA_radius = 1.4
+# Van der Waals radii in Angstrom (Bondi 1964; metals from Alvarez 2013)
+VDW_RADII = {'H': 1.20, 'C': 1.70, 'N': 1.55, 'O': 1.52, 'S': 1.80, 'P': 1.80, 'SE': 1.90, 'F': 1.47,
+             'CL': 1.75, 'BR': 1.85, 'I': 1.98, 'MG': 1.73, 'NA': 2.27, 'K': 2.75, 'CA': 2.31,
+             'FE': 2.04, 'ZN': 2.01, 'CU': 1.96, 'MN': 2.05}
+DEFAULT_VDW_RADIUS = 1.80
+# Shrake-Rupley test points per square block of sphere surface; enough that the placed blocks
+# have no holes
+POINT_DENSITY = 4.0
+MIN_POINTS = 60
+# Test points handled at once (memory: ~50 bytes each)
+CHUNK_POINTS = 2_000_000
+# Share of surface blocks kept for "mesh-style" models
+MESH_KEEP = 0.10
+MESH_SEED = 0
 
-    for chain, num in zip(enumerate(pdbm.enumerate_chains(space_filling_master_df)), cycle_sequence):
-        space_filling_df = pdbm.get_chain(space_filling_master_df, chain[1])
+_FACES = [(1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1)]
 
-        if config_data["by_chain"]:
-            atoms_subset_df = space_filling_df[['X', 'Y', 'Z']]
-            atoms_subset_df['atom'] = num
+
+def vdw_radii(elements):
+    return np.array([VDW_RADII.get(str(e).strip().upper(), DEFAULT_VDW_RADIUS) for e in elements])
+
+
+def sphere_points(n):
+    """n roughly evenly spaced unit vectors (golden spiral)."""
+    i = np.arange(n) + 0.5
+    phi = np.arccos(1 - 2 * i / n)
+    theta = math.pi * (1 + 5 ** 0.5) * i
+    return np.column_stack([np.cos(theta) * np.sin(phi), np.sin(theta) * np.sin(phi), np.cos(phi)])
+
+
+def accessible_points(centres, radii):
+    """
+    Shrake-Rupley: test points on a sphere of radius radii[i] around each centre, kept when they are
+    not inside any other sphere. Returns (points (m, 3), index of the sphere each point is on).
+    """
+    centres = np.asarray(centres, dtype=float)
+    radii = np.asarray(radii, dtype=float)
+    if not len(centres):
+        return np.zeros((0, 3)), np.zeros(0, dtype=int)
+    counts = np.maximum(MIN_POINTS, np.ceil(4 * math.pi * radii ** 2 * POINT_DENSITY)).astype(int)
+    # Atoms share a few radii (one per element), so the "inside another sphere" test is one fixed-radius
+    # neighbour count per radius. A point lies on its own sphere; the small margin keeps that sphere
+    # from counting, and a point exactly on another sphere's edge counts as accessible.
+    # The most common radius (carbon) first: it covers most points, so later queries have fewer to test
+    values, sizes = np.unique(radii, return_counts=True)
+    trees = [(r, cKDTree(centres[radii == r])) for r in values[np.argsort(-sizes)]]
+    points, owners = [], []
+    for chunk in np.array_split(np.arange(len(centres)), max(1, int(counts.sum() // CHUNK_POINTS))):
+        test, owner = [], []
+        for n in np.unique(counts[chunk]):
+            atoms = chunk[counts[chunk] == n]
+            test.append((centres[atoms, None, :] + radii[atoms, None, None] * sphere_points(n)).reshape(-1, 3))
+            owner.append(np.repeat(atoms, n))
+        test, owner = np.concatenate(test), np.concatenate(owner)
+        covered = np.zeros(len(test), dtype=bool)
+        for r, tree in trees:
+            open_points = ~covered
+            distance, _ = tree.query(test[open_points], k=1, distance_upper_bound=r * (1 - 1e-9) - 1e-9, workers=-1)
+            covered[open_points] = np.isfinite(distance)
+        points.append(test[~covered])
+        owners.append(owner[~covered])
+    return np.concatenate(points), np.concatenate(owners)
+
+
+def outer_voxels(coords):
+    """The voxels of `coords` that touch the space outside the molecule (drops closed-off cavities)."""
+    origin = coords.min(axis=0) - 1
+    shape = coords.max(axis=0) - origin + 2
+    filled = np.zeros(shape, dtype=bool)
+    filled[tuple((coords - origin).T)] = True
+    empty_parts, _ = ndimage.label(~filled)
+    outside = empty_parts == empty_parts[0, 0, 0]
+    padded = np.pad(outside, 1)
+    local = coords - origin + 1
+    touches = np.zeros(len(coords), dtype=bool)
+    for dx, dy, dz in _FACES:
+        touches |= padded[local[:, 0] + dx, local[:, 1] + dy, local[:, 2] + dz]
+    return touches
+
+
+def sas_surface(atoms, scale):
+    """
+    Solvent accessible surface blocks of `atoms` (with unrounded Xf/Yf/Zf block coordinates and
+    'element'). Returns (coords (m, 3) int, index into atoms of the atom each block belongs to).
+    """
+    centres = atoms[['Xf', 'Yf', 'Zf']].to_numpy(dtype=float)
+    radii = (vdw_radii(atoms['element']) + SASA_radius) * scale
+    points, owners = accessible_points(centres, radii)
+    if not len(points):
+        return np.zeros((0, 3), dtype=int), np.zeros(0, dtype=int)
+    voxels = np.rint(points).astype(int)
+    coords, first = np.unique(voxels, axis=0, return_index=True)
+    owners = owners[first]
+    keep = outer_voxels(coords)
+    return coords[keep], owners[keep]
+
+
+def mesh_sample(blocks):
+    """Keep MESH_KEEP of the blocks, the same ones every time."""
+    if blocks.empty:
+        return blocks
+    keep = np.random.default_rng(MESH_SEED).random(len(blocks)) < MESH_KEEP
+    return blocks[keep]
+
+
+def build(builder):
+    """Write <name>_surface, _branch (inner skeleton), _hetatm and _hetatm_bonds."""
+    config = builder.config
+    scale = config['scale']
+    df = builder.df
+    hidden = builder.mods.hidden
+    if hidden:
+        # Hidden residues are left out before the surface is made, so it closes around the rest
+        keys = df['chain'].astype(str) + ":" + df['resid'].astype(int).astype(str)
+        df = df[~keys.isin(hidden)]
+    polymer = df[df['polymer']]
+    het = df[(df['row'] == 'HETATM') & ~df['polymer']]
+    by_chain = config["by_chain"]
+    builder.report(5)
+
+    parts = []
+    if not polymer.empty:
+        polymer = polymer.reset_index(drop=True)
+        coords, owner = sas_surface(polymer, scale)
+        if by_chain:
+            labels = polymer['chain'].map(lambda c: str(builder.numbers.get(c, 1))).to_numpy(dtype=object)
         else:
-            atoms_subset_df = space_filling_df[['X', 'Y', 'Z', 'atom']]
-            atoms_subset_df['atom'] = atoms_subset_df['atom'].str[0]
+            labels = pdbm.element_atom_names(polymer)['atom'].to_numpy(dtype=object)
+        residues = (polymer['chain'].astype(str) + ":" + polymer['resid'].astype(int).astype(str)).to_numpy()
+        surface = pd.DataFrame(coords, columns=['X', 'Y', 'Z'])
+        surface['atom'] = labels[owner]
+        surface[RESIDUE_COLUMN] = residues[owner]
+        if config.get('mesh'):
+            surface = mesh_sample(surface)
+        parts.append((surface, "surface", polymer))
+        builder.report(50)
 
-        branches = pdbm.sidechain(space_filling_df)
-        branches['atom'] = num
-        backbone = pdbm.atom_subset(space_filling_df, ['C', 'N', 'CA', 'P', "O5'", "C5'", "C4'", "C3'", "O3'"], include=True)
-        intermediate = pdbm.find_intermediate_points(backbone)
-        intermediate['atom'] = num
-        point_list = [branches, intermediate, point_df]
-        point_df = pd.concat(point_list, ignore_index=True)
-        atom_list = [atoms_only_df, atoms_subset_df]
-        atoms_only_df = pd.concat(atom_list, ignore_index=True)
+        # Inner skeleton in the darker chain colours ('3b')
+        branch_config = {**config, "by_chain": True}
+        skeleton = pd.concat([backbone_lines(polymer, True, builder.numbers),
+                              sidechain_blocks(polymer, branch_config, builder.numbers)], ignore_index=True)
+        if not skeleton.empty:
+            skeleton['atom'] = skeleton['atom'].astype(str) + 'b'
+            parts.append((skeleton, "branch", polymer))
+    builder.report(65)
 
-    shortened = pdbm.shorten_atom_names(space_filling_master_df)
-    coord = pdbm.rasterized_sphere(round(config_data['scale'] * .9))
-    center = pdbm.sphere_center(round(config_data['scale'] * .9))
-    spheres = pdbm.add_sphere_coordinates(coord, center, shortened, mesh=config_data['mesh'])
-    spheres = spheres.drop_duplicates(subset=['X', 'Y', 'Z'], keep='first')
-    spheres['atom'] = 'atom'
-    all_points = pd.concat([spheres, point_df], ignore_index=True)
-    try:
-        point_np = pdbm.construct_surface_array_by_type(all_points, include=['atom', 'backbone', 'branches'])
-    except Exception as e:
-        print("Exception in construct_surface_array_by_type:", e)
-        point_np = None
+    if config["show_hetatm"] and not het.empty:
+        radius = max(round(scale - 1), 0)
+        spheres = pdbm.add_sphere_coordinates(pdbm.rasterized_sphere(radius), pdbm.sphere_center(radius),
+                                              pdbm.element_atom_names(het.reset_index(drop=True)),
+                                              mesh=config.get('mesh', False))
+        parts.append((spheres, "hetatm", het))
+        bonds = bond_lines(df, builder.structure.bonds, het['atom_num'])
+        if not bonds.empty:
+            bonds['block'] = 'gray_concrete'
+            parts.append((bonds, "hetatm_bonds", df))
+    builder.report(75)
 
-    if point_np is not None:
-        bool_array = pdbm.SASA_gaussian_surface(point_np, sigma=config_data['scale'] / 1.5, fill=True)
-        bool_array = np.where(bool_array >= 1, 255, 0).astype(np.uint8)
-        master_bool = pdbm.find_border_cells(bool_array).astype(np.uint8)
-        master_array = pdbm.array_to_voxel(master_bool, padding_size=0)
-        master_array['atom'] = 0
-    else:
-        master_array = pd.DataFrame()
+    # The surface reaches below the lowest atom; lift every part by the same amount so the model
+    # starts at the placement height and the parts stay aligned
+    lowest = min((blocks['Y'].min() for blocks, _, _ in parts if not blocks.empty), default=0)
+    for blocks, suffix, atoms in parts:
+        builder.write(blocks.assign(Y=blocks['Y'] - lowest), suffix, atoms=atoms.assign(Y=atoms['Y'] - lowest))
+    builder.report(100)
 
-    if hetatom_df is not None:
-        corner_points = pdbm.get_corner_points(point_df)
-        hetatom_df = pdbm.add_corner_points(hetatom_df, corner_points)
-        hetatm_bonds = pdbm.add_corner_points(hetatm_bonds, corner_points)
-        aligned_dfs = pdbm.align_dataframes(point_df, master_array, atoms_only_df, hetatom_df, hetatm_bonds)
-        point_df = aligned_dfs[0]
-        master_array = aligned_dfs[1]
-        atoms_subset_df = aligned_dfs[2]
-        aligned_hetatm = aligned_dfs[3]
-        aligned_hetatm_bonds = aligned_dfs[4]
-        aligned_hetatm = aligned_hetatm[aligned_hetatm['atom'] != "temp"]
-        aligned_hetatm_bonds = aligned_hetatm_bonds[aligned_hetatm_bonds['atom'] != "temp"]
-        atoms_subset_df = atoms_subset_df[atoms_subset_df['atom'] != "H"]
-    else:
-        aligned_dfs = pdbm.align_dataframes(point_df, master_array, atoms_only_df)
-        point_df = aligned_dfs[0]
-        master_array = aligned_dfs[1]
-        atoms_subset_df = aligned_dfs[2]
-        aligned_hetatm = None
-        aligned_hetatm_bonds = None
 
-    if config_data['mesh']:
-        master_array = pdbm.remove_random_rows(master_array, percent=90)
-
-    output_df = pdbm.assign_atom_values(master_array, atoms_subset_df)
-    pdb_surface = pdb_name + "_surface"
-    pdb_branch = pdb_name + "_branch"
-    point_df['atom'] = point_df['atom'].astype(str) + 'b'
-    output_df['X'] = output_df['X'].astype(int).round()
-    output_df['Y'] = output_df['Y'].astype(int).round()
-    output_df['Z'] = output_df['Z'].astype(int).round()
-
-    # Collect DataFrames and names for NBT export
-    if not point_df.empty:
-        nbt_exports.append((point_df, pdb_branch))
-    if not output_df.empty:
-        nbt_exports.append((output_df, pdb_surface))
-
-    # --- HETATM handling ---
-    if config_data["show_hetatm"] and hetatom_df is not None and structure is not None:
-        pdb_hetatm = pdb_name + "_hetatm"
-        scale = round(config_data['scale'] - 1)
-        coord = pdbm.rasterized_sphere(scale)
-        center = pdbm.sphere_center(scale)
-        shortened = pdbm.shorten_atom_names(aligned_hetatm)
-        spheres = pdbm.add_sphere_coordinates(coord, center, shortened, mesh=config_data['mesh'])
-        if not spheres.empty:
-            nbt_exports.append((spheres, pdb_hetatm))
-        pdb_hetatm_bonds = pdb_name + "_hetatm_bonds"
-        # Always use structure.bonds for HETATM bonds
-        hetatm_bonds_df = pdbm.get_hetatm_bond_lines_from_df(aligned_hetatm, structure.bonds)
-        if hetatm_bonds_df is not None and not hetatm_bonds_df.empty:
-            hetatm_bonds_df['atom'] = 99
-            hetatm_bonds_df['X'] = hetatm_bonds_df['X'].astype(int).round()
-            hetatm_bonds_df['Y'] = hetatm_bonds_df['Y'].astype(int).round()
-            hetatm_bonds_df['Z'] = hetatm_bonds_df['Z'].astype(int).round()
-            nbt_exports.append((hetatm_bonds_df, pdb_hetatm_bonds))
-
-    # Find the global minimum Y across all DataFrames
-    all_min_ys = [df['Y'].min() for df, _ in nbt_exports if 'Y' in df.columns and not df.empty]
-    if all_min_ys:
-        global_min_y = min(all_min_ys)
-        # Subtract the global min from all Y values in all DataFrames
-        for i, (df, name) in enumerate(nbt_exports):
-            if 'Y' in df.columns and not df.empty:
-                nbt_exports[i] = (df.assign(Y=df['Y'] - global_min_y), name)
-
-    # Write all NBT files at the end
-    for df, name in nbt_exports:
-        if df is not None and not df.empty:
-            mcf.create_nbt(df, name, air=False, dir=mc_dir, blocks=config_data['atoms'])
+def run_mode(config_data, pdb_name, structure, mc_dir, progress=None):
+    build(ModelBuilder(config_data, structure, mc_dir, name=pdb_name, progress=progress))

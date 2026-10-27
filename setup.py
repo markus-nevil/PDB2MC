@@ -5,7 +5,7 @@ setup(
     name='PDB2MC',
     version=version,
     packages=find_packages(),
-    url='https://github.com/markus-nevil/mcpdb',
+    url='https://github.com/markus-nevil/PDB2MC',
     author='Markus Nevil',
     author_email='nevil@email.unc.edu',
     description='A program that converts PDB files to Minecraft functions',
@@ -13,13 +13,18 @@ setup(
     long_description_content_type='text/markdown',
     install_requires=[
         'PyQt6',
-        'pandas',
-        'numpy',
+        'pandas>=2.0',
+        'numpy>=1.24',
         'markdown',
-        'opencv-python',
         'scipy',
-        'tifffile'
+        'biopython',             # mmCIF parsing
+        'NBT',                   # reading .nbt structure files (PDB2MC.nbt_writer writes them)
+        'requests',              # update check
+        'packaging',             # update check version comparison
     ],
+    extras_require={
+        'test': ['pytest', 'pytest-qt'],
+    },
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'License :: OSI Approved :: MIT License',
@@ -35,11 +40,12 @@ setup(
     entry_points={
         'console_scripts': [
             'PDB2MC = PDB2MC.run_PDB2MC:main',
+            'PDB2MC-build = PDB2MC.cli:main',
         ],
     },
     package_data={
         'PDB2MC': ['README.md', 'chains.txt', 'pack.mcmeta'],
-        'UI': ['images/*', 'presets/*', 'images/icons/*'],
+        'UI': ['images/*', 'presets/*', 'images/icons/*', '*.txt'],
     },
 )
 

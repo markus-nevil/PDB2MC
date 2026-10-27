@@ -6,19 +6,48 @@ from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel
 from PyQt6.QtGui import QDesktopServices, QIcon
 from PyQt6 import QtCore, QtGui, QtWidgets
 
-# UI windows
-from UI import (
-    help_window, custom_window, skeleton_window, xray_window,
-    space_filling_window, ribbon_window, amino_acids_window, tool_window
-)
+from PyQt6.QtCore import QThread, pyqtSignal
+from UI.base_mode_window import open_help, open_mode_window
 from UI.utilities import InformationBox
 
 # Version handling
 from packaging import version as packaging_version
-from importlib.metadata import version, PackageNotFoundError
 from PDB2MC.version import version
+from PDB2MC import resources
 
-help_window = None
+MODE_ATTRIBUTES = {
+    "Custom": "custom_window", "Skeleton": "skeleton_window", "X-Ray": "xray_window",
+    "Space Filling": "space_filling_window", "Ribbon": "ribbon_window",
+    "Amino Acids": "amino_acids_window", "Tools": "tool_window",
+}
+
+
+def latest_release(repo="markus-nevil/PDB2MC", timeout=5):
+    """Tag of the latest GitHub release, or None when it can't be fetched."""
+    try:
+        response = requests.get(f"https://api.github.com/repos/{repo}/releases/latest", timeout=timeout)
+        response.raise_for_status()
+        return response.json().get("tag_name")
+    except Exception:
+        return None
+
+
+def is_newer(remote, local=version):
+    try:
+        return packaging_version.parse(str(local)) < packaging_version.parse(str(remote))
+    except Exception:
+        return False
+
+
+class UpdateCheck(QThread):
+    """Looks up the latest release in the background; emits newer_version when it beats this version."""
+    newer_version = pyqtSignal(str)
+
+    def run(self):
+        remote = latest_release()
+        if remote is not None and is_newer(remote):
+            self.newer_version.emit(str(packaging_version.parse(str(remote))))
+
 
 class MainWindow(QMainWindow):
     """
@@ -133,44 +162,24 @@ class MainWindow(QMainWindow):
         self.comboBox.currentTextChanged.connect(self.handle_dropdown_change)
         self.help.clicked.connect(self.handle_help_button)
 
-        # Check for updates after startup
-        self.timer = QtCore.QTimer()
-        self.timer.singleShot(1000, self.is_outdated)
+        # Check for updates after startup, off the GUI thread (the request can take seconds offline)
+        self.update_check = UpdateCheck(self)
+        self.update_check.newer_version.connect(self.announce_update)
+        QtCore.QTimer.singleShot(1000, self.is_outdated)
 
     def is_outdated(self):
-        """
-        Checks if the local version is older than the latest GitHub release.
-        Shows a popup if an update is available.
-        Silently ignores connection errors.
-        """
-        repo_owner = "markus-nevil"
-        repo_name = "PDB2MC"
+        """Start the background check for a newer GitHub release."""
+        if not self.update_check.isRunning():
+            self.update_check.start()
 
-        try:
-            response = requests.get(
-                f"https://api.github.com/repos/{repo_owner}/{repo_name}/releases/latest", timeout=5
-            )
-            response.raise_for_status()
-            latest_release = response.json().get("tag_name", None)
-        except requests.ConnectionError:
-            return  # No internet, ignore
-        except Exception:
-            return  # Any other error, ignore
-
-        if latest_release is not None:
-            try:
-                local_version = packaging_version.parse(str(version))
-                remote_version = packaging_version.parse(str(latest_release))
-                if local_version < remote_version:
-                    self.show_information_box(
-                        title_text="New Version Available!",
-                        text=f"There is a new PDB2MC version available.\n"
-                             f"Download Release v{remote_version} from Github.\n"
-                             f"https://github.com/markus-nevil/PDB2MC",
-                        icon_path="images/icons/icon_good.png"
-                    )
-            except Exception:
-                pass  # Ignore version parsing errors
+    def announce_update(self, remote_version):
+        self.show_information_box(
+            title_text="New Version Available!",
+            text=f"There is a new PDB2MC version available.\n"
+                 f"Download Release v{remote_version} from Github.\n"
+                 f"https://github.com/markus-nevil/PDB2MC",
+            icon_path="images/icons/icon_good.png"
+        )
 
     def show_information_box(self, title_text, text, icon_path):
         """
@@ -183,56 +192,15 @@ class MainWindow(QMainWindow):
         self.info_box.show()
 
     def handle_help_button(self):
-        """
-        Opens the help window, centering it on the screen.
-        """
-        from UI.help_window import HelpWindow
-        help_window = HelpWindow.instance()
-        if help_window.isVisible():
-            help_window.raise_()
-            help_window.activateWindow()
-        else:
-            help_window.show()
-
-        # Center the help window
-        frame_geometry = help_window.frameGeometry()
-        screen_center = self.screen().availableGeometry().center()
-        frame_geometry.moveCenter(screen_center)
-        help_window.move(frame_geometry.topLeft())
+        """Opens the help window, centred on the screen."""
+        open_help(self)
 
     def handle_dropdown_change(self, text):
-        """
-        Handles mode selection from the dropdown.
-        Opens the corresponding window and hides the main window.
-        """
-        if text == "Custom":
-            self.custom_window = custom_window.CustomWindow()
-            self.custom_window.show()
-            self.hide()
-        if text == "Skeleton":
-            self.skeleton_window = skeleton_window.SkeletonWindow()
-            self.skeleton_window.show()
-            self.hide()
-        if text == "X-Ray":
-            self.xray_window = xray_window.XrayWindow()
-            self.xray_window.show()
-            self.hide()
-        if text == "Space Filling":
-            self.SpaceFilling = space_filling_window.spWindow()
-            self.SpaceFilling.show()
-            self.hide()
-        if text == "Ribbon":
-            self.ribbon_window = ribbon_window.RibbonWindow()
-            self.ribbon_window.show()
-            self.hide()
-        if text == "Amino Acids":
-            self.amino_acids_window = amino_acids_window.AAWindow()
-            self.amino_acids_window.show()
-            self.hide()
-        if text == "Tools":
-            self.tool_window = tool_window.ToolWindow()
-            self.tool_window.show()
-            self.hide()
+        """Opens the window of the selected mode and hides the main window."""
+        window = open_mode_window(text.strip(), self)
+        if window is not None:
+            # kept as attributes for callers that look up the opened window
+            setattr(self, MODE_ATTRIBUTES.get(text.strip(), "mode_window"), window)
 
     def retranslateUi(self, MainWindow):
         """
@@ -245,27 +213,10 @@ class MainWindow(QMainWindow):
 
 def get_images_path():
     """
-    Returns the path to the images directory, depending on execution context.
+    Returns the UI directory (relative paths such as 'images/bg.gif' resolve against it),
+    for a source checkout, an installed package or a PyInstaller build.
     """
-    if getattr(sys, 'frozen', False):
-        # Compiled executable
-        import importlib.resources as importlib_resources
-        images_dir = importlib_resources.files('UI').joinpath('images')
-        return images_dir
-    else:
-        # Python script or installed package
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        images_dir = os.path.join(current_dir, '..', 'UI')
-        return images_dir
-
-def get_version(package_name):
-    """
-    Returns the installed version of a package, or None if not found.
-    """
-    try:
-        return version(package_name)
-    except PackageNotFoundError:
-        return None
+    return resources.ui_dir()
 
 def main():
     """
