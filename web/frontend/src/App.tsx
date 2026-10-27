@@ -203,7 +203,10 @@ function JobStatus({ job, config }: { job: Job; config: Config }) {
       <h3>{job.existing ? `This model is already on plot ${plot.number}` : `Your model is on plot ${plot.number}`}</h3>
       {job.existing && <p>Someone built it the same way before you, so we sent you there and restarted its {config.limits.plot_hours}-hour timer.</p>}
       <ol>
-        <li>Join <CopyText text={config.play_host} /> in Minecraft Java or Bedrock.</li>
+        <li>
+          Join <CopyText text={config.play_host} /> in Minecraft Java, or in Bedrock with port{" "}
+          <CopyText text={String(config.bedrock_port)} />.
+        </li>
         <li>Type <CopyText text={plot.command} /> to fly to it.</li>
       </ol>
       <p>
@@ -295,8 +298,19 @@ export default function App() {
             <section className="card">
               <h2>Join the world</h2>
               <div className="join">
-                <div><strong>Java Edition</strong><CopyText text={config.play_host} /></div>
-                <div><strong>Bedrock Edition</strong><CopyText text={config.play_host} /><small className="muted">port 19132</small></div>
+                <div>
+                  <strong>Java Edition</strong>
+                  <dl>
+                    <dt>Server Address</dt><dd><CopyText text={config.play_host} /></dd>
+                  </dl>
+                </div>
+                <div>
+                  <strong>Bedrock Edition</strong>
+                  <dl>
+                    <dt>Server Address</dt><dd><CopyText text={config.play_host} /></dd>
+                    <dt>Port</dt><dd><CopyText text={String(config.bedrock_port)} /></dd>
+                  </dl>
+                </div>
               </div>
               <p className="muted">
                 Visitors fly around as spectators. Type <code>/trigger plot set &lt;number&gt;</code> to visit a plot

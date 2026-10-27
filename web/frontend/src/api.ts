@@ -5,6 +5,7 @@ export type Config = {
   presets: string[];
   limits: { upload_mb: number; plot_hours: number; builds_per_hour: number; max_plots: number };
   play_host: string;
+  bedrock_port: number;
   map_url: string;
   github_url: string;
 };

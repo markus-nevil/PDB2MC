@@ -46,6 +46,7 @@ TRUSTED_PROXIES = {ip.strip() for ip in _env("PDB2MC_TRUSTED_PROXIES", "").split
 
 # Shown to visitors
 PLAY_HOST = _env("PDB2MC_PLAY_HOST", "play.pdb2mc.com")
+BEDROCK_PORT = _env("PDB2MC_BEDROCK_PORT", 19132, int)
 MAP_URL = _env("PDB2MC_MAP_URL", "https://map.pdb2mc.com").rstrip("/")
 GITHUB_URL = _env("PDB2MC_GITHUB_URL", "https://github.com/markus-nevil/PDB2MC")
 RCSB_DOWNLOAD = _env("PDB2MC_RCSB_DOWNLOAD", "https://files.rcsb.org/download/{id}.cif")

@@ -102,7 +102,7 @@ def create_app(builder=None):
             "presets": inputs.presets(),
             "limits": {"upload_mb": settings.MAX_UPLOAD_MB, "plot_hours": settings.PLOT_HOURS,
                        "builds_per_hour": settings.BUILDS_PER_HOUR, "max_plots": settings.MAX_PLOTS},
-            "play_host": settings.PLAY_HOST, "map_url": settings.MAP_URL, "github_url": settings.GITHUB_URL,
+            "play_host": settings.PLAY_HOST, "bedrock_port": settings.BEDROCK_PORT, "map_url": settings.MAP_URL, "github_url": settings.GITHUB_URL,
         }
 
     @app.post("/api/structures")

@@ -121,7 +121,10 @@ input[type="search"] {
 .copy span { font-size: 0.8rem; color: var(--accent); padding: 0 4px; }
 
 .join { display: flex; flex-wrap: wrap; gap: 16px 32px; margin-bottom: 10px; }
-.join > div { display: grid; gap: 4px; justify-items: start; }
+.join > div { display: grid; gap: 6px; align-content: start; }
+.join dl { display: grid; grid-template-columns: auto auto; gap: 6px 10px; align-items: center; margin: 0; }
+.join dt { color: var(--muted); font-size: 0.9rem; }
+.join dd { margin: 0; }
 
 .plots { list-style: none; margin: 0; padding: 0; display: grid; }
 .plots li {

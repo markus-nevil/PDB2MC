@@ -176,6 +176,7 @@ def test_api(env, monkeypatch):
     client = TestClient(create_app(builder))
     config = client.get("/api/config").json()
     assert {m["name"] for m in config["modes"]} >= {"Skeleton", "Space Filling"} and "GFP" in config["presets"]
+    assert config["play_host"] == settings.PLAY_HOST and config["bedrock_port"] == 19132
     chosen = client.post("/api/structures", data={"preset": "Helix"}).json()
     with open(os.path.join(HERE, "..", "..", "UI", "presets", "ATP.pdb"), "rb") as f:
         uploaded = client.post("/api/structures", files={"file": ("atp.pdb", f)}).json()
