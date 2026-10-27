@@ -36,6 +36,8 @@ MAX_ATOMS = _env("PDB2MC_MAX_ATOMS", 150_000, int)
 MAX_SCALE = _env("PDB2MC_MAX_SCALE", 10.0, float)
 MAX_BLOCKS = _env("PDB2MC_MAX_BLOCKS", 1_500_000, int)
 BUILD_TIMEOUT = _env("PDB2MC_BUILD_TIMEOUT", 240, int)
+# Structures kept for reuse (see library.py)
+LIBRARY_MAX_MB = _env("PDB2MC_LIBRARY_MAX_MB", 5000, float)
 BUILDS_PER_HOUR = _env("PDB2MC_BUILDS_PER_HOUR", 4, int)
 UPLOADS_PER_HOUR = _env("PDB2MC_UPLOADS_PER_HOUR", 30, int)
 # Requests from these addresses (the cloudflared connector) carry the visitor's address in

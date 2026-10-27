@@ -1,9 +1,9 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
-  chooseStructure, Config, getConfig, getJob, getPlots, Job, Mode, Plot, startBuild, Structure,
+  chooseStructure, Config, getConfig, getJob, getLibrary, getPlots, Job, Mode, Plot, Saved, startBuild, Structure,
 } from "./api";
 
-type Source = "rcsb" | "upload" | "preset";
+type Source = "rcsb" | "upload" | "preset" | "saved";
 
 function timeLeft(expires: number) {
   const seconds = Math.max(0, expires - Date.now() / 1000);
@@ -37,6 +37,15 @@ function StructurePicker({ config, onChosen }: { config: Config; onChosen: (s: S
   const [pdbId, setPdbId] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [preset, setPreset] = useState("GFP");
+  const [saved, setSaved] = useState<Saved[]>([]);
+  const [savedId, setSavedId] = useState("");
+  const [query, setQuery] = useState("");
+
+  useEffect(() => {
+    if (source !== "saved") return;
+    const timer = setTimeout(() => getLibrary(query).then(setSaved).catch(() => setSaved([])), 250);
+    return () => clearTimeout(timer);
+  }, [source, query]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -46,6 +55,7 @@ function StructurePicker({ config, onChosen }: { config: Config; onChosen: (s: S
     if (source === "rcsb") form.append("pdb_id", pdbId.trim());
     else if (source === "upload" && file) form.append("file", file);
     else if (source === "preset") form.append("preset", preset);
+    else if (source === "saved") form.append("saved", savedId);
     setBusy(true);
     setError("");
     try {
@@ -58,12 +68,12 @@ function StructurePicker({ config, onChosen }: { config: Config; onChosen: (s: S
   }
 
   const ready = source === "rcsb" ? /^[0-9][A-Za-z0-9]{3}$/.test(pdbId.trim())
-    : source === "upload" ? file !== null : preset !== "";
+    : source === "upload" ? file !== null : source === "saved" ? savedId !== "" : preset !== "";
 
   return (
     <form onSubmit={submit} className="picker">
       <div className="tabs" role="tablist">
-        {([["rcsb", "PDB id"], ["upload", "Upload a file"], ["preset", "Example"]] as [Source, string][]).map(
+        {([["rcsb", "PDB id"], ["upload", "Upload a file"], ["saved", "Saved by visitors"], ["preset", "Example"]] as [Source, string][]).map(
           ([key, label]) => (
             <button key={key} type="button" role="tab" aria-selected={source === key}
               className={source === key ? "tab active" : "tab"} onClick={() => setSource(key)}>
@@ -84,6 +94,23 @@ function StructurePicker({ config, onChosen }: { config: Config; onChosen: (s: S
           <span>.pdb or .cif file, up to {config.limits.upload_mb} MB</span>
           <input type="file" accept=".pdb,.ent,.cif,.mmcif" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
         </label>
+      )}
+      {source === "saved" && (
+        <div className="field">
+          <span>Structures other visitors have built</span>
+          <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by name or PDB id" />
+          <ul className="saved" role="listbox" aria-label="Saved structures">
+            {saved.length === 0 && <li className="muted">Nothing saved yet{query ? " for this search" : ""}.</li>}
+            {saved.map((s) => (
+              <li key={s.id} role="option" aria-selected={s.id === savedId}
+                className={s.id === savedId ? "selected" : ""} onClick={() => setSavedId(s.id)} tabIndex={0}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSavedId(s.id); } }}>
+                <span className="title" title={s.title}>{s.title}</span>
+                <span className="muted">{s.source} · {s.atoms.toLocaleString()} atoms · built {s.builds}×</span>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
       {source === "preset" && (
         <label className="field">
@@ -173,7 +200,8 @@ function JobStatus({ job, config }: { job: Job; config: Config }) {
   const plot = job.plot;
   return (
     <div className="result">
-      <h3>Your model is on plot {plot.number}</h3>
+      <h3>{job.existing ? `This model is already on plot ${plot.number}` : `Your model is on plot ${plot.number}`}</h3>
+      {job.existing && <p>Someone built it the same way before you, so we sent you there and restarted its {config.limits.plot_hours}-hour timer.</p>}
       <ol>
         <li>Join <CopyText text={config.play_host} /> in Minecraft Java or Bedrock.</li>
         <li>Type <CopyText text={plot.command} /> to fly to it.</li>

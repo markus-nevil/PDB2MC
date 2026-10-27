@@ -2,7 +2,8 @@
 HTTP API of the PDB2MC web builder (served at build.pdb2mc.com), plus the built frontend.
 
   GET  /api/config            modes, options, presets, limits and addresses to show
-  POST /api/structures        choose a structure: multipart `file`, or form field `pdb_id` or `preset`
+  POST /api/structures        choose a structure: multipart `file`, or form field `pdb_id`, `preset` or `saved`
+  GET  /api/library?q=        structures built before, which visitors can pick again
   POST /api/builds            {token, mode, scale, options} -> build job
   GET  /api/builds/{id}       job status (and the plot when done)
   GET  /api/plots             models currently in the world
@@ -21,7 +22,7 @@ from pydantic import BaseModel, Field
 
 from PDB2MC import defaults
 
-from . import inputs, settings
+from . import inputs, library, settings
 from .jobs import MODE_OPTIONS, Builder
 from .rcon import Rcon
 from .store import PlotStore
@@ -106,7 +107,8 @@ def create_app(builder=None):
 
     @app.post("/api/structures")
     def choose_structure(request: Request, file: UploadFile | None = File(None),
-                         pdb_id: str | None = Form(None), preset: str | None = Form(None)):
+                         pdb_id: str | None = Form(None), preset: str | None = Form(None),
+                         saved: str | None = Form(None)):
         if not uploads.hit(client_address(request)):
             raise HTTPException(429, "Too many structures chosen; please wait a while.")
         try:
@@ -116,6 +118,8 @@ def create_app(builder=None):
                 summary = inputs.from_pdb_id(pdb_id)
             elif preset:
                 summary = inputs.from_preset(preset)
+            elif saved:
+                summary = inputs.from_library(saved)
             else:
                 raise inputs.InputError("Choose a file, a PDB id or a preset.")
         except inputs.InputError as e:
@@ -142,6 +146,10 @@ def create_app(builder=None):
         if status is None:
             raise HTTPException(404, "Unknown build.")
         return status
+
+    @app.get("/api/library")
+    def saved_structures(q: str = ""):
+        return library.entries(q[:100])
 
     @app.get("/api/plots")
     def plots():

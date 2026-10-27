@@ -239,3 +239,63 @@ def test_rcon_client():
     assert rcon.command("list") == "echo list"
     assert rcon.command("time set noon") == "echo time set noon"
     rcon.close()
+
+
+def test_identical_model_reuses_plot_and_restarts_timer(env):
+    builder, world, console = env
+    first = build_now(builder, inputs.from_preset("Helix")["token"], options={"by_chain": False})
+    assert first["status"] == "done" and not first["existing"]
+    stored = builder.store.plots()[1]
+    builder.store.add(1, dict(stored, expires=stored["expires"] - 3600))       # an hour has passed
+    # the same file (uploaded under another name), same style and scale, defaults left out
+    with open(os.path.join(HERE, "..", "..", "UI", "presets", "Helix.pdb"), "rb") as f:
+        again = inputs.from_upload("my-helix.pdb", f)
+    second = build_now(builder, again["token"], client="5.6.7.8")
+    assert second["status"] == "done" and second["existing"] and second["plot"]["number"] == 1
+    assert builder.store.plots()[1]["expires"] > stored["expires"] - 3600
+    assert sorted(builder.store.plots()) == [1]
+    assert len(world.model_files("m000002")) == 0                                # nothing was built
+    from pdb2mc_web import library
+    assert library.entries() == []                                               # examples are not kept
+    # another style is a different model
+    third = build_now(builder, again["token"], mode="Ribbon", client="9.9.9.9")
+    assert third["status"] == "done" and not third["existing"] and third["plot"]["number"] == 2
+    assert [e["source"] for e in library.entries()] == ["my-helix.pdb"]
+
+
+def test_built_structures_are_kept_and_can_be_picked(env):
+    from pdb2mc_web import library
+    builder, world, console = env
+    upload = os.path.join(HERE, "..", "..", "UI", "presets", "ATP.pdb")
+    with open(upload, "rb") as f:
+        chosen = inputs.from_upload("atp.pdb", f)
+    assert library.entries() == []                     # only structures that were built are kept
+    assert build_now(builder, chosen["token"])["status"] == "done"
+    saved = library.entries()
+    assert [e["source"] for e in saved] == ["atp.pdb"] and saved[0]["builds"] == 1
+    assert library.entries("atp")[0]["id"] == saved[0]["id"] and library.entries("nothing") == []
+    picked = inputs.from_library(saved[0]["id"])
+    assert picked["sha"] == chosen["sha"] and picked["atoms"] == chosen["atoms"]
+    with pytest.raises(inputs.InputError):
+        inputs.from_library("missing")
+
+
+def test_rcsb_id_in_library_is_not_downloaded_again(env, monkeypatch):
+    from pdb2mc_web import library
+    builder, world, console = env
+    summary = inputs.from_preset("GFP")
+    summary.update(source="1EMA", kind="rcsb")
+    library.add(summary, summary.get("path") or inputs.get(summary["token"])["path"])
+    monkeypatch.setattr(settings, "RCSB_DOWNLOAD", "http://127.0.0.1:9/{id}")    # would fail if used
+    assert inputs.from_pdb_id("1ema")["sha"] == summary["sha"]
+
+
+def test_library_drops_oldest_when_full(env, monkeypatch):
+    from pdb2mc_web import library
+    builder, world, console = env
+    first = inputs.from_preset("Helix")
+    library.add(first, inputs.get(first["token"])["path"])
+    second = inputs.from_preset("ATP")
+    monkeypatch.setattr(settings, "LIBRARY_MAX_MB", (os.path.getsize(inputs.get(second["token"])["path"]) + 1) / 2**20)
+    library.add(second, inputs.get(second["token"])["path"])
+    assert [e["source"] for e in library.entries()] == ["ATP"]

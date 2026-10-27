@@ -72,6 +72,19 @@ button.primary, a.button {
 button.primary:disabled { opacity: 0.5; cursor: default; }
 
 .chosen { margin: 14px 0 0; }
+input[type="search"] {
+  font: inherit; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px;
+  background: var(--bg); color: var(--text); width: 100%;
+}
+.saved {
+  list-style: none; margin: 0; padding: 0; max-height: 260px; overflow-y: auto;
+  border: 1px solid var(--line); border-radius: 8px;
+}
+.saved li { padding: 8px 10px; border-top: 1px solid var(--line); cursor: pointer; display: grid; }
+.saved li:first-child { border-top: 0; }
+.saved li.selected { background: var(--accent-soft); }
+.saved .title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.saved .muted { font-size: 0.85rem; }
 .muted { color: var(--muted); }
 .error { color: var(--error); }
 

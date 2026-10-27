@@ -15,7 +15,7 @@ import uuid
 
 from PDB2MC import defaults
 
-from . import inputs, settings
+from . import inputs, library, settings
 from .world import map_link, plot_center
 
 log = logging.getLogger(__name__)
@@ -42,6 +42,11 @@ def _build_child(mode, config, messages):
         messages.put(("error", f"{type(e).__name__}: {e}"))
 
 
+def model_fingerprint(sha, mode, scale, options):
+    """Identifies a model: the same structure file built the same way gives the same model."""
+    return f"{sha}|{mode}|{float(scale):.1f}|" + ",".join(f"{k}={int(v)}" for k, v in sorted(options.items()))
+
+
 def public_plot(number, plot):
     x, y, z = plot["origin"]
     return {"number": number, "title": plot["title"], "mode": plot["mode"], "scale": plot["scale"],
@@ -58,11 +63,12 @@ class Job:
         self.progress = 0
         self.message = "Waiting for earlier builds"
         self.plot = None
+        self.existing = False
         self.created = time.time()
 
     def public(self, position=None):
         return {"id": self.id, "status": self.status, "progress": self.progress, "message": self.message,
-                "position": position, "plot": self.plot}
+                "position": position, "plot": self.plot, "existing": self.existing}
 
 
 class Builder:
@@ -95,8 +101,12 @@ class Builder:
             raise inputs.InputError("Scale must be a number.")
         if not 1 <= scale <= summary["max_scale"]:
             raise inputs.InputError(f"Scale must be between 1 and {summary['max_scale']:g} for this structure.")
-        allowed = MODE_OPTIONS[mode]
-        options = {k: OPTIONS[k](v) for k, v in (options or {}).items() if k in allowed}
+        # Every option of the mode, with the mode's default for those not given, so identical requests
+        # get identical fingerprints
+        defaults_of_mode = defaults.default_config(mode)
+        options = options or {}
+        options = {k: OPTIONS[k](options.get(k, defaults_of_mode[k])) for k in MODE_OPTIONS[mode]}
+        scale = round(scale, 1)
         with self._lock:
             if any(j.client == client and j.status in ("queued", "building", "placing")
                    for j in self._jobs.values()):
@@ -198,6 +208,18 @@ class Builder:
             summary = inputs.get(job.token)
         except inputs.InputError as e:
             return self._fail(job, str(e))
+        fingerprint = model_fingerprint(summary["sha"], job.mode, job.scale, job.options)
+        found = self.store.find(fingerprint)
+        if found is not None:
+            # The same model is already in the world: send the visitor there and restart its timer
+            number, _ = found
+            plot = self.store.extend(number, time.time() + settings.PLOT_HOURS * 3600)
+            library.touch(summary["sha"])
+            with self._lock:
+                job.plot = public_plot(number, plot)
+                job.existing = True
+            return self._set(job, status="done", progress=100,
+                             message="This model is already in the world; its timer has been restarted")
         number = self.store.free_plot()
         if number is None:
             return self._fail(job, "Every plot is in use right now. Plots free up after "
@@ -227,6 +249,7 @@ class Builder:
         self._set(job, status="placing", message="Placing it in the world", progress=90)
         now = time.time()
         plot = {"name": name, "title": summary["title"], "mode": job.mode, "scale": job.scale,
+                "sha": summary["sha"], "fingerprint": fingerprint, "options": job.options,
                 "origin": list(origin), "blocks": blocks, "created": now,
                 "expires": now + settings.PLOT_HOURS * 3600}
         try:
@@ -243,6 +266,12 @@ class Builder:
                 # keep it registered as expired, so the clean-up retries
                 self.store.add(number, dict(plot, expires=0))
             return self._set(job, status="error", message=f"Placing the model failed: {e}")
+        try:
+            # Examples ship with PDB2MC, so only visitors' own structures are kept
+            if summary.get("kind") != "preset":
+                library.add(summary, source)
+        except OSError:
+            log.exception("keeping %s in the library failed", name)
         with self._lock:
             job.plot = public_plot(number, plot)
         self._set(job, status="done", message="Ready", progress=100)

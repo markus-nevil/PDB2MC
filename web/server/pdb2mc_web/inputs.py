@@ -2,6 +2,7 @@
 Structures chosen by visitors: an uploaded file, an RCSB PDB id or one of PDB2MC's presets. Each is
 saved under <state>/uploads/<token>.<ext> with a <token>.json summary, and builds refer to the token.
 """
+import hashlib
 import json
 import math
 import os
@@ -14,7 +15,7 @@ import httpx
 
 from PDB2MC import build, pdb_manipulation as pdbm, resources
 
-from . import settings
+from . import library, settings
 
 EXTENSIONS = (".pdb", ".ent", ".cif", ".mmcif")
 PDB_ID = re.compile(r"^[0-9][A-Za-z0-9]{3}$")
@@ -64,7 +65,7 @@ def _summarise(path, source):
             "max_scale": largest, "suggested_scale": min(largest, max(1.0, math.floor(largest / 2)))}
 
 
-def _store(path, ext, source):
+def _store(path, ext, source, kind):
     token = secrets.token_urlsafe(18)
     target = os.path.join(uploads_dir(), token + ext)
     shutil.move(path, target)
@@ -73,7 +74,9 @@ def _store(path, ext, source):
     except Exception:
         os.remove(target)
         raise
-    summary.update(token=token, ext=ext, created=time.time())
+    with open(target, "rb") as f:
+        sha = hashlib.file_digest(f, "sha256").hexdigest()
+    summary.update(token=token, ext=ext, created=time.time(), sha=sha, kind=kind)
     with open(os.path.join(uploads_dir(), token + ".json"), "w", encoding="utf-8") as f:
         json.dump(summary, f)
     return summary
@@ -94,7 +97,7 @@ def from_upload(filename, stream):
                 os.remove(tmp)
                 raise InputError(f"Files up to {settings.MAX_UPLOAD_MB:g} MB are accepted.")
             f.write(chunk)
-    return _store(tmp, ".pdb" if ext == ".ent" else ext, os.path.basename(filename))
+    return _store(tmp, ".pdb" if ext == ".ent" else ext, os.path.basename(filename), "upload")
 
 
 def from_pdb_id(pdb_id):
@@ -102,6 +105,9 @@ def from_pdb_id(pdb_id):
     if not PDB_ID.match(pdb_id):
         raise InputError("A PDB id is 4 characters, starting with a digit (e.g. 1EMA).")
     pdb_id = pdb_id.upper()
+    stored = library.find_source(pdb_id)
+    if stored is not None and os.path.exists(library.path_of(stored)):
+        return _copy_in(library.path_of(stored), stored["ext"], pdb_id, "rcsb")
     limit = int(settings.MAX_UPLOAD_MB * 4 * 1024 * 1024)   # mmCIF text is larger than the PDB format
     tmp = os.path.join(uploads_dir(), "incoming-" + secrets.token_hex(8) + ".cif")
     try:
@@ -125,15 +131,26 @@ def from_pdb_id(pdb_id):
         if os.path.exists(tmp):
             os.remove(tmp)
         raise InputError("Could not download from RCSB; try again later.") from e
-    return _store(tmp, ".cif", pdb_id)
+    return _store(tmp, ".cif", pdb_id, "rcsb")
+
+
+def _copy_in(path, ext, source, kind):
+    tmp = os.path.join(uploads_dir(), "incoming-" + secrets.token_hex(8) + ext)
+    shutil.copyfile(path, tmp)
+    return _store(tmp, ext, source, kind)
 
 
 def from_preset(name):
     if name not in presets():
         raise InputError("Unknown preset.")
-    tmp = os.path.join(uploads_dir(), "incoming-" + secrets.token_hex(8) + ".pdb")
-    shutil.copyfile(os.path.join(resources.presets_dir(), name + ".pdb"), tmp)
-    return _store(tmp, ".pdb", name)
+    return _copy_in(os.path.join(resources.presets_dir(), name + ".pdb"), ".pdb", name, "preset")
+
+
+def from_library(key):
+    entry = library.get(key or "")
+    if entry is None or not os.path.exists(library.path_of(entry)):
+        raise InputError("That saved structure is no longer available.")
+    return _copy_in(library.path_of(entry), entry["ext"], entry["source"], "saved")
 
 
 def get(token):

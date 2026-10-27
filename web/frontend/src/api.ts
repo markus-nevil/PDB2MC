@@ -36,6 +36,16 @@ export type Job = {
   message: string;
   position: number | null;
   plot: Plot | null;
+  existing: boolean;
+};
+export type Saved = {
+  id: string;
+  title: string;
+  source: string;
+  atoms: number;
+  chains: number;
+  builds: number;
+  last_built: number;
 };
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -56,6 +66,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export const getConfig = () => request<Config>("/api/config");
 export const getPlots = () => request<Plot[]>("/api/plots");
 export const getJob = (id: string) => request<Job>(`/api/builds/${id}`);
+export const getLibrary = (q: string) => request<Saved[]>(`/api/library?q=${encodeURIComponent(q)}`);
 
 export function chooseStructure(form: FormData) {
   return request<Structure>("/api/structures", { method: "POST", body: form });

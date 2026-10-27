@@ -9,6 +9,9 @@ example), choose a PDB2MC mode, and the model is built on a plot of a shared Min
   (`execute positioned <plot> run function protein:build_<name>` while the plot is force-loaded).
   Players reach a plot with `/trigger plot set <n>` (a small `plots` datapack written by the builder).
 - `frontend/` – React + Vite page, served by the API.
+- Structures that visitors build (uploads and RCSB downloads) are kept in `<state>/library`, stored once
+  per file content, and offered to later visitors ("Saved by visitors"). An identical model (same file,
+  mode, scale and options) is not built twice: the visitor is sent to its plot and its timer restarts.
 - `deploy/` – container entry point and a compose template.
 - `tests/` – `python -m pytest web/tests` (uses a fake Minecraft console).
 

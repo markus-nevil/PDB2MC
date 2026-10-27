@@ -50,6 +50,18 @@ class PlotStore:
             self._data["plots"].pop(str(number), None)
             self._save()
 
+    def find(self, fingerprint):
+        """(number, plot) of the plot holding an identical model, or None."""
+        return next(((n, p) for n, p in self.plots().items() if p.get("fingerprint") == fingerprint), None)
+
+    def extend(self, number, expires):
+        with self._lock:
+            plot = self._data["plots"].get(str(number))
+            if plot is not None:
+                plot["expires"] = max(plot["expires"], expires)
+                self._save()
+                return dict(plot)
+
     def expired(self, now=None):
         now = time.time() if now is None else now
         return {n: p for n, p in self.plots().items() if p["expires"] <= now}
