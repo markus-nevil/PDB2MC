@@ -46,6 +46,8 @@ services:
       FORCE_GAMEMODE: "true"
       DIFFICULTY: peaceful
       LEVEL_TYPE: FLAT
+      # one layer of white concrete at y = -64 (players stand at -63, PDB2MC_GROUND_Y)
+      GENERATOR_SETTINGS: '{"layers":[{"block":"minecraft:white_concrete","height":1}],"biome":"minecraft:plains"}'
       GENERATE_STRUCTURES: "false"
       SPAWN_ANIMALS: "false"
       SPAWN_MONSTERS: "false"

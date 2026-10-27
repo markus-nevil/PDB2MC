@@ -26,8 +26,10 @@ PLOT_PITCH = _env("PDB2MC_PLOT_PITCH", 320, int)
 PLOTS_PER_ROW = _env("PDB2MC_PLOTS_PER_ROW", 8, int)
 MAX_PLOTS = _env("PDB2MC_MAX_PLOTS", 40, int)
 PLOT_HOURS = _env("PDB2MC_PLOT_HOURS", 48, float)
-# Superflat ground: players stand at GROUND_Y; blocks may go up to TOP_Y
-GROUND_Y = _env("PDB2MC_GROUND_Y", -60, int)
+# Superflat ground: a single layer of GROUND_BLOCK at the bottom of the world (y = -64), so players stand
+# at GROUND_Y; blocks may go up to TOP_Y. Must match the server's generator-settings.
+GROUND_Y = _env("PDB2MC_GROUND_Y", -63, int)
+GROUND_BLOCK = _env("PDB2MC_GROUND_BLOCK", "white_concrete")
 TOP_Y = _env("PDB2MC_TOP_Y", 319, int)
 
 # Limits for public use

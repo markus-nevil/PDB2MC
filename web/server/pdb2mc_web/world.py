@@ -193,7 +193,7 @@ class World:
             self._run_function(f"clear_{name}", origin)
             # build_ functions put an obsidian marker under the origin; clear_ leaves it
             x, y, z = origin
-            ground = "grass_block" if y - 1 == settings.GROUND_Y - 1 else "air"
+            ground = settings.GROUND_BLOCK if y - 1 == settings.GROUND_Y - 1 else "air"
             self.run(f"setblock {x} {y - 1} {z} minecraft:{ground}")
 
         self._with_plot_loaded(number, clear_blocks)
