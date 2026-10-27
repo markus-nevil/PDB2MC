@@ -20,11 +20,15 @@ from . import settings
 
 log = logging.getLogger(__name__)
 
-# Gamerules for a calm display world (a rule the running version doesn't know is only logged)
-GAMERULES = {"doDaylightCycle": "false", "doWeatherCycle": "false", "doMobSpawning": "false",
-             "doFireTick": "false", "mobGriefing": "false", "doInsomnia": "false",
-             "doPatrolSpawning": "false", "doTraderSpawning": "false", "announceAdvancements": "false",
-             "spawnRadius": "0"}
+# Gamerules for a calm display world: (names, value). Minecraft 26.x renamed the rules to snake_case
+# (and turned doFireTick into a radius); the first name the server accepts is used
+GAMERULES = [(("advance_time", "doDaylightCycle"), "false"), (("advance_weather", "doWeatherCycle"), "false"),
+             (("spawn_mobs", "doMobSpawning"), "false"), (("mob_griefing", "mobGriefing"), "false"),
+             (("spawn_phantoms", "doInsomnia"), "false"), (("spawn_patrols", "doPatrolSpawning"), "false"),
+             (("spawn_wandering_traders", "doTraderSpawning"), "false"),
+             (("show_advancement_messages", "announceAdvancements"), "false"),
+             (("respawn_radius", "spawnRadius"), "0"),
+             (("fire_spread_radius_around_player",), "0"), (("doFireTick",), "false")]
 
 
 def plot_center(number):
@@ -113,10 +117,13 @@ class World:
         self.run('datapack enable "file/mcPDB"')
         self.reload()
         self.run("function plots:load")
-        for rule, value in GAMERULES.items():
-            output = self.run(f"gamerule {rule} {value}")
-            if "unknown" in output.lower() or "incorrect" in output.lower():
-                log.warning("gamerule %s: %s", rule, output)
+        for names, value in GAMERULES:
+            for rule in names:
+                output = self.run(f"gamerule {rule} {value}").lower()
+                if "unknown" not in output and "incorrect" not in output:
+                    break
+            else:
+                log.info("gamerule %s not known to this server version", "/".join(names))
         self.run("time set noon")
         self.run("weather clear")
         self.run(f"setworldspawn 0 {settings.GROUND_Y} 0")

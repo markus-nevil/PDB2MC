@@ -72,7 +72,7 @@ def test_setup_writes_plot_pack_and_rules(env):
         assert os.path.exists(os.path.join(pack, "minecraft", "tags", folder, "tick.json"))
     assert "minecraft:reload" in console.commands
     assert "reload" not in console.commands            # Paper's /reload would reload plugins
-    assert any(c.startswith("gamerule doMobSpawning") for c in console.commands)
+    assert any(c.startswith("gamerule spawn_mobs") for c in console.commands)
 
 
 def test_preset_build_is_placed_and_expires(env):
