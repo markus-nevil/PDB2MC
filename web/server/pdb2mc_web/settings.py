@@ -20,10 +20,13 @@ RCON_HOST = _env("RCON_HOST", "minecraft")
 RCON_PORT = _env("RCON_PORT", 25575, int)
 RCON_PASSWORD = _env("RCON_PASSWORD", "")
 
-# Plots: square areas of PLOT_SIZE blocks, PLOT_PITCH apart, PLOTS_PER_ROW to a row, away from spawn
+# Plots: a grid of square cells of PLOT_SIZE blocks, PLOT_PITCH apart, PLOTS_PER_ROW cells to a row and
+# PLOT_ROWS rows, away from spawn. A model takes up to MAX_PLOT_CELLS x MAX_PLOT_CELLS cells (see world.py).
 PLOT_SIZE = _env("PDB2MC_PLOT_SIZE", 256, int)
 PLOT_PITCH = _env("PDB2MC_PLOT_PITCH", 320, int)
 PLOTS_PER_ROW = _env("PDB2MC_PLOTS_PER_ROW", 8, int)
+PLOT_ROWS = _env("PDB2MC_PLOT_ROWS", 12, int)
+MAX_PLOT_CELLS = _env("PDB2MC_MAX_PLOT_CELLS", 4, int)
 MAX_PLOTS = _env("PDB2MC_MAX_PLOTS", 40, int)
 PLOT_HOURS = _env("PDB2MC_PLOT_HOURS", 48, float)
 # Superflat ground: a single layer of GROUND_BLOCK at the bottom of the world (y = -64), so players stand
@@ -36,8 +39,8 @@ TOP_Y = _env("PDB2MC_TOP_Y", 319, int)
 MAX_UPLOAD_MB = _env("PDB2MC_MAX_UPLOAD_MB", 20, float)
 MAX_ATOMS = _env("PDB2MC_MAX_ATOMS", 150_000, int)
 MAX_SCALE = _env("PDB2MC_MAX_SCALE", 10.0, float)
-MAX_BLOCKS = _env("PDB2MC_MAX_BLOCKS", 1_500_000, int)
-BUILD_TIMEOUT = _env("PDB2MC_BUILD_TIMEOUT", 240, int)
+MAX_BLOCKS = _env("PDB2MC_MAX_BLOCKS", 4_000_000, int)
+BUILD_TIMEOUT = _env("PDB2MC_BUILD_TIMEOUT", 600, int)
 # Structures kept for reuse (see library.py)
 LIBRARY_MAX_MB = _env("PDB2MC_LIBRARY_MAX_MB", 5000, float)
 BUILDS_PER_HOUR = _env("PDB2MC_BUILDS_PER_HOUR", 4, int)

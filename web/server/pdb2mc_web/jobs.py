@@ -16,7 +16,7 @@ import uuid
 from PDB2MC import defaults
 
 from . import inputs, library, settings
-from .world import map_link, plot_center
+from .world import cells_bounds, cells_needed, center, find_cells, map_link, plot_bounds
 
 log = logging.getLogger(__name__)
 
@@ -48,11 +48,11 @@ def model_fingerprint(sha, mode, scale, options):
 
 
 def public_plot(number, plot):
-    x, y, z = plot["origin"]
+    bounds = plot_bounds(number, plot)
     return {"number": number, "title": plot["title"], "mode": plot["mode"], "scale": plot["scale"],
             "created": plot["created"], "expires": plot["expires"], "blocks": plot["blocks"],
-            "center": list(plot_center(number)), "command": f"/trigger plot set {number}",
-            "map_url": map_link(number)}
+            "center": list(center(bounds)), "size": bounds[2] - bounds[0] + 1,
+            "command": f"/trigger plot set {number}", "map_url": map_link(bounds)}
 
 
 class Job:
@@ -163,7 +163,7 @@ class Builder:
         changed = False
         for number, plot in self.store.expired().items():
             try:
-                self.world.clear(number, plot["name"], plot["origin"])
+                self.world.clear(plot_bounds(number, plot), plot["name"], plot["origin"])
                 self._delete_input(plot["name"])
                 self.store.remove(number)
                 changed = True
@@ -242,25 +242,35 @@ class Builder:
             return self._fail(job, f"This model has {blocks:,} blocks; the limit is {settings.MAX_BLOCKS:,}. "
                                    "Try a smaller scale or the mesh option.", name)
         width = max(high[0] - low[0], high[2] - low[2]) + 1
-        origin = self.world.origin_for(number, low, high)
-        if width > settings.PLOT_SIZE or origin[1] + high[1] > settings.TOP_Y:
-            return self._fail(job, "At this scale the model is larger than a plot; try a smaller scale.", name)
+        size = cells_needed(width)
+        if size > settings.MAX_PLOT_CELLS or settings.GROUND_Y - low[1] + high[1] > settings.TOP_Y:
+            return self._fail(job, "At this scale the model is larger than the largest plot; try a smaller scale.",
+                              name)
+        # the plot is sized to the model: the smallest free block of size x size cells
+        number = self.store.free_plot()
+        cells = find_cells(self.store.plots(), size)
+        if number is None or cells is None:
+            return self._fail(job, "There is no room for a model this large right now. Plots free up after "
+                                   f"{settings.PLOT_HOURS:g} hours; please try again later or use a smaller scale.",
+                              name)
+        bounds = cells_bounds(*cells, size)
+        origin = self.world.origin_for(bounds, low, high)
 
         self._set(job, status="placing", message="Placing it in the world", progress=90)
         now = time.time()
         plot = {"name": name, "title": summary["title"], "mode": job.mode, "scale": job.scale,
                 "sha": summary["sha"], "fingerprint": fingerprint, "options": job.options,
-                "origin": list(origin), "blocks": blocks, "created": now,
+                "origin": list(origin), "cells": [*cells, size], "blocks": blocks, "created": now,
                 "expires": now + settings.PLOT_HOURS * 3600}
         try:
             self.store.add(number, plot)
             self.world.write_plot_pack(self.store.plots())
-            self.world.place(number, name, origin)
+            self.world.place(bounds, name, origin)
         except Exception as e:
             log.exception("placing %s on plot %s failed", name, number)
             self.store.remove(number)
             try:
-                self.world.clear(number, name, origin)
+                self.world.clear(bounds, name, origin)
             except Exception:
                 log.exception("removing the partly placed %s failed", name)
                 # keep it registered as expired, so the clean-up retries
