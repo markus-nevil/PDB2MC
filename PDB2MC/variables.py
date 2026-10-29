@@ -117,4 +117,37 @@ charge = {"ARG": "emerald_block",
           "VAL": "pink_concrete",
           "ILE": "red_mushroom_block"}
 
+#color scheme based on amino acid volume (Å^3)
+size = {
+    # tiny (<100 Å^3)
+    "GLY": "white_wool",
+    "ALA": "white_wool",
+    "SER": "white_wool",
+
+    # small (100-130)
+    "CYS": "light_blue_wool",
+    "ASP": "light_blue_wool",
+    "PRO": "light_blue_wool",
+    "ASN": "light_blue_wool",
+    "THR": "light_blue_wool",
+
+    # medium (130-160)
+    "GLU": "cyan_wool",
+    "VAL": "cyan_wool",
+    "GLN": "cyan_wool",
+    "HIS": "cyan_wool",
+
+    # large (160-180)
+    "MET": "blue_wool",
+    "ILE": "blue_wool",
+    "LEU": "blue_wool",
+    "LYS": "blue_wool",
+    "ARG": "blue_wool",
+
+    # very large (>180)
+    "PHE": "purple_wool",
+    "TYR": "purple_wool",
+    "TRP": "purple_wool",
+}
+
 

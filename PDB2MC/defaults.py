@@ -63,6 +63,37 @@ AMINO_ACID_STYLES = {
         "PRO": "cherry_planks", "SER": "snow_block", "THR": "snow_block", "TRP": "blue_concrete",
         "TYR": "blue_ice", "VAL": "snow_block",
     },
+"Size": {
+    # tiny (<100 Å^3)
+    "GLY": "white_wool",
+    "ALA": "white_wool",
+    "SER": "white_wool",
+
+    # small (100-130)
+    "CYS": "light_blue_wool",
+    "ASP": "light_blue_wool",
+    "PRO": "light_blue_wool",
+    "ASN": "light_blue_wool",
+    "THR": "light_blue_wool",
+
+    # medium (130-160)
+    "GLU": "cyan_wool",
+    "VAL": "cyan_wool",
+    "GLN": "cyan_wool",
+    "HIS": "cyan_wool",
+
+    # large (160-180)
+    "MET": "blue_wool",
+    "ILE": "blue_wool",
+    "LEU": "blue_wool",
+    "LYS": "blue_wool",
+    "ARG": "blue_wool",
+
+    # very large (>180)
+    "PHE": "purple_wool",
+    "TYR": "purple_wool",
+    "TRP": "purple_wool",
+},
 }
 
 _COMMON = {
