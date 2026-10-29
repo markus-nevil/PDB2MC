@@ -18,7 +18,8 @@ from pdb2mc_web.app import create_app  # noqa: E402
 from pdb2mc_web.jobs import Builder  # noqa: E402
 from pdb2mc_web.rcon import Rcon  # noqa: E402
 from pdb2mc_web.store import PlotStore  # noqa: E402
-from pdb2mc_web.world import World, plot_bounds, plot_center  # noqa: E402
+from pdb2mc_web.world import (World, cells_bounds, cells_needed, center, chunk_batches,  # noqa: E402
+                               find_cells, max_plot_width, plot_bounds)
 
 
 class FakeConsole:
@@ -57,11 +58,59 @@ def build_now(builder, token, mode="Skeleton", scale=1.0, options=None, client="
 
 
 def test_plot_layout():
-    x1, z1, x2, z2 = plot_bounds(1)
+    x1, z1, x2, z2 = plot_bounds(1, {})
     assert x2 - x1 + 1 == settings.PLOT_SIZE == z2 - z1 + 1
-    assert x1 % 16 == 0 and z1 % 16 == 0      # whole chunks, so one forceload covers a plot
-    assert plot_center(2)[0] - plot_center(1)[0] == settings.PLOT_PITCH
-    assert plot_center(settings.PLOTS_PER_ROW + 1) == (settings.PLOT_PITCH, settings.PLOT_PITCH)
+    assert x1 % 16 == 0 and z1 % 16 == 0      # whole chunks
+    # plots made before plots could grow keep their place
+    assert center(plot_bounds(1, {})) == (settings.PLOT_PITCH, 0)
+    assert center(plot_bounds(settings.PLOTS_PER_ROW + 1, {})) == (settings.PLOT_PITCH, settings.PLOT_PITCH)
+    assert plot_bounds(3, {"cells": [2, 0, 1]}) == plot_bounds(3, {})
+
+
+def test_plots_grow_with_the_model():
+    assert cells_needed(1) == cells_needed(settings.PLOT_SIZE) == 1
+    assert cells_needed(settings.PLOT_SIZE + 1) == 2
+    assert cells_needed(max_plot_width()) == settings.MAX_PLOT_CELLS
+    x1, z1, x2, z2 = cells_bounds(1, 2, 3)
+    assert x2 - x1 + 1 == 3 * settings.PLOT_PITCH - (settings.PLOT_PITCH - settings.PLOT_SIZE)
+    # a 2 x 2 plot skips cells that are taken
+    plots = {1: {"cells": [0, 0, 1]}, 2: {"cells": [3, 0, 1]}}
+    assert find_cells(plots, 1) == (1, 0)
+    assert find_cells(plots, 2) == (1, 0)
+    assert find_cells({1: {"cells": [1, 0, 1]}}, 2) == (2, 0)
+    full_row = {1: {"cells": [0, 0, 4]}, 2: {"cells": [4, 0, 4]}}
+    assert find_cells(full_row, 4) == (0, 4)
+    assert find_cells(full_row, settings.PLOT_ROWS) is None                   # larger than the grid
+    # forceload covers at most 16 x 16 chunks per command; the batches cover the plot exactly
+    bounds = cells_bounds(0, 0, 4)
+    batches = list(chunk_batches(bounds))
+    assert len(batches) > 1
+    assert all(((b[2] - b[0] + 1) // 16) * ((b[3] - b[1] + 1) // 16) <= 256 for b in batches)
+    assert sum((b[2] - b[0] + 1) * (b[3] - b[1] + 1) for b in batches) == (
+        (bounds[2] - bounds[0] + 1) * (bounds[3] - bounds[1] + 1))
+
+
+def test_scale_limit_comes_from_height_for_large_models():
+    from PDB2MC import pdb_manipulation as pdbm
+    structure = pdbm.load_structure(os.path.join(HERE, "..", "..", "UI", "presets", "Nucleosome.pdb"))
+    # the Nucleosome is limited by the world height (about 4x), not by a single plot cell (about 2x)
+    assert inputs.max_scale(structure) >= 4.0
+
+
+def test_large_model_gets_a_larger_plot(env):
+    builder, world, console = env
+    build_now(builder, inputs.from_preset("ATP")["token"], client="a")          # takes cell (0, 0)
+    status = build_now(builder, inputs.from_preset("Hemoglobin")["token"], scale=5.0, client="b")
+    assert status["status"] == "done", status["message"]
+    plot = builder.store.plots()[status["plot"]["number"]]
+    assert plot["cells"][2] >= 2 and plot["cells"][:2] == [1, 0]
+    assert status["plot"]["size"] == plot_bounds(0, plot)[2] - plot_bounds(0, plot)[0] + 1
+    bounds = plot_bounds(0, plot)
+    low, high, _ = world.model_extent(plot["name"])
+    x, y, z = plot["origin"]
+    assert bounds[0] <= x + low[0] and x + high[0] <= bounds[2] and bounds[1] <= z + low[2] and z + high[2] <= bounds[3]
+    forceloads = [c for c in console.commands if c.startswith("forceload add")]
+    assert len(forceloads) >= 2                                               # loaded in batches
 
 
 def test_setup_writes_plot_pack_and_rules(env):
@@ -88,7 +137,7 @@ def test_preset_build_is_placed_and_expires(env):
     x, y, z = stored["origin"]
     assert f"execute positioned {x} {y} {z} run function protein:build_m000001" in console.commands
     # loaded before placing, released afterwards
-    x1, z1, x2, z2 = plot_bounds(1)
+    x1, z1, x2, z2 = plot_bounds(1, stored)
     assert console.commands.index(f"forceload add {x1} {z1} {x2} {z2}") < console.commands.index(
         f"execute positioned {x} {y} {z} run function protein:build_m000001") < console.commands.index(
         f"forceload remove {x1} {z1} {x2} {z2}")
