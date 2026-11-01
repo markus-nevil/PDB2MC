@@ -678,7 +678,7 @@ class ModeWindow(QtWidgets.QMainWindow):
             number = triggers.model_number(self.user_minecraft_save, lower)
             self.show_information_box(
                 title_text="Model generated",
-                text="Finished!\n" + triggers.instructions(lower, number),
+                text="<b>Finished!</b><br>\n\n" + triggers.instructions(lower, number),
                 icon_path=icon_path("icon_good.png"))
         else:
             self.show_information_box(

@@ -24,8 +24,7 @@ Everything is generated into the mcPDB datapack, in the pdb2mc function namespac
 kept in pdb2mc_models.json in the datapack, so a model keeps its number when it is rebuilt.
 
 Remembering and deleting use function macros, so they need Minecraft 1.20.2 or newer. On older versions those
-functions simply don't load: /function protein:build_<name> and clear_<name> then build and clear on the spot,
-as they always did.
+functions simply don't load: /function protein:build_<name> and clear_<name> then build and clear on the spot marked by an obsidian block.
 """
 import json
 import os
@@ -461,9 +460,14 @@ def install_model(mc_dir, name, mode=None, scale=None):
 
 def instructions(name, number=None):
     """The in-game commands of a model, for showing to the user."""
-    number_text = f"/trigger build set {number}  or  " if number is not None else ""
-    return (f"Remember to use /reload, then build it with:\n"
-            f"/function protein:build_{name}\n"
-            f"{number_text}/trigger build_{name}\n"
-            f"List your models with /trigger models\n"
-            f"Delete it from anywhere with /trigger delete_{name}")
+    number_text = f"/trigger build set {number}" if number is not None else ""
+
+    body = (f"<b>INSTRUCTIONS for {name}:</b><br>\n"
+            f"First reload the world with /reload, then build it with:<br>\n"
+            f"\t/function protein:build_{name} (works in all Minecraft versions)<br><br>\n"
+            f"<b>or use Trigger functions:</b><br>\n"
+            f"\t/trigger build_{name} or {number_text}<br>\n"
+            f"\tList your models with /trigger models<br>\n"
+            f"\tDelete it from anywhere with /trigger delete_{name}<br>\n"
+            f"\tTeleport to it with /trigger plot_{name}<br>\n")
+    return f"<div style='text-align:left;'>{body}</div>"
