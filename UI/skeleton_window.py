@@ -9,19 +9,17 @@ class SkeletonWindow(ModeWindow):
     CHAIN_CHECK = "colorByChainCheck"
     OPTION_COLUMNS = [[
         Color("backboneColorBox", "Select backbone color:", "gray_concrete"),
-        Check("showBackboneCheck", "Show backbone", True, "Show the N-C-C backbone of the main models."),
-        Check("colorByChainCheck", "Color backbone by chain", False,
-              "Color the backbones of the main models by the molecule number."),
-        Spin("backboneScaleSpinBox", "Backbone scale:", 1.0, "Scale the width of the backbone by this factor."),
-        Spin("pScaleSpinBox", "Protein scale:", 1.0, "Scale the entire model by this factor."),
+        Check("showBackboneCheck", "Show backbone", True),
+        Check("colorByChainCheck", "Color backbone by chain", False),
+        Spin("backboneScaleSpinBox", "Backbone scale:", 1.0),
+        Spin("pScaleSpinBox", "Protein scale:", 1.0),
         Gap(8),
         Color("sidechainColorBox", "Select sidechain color:", "gray_concrete"),
-        Check("showSidechainCheck", "Show sidechain", True, "Show amino acid R-groups"),
+        Check("showSidechainCheck", "Show sidechain", True),
         Gap(8),
         Color("otherColorBox", "Select other color:", "pink_concrete"),
-        Check("otherMoleculeCheck", "Show other molecules", True,
-              "Check to show other non-protein, DNA, or RNA molecules."),
-        Spin("aScaleSpinBox", "Atom scale:", 1.5, "Change the diameter (rounded up) of each atom."),
+        Check("otherMoleculeCheck", "Show other molecules", True),
+        Spin("aScaleSpinBox", "Atom scale:", 1.5),
     ]]
 
     def refresh_enabled(self, *_):

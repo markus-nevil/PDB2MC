@@ -32,11 +32,14 @@ DEFAULT_VDW_RADIUS = 1.80
 # have no holes
 POINT_DENSITY = 4.0
 MIN_POINTS = 60
-# Test points handled at once (memory: ~50 bytes each)
-CHUNK_POINTS = 2_000_000
+# Test points handled at once (memory: ~50 bytes each); progress is reported after each batch
+CHUNK_POINTS = 250_000
+MIN_BATCHES = 25
 # Share of surface blocks kept for "mesh-style" models
 MESH_KEEP = 0.10
 MESH_SEED = 0
+# Share of the build's progress for each step; finding the surface takes far longer than anything else
+WORK = {"surface": 91, "skeleton": 1, "hetatm": 1, "write": 7}
 
 _FACES = [(1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1)]
 
@@ -53,10 +56,11 @@ def sphere_points(n):
     return np.column_stack([np.cos(theta) * np.sin(phi), np.sin(theta) * np.sin(phi), np.cos(phi)])
 
 
-def accessible_points(centres, radii):
+def accessible_points(centres, radii, progress=None):
     """
     Shrake-Rupley: test points on a sphere of radius radii[i] around each centre, kept when they are
     not inside any other sphere. Returns (points (m, 3), index of the sphere each point is on).
+    progress, if given, gets the fraction done (0-1).
     """
     centres = np.asarray(centres, dtype=float)
     radii = np.asarray(radii, dtype=float)
@@ -70,7 +74,9 @@ def accessible_points(centres, radii):
     values, sizes = np.unique(radii, return_counts=True)
     trees = [(r, cKDTree(centres[radii == r])) for r in values[np.argsort(-sizes)]]
     points, owners = [], []
-    for chunk in np.array_split(np.arange(len(centres)), max(1, int(counts.sum() // CHUNK_POINTS))):
+    batches = min(len(centres), max(MIN_BATCHES, int(counts.sum() // CHUNK_POINTS)))
+    chunks = np.array_split(np.arange(len(centres)), batches)
+    for number, chunk in enumerate(chunks, start=1):
         test, owner = [], []
         for n in np.unique(counts[chunk]):
             atoms = chunk[counts[chunk] == n]
@@ -84,6 +90,8 @@ def accessible_points(centres, radii):
             covered[open_points] = np.isfinite(distance)
         points.append(test[~covered])
         owners.append(owner[~covered])
+        if progress is not None:
+            progress(number / len(chunks))
     return np.concatenate(points), np.concatenate(owners)
 
 
@@ -103,19 +111,27 @@ def outer_voxels(coords):
     return touches
 
 
-def sas_surface(atoms, scale):
+def sas_surface(atoms, scale, probe_radius=SASA_radius, progress=None):
     """
     Solvent accessible surface blocks of `atoms` (with unrounded Xf/Yf/Zf block coordinates and
-    'element'). Returns (coords (m, 3) int, index into atoms of the atom each block belongs to).
+    'element'), for a probe ball of probe_radius Angstrom. Returns (coords (m, 3) int, index into atoms
+    of the atom each block belongs to). progress, if given, gets the fraction done (0-1).
     """
+    report = progress or (lambda fraction: None)
     centres = atoms[['Xf', 'Yf', 'Zf']].to_numpy(dtype=float)
-    radii = (vdw_radii(atoms['element']) + SASA_radius) * scale
-    points, owners = accessible_points(centres, radii)
+    radii = (vdw_radii(atoms['element']) + probe_radius) * scale
+    points, owners = accessible_points(centres, radii, progress=lambda fraction: report(0.92 * fraction))
     if not len(points):
         return np.zeros((0, 3), dtype=int), np.zeros(0, dtype=int)
     voxels = np.rint(points).astype(int)
-    coords, first = np.unique(voxels, axis=0, return_index=True)
+    # One number per voxel, in x, y, z order: the same result as np.unique(axis=0), several times faster
+    low = voxels.min(axis=0)
+    span = voxels.max(axis=0) - low + 1
+    keys = ((voxels[:, 0] - low[0]) * span[1] + voxels[:, 1] - low[1]) * span[2] + voxels[:, 2] - low[2]
+    _, first = np.unique(keys, return_index=True)
+    coords = voxels[first]
     owners = owners[first]
+    report(0.95)
     keep = outer_voxels(coords)
     return coords[keep], owners[keep]
 
@@ -141,12 +157,13 @@ def build(builder):
     polymer = df[df['polymer']]
     het = df[(df['row'] == 'HETATM') & ~df['polymer']]
     by_chain = config["by_chain"]
-    builder.report(5)
+    builder.plan(WORK)
 
     parts = []
+    within = builder.step("surface", "Finding the surface of the molecule...", writes=False)
     if not polymer.empty:
         polymer = polymer.reset_index(drop=True)
-        coords, owner = sas_surface(polymer, scale)
+        coords, owner = sas_surface(polymer, scale, config.get('sasa_radius', SASA_radius), progress=within)
         if by_chain:
             labels = polymer['chain'].map(lambda c: str(builder.numbers.get(c, 1))).to_numpy(dtype=object)
         else:
@@ -158,18 +175,18 @@ def build(builder):
         if config.get('mesh'):
             surface = mesh_sample(surface)
         parts.append((surface, "surface", polymer))
-        builder.report(50)
 
         # Inner skeleton in the darker chain colours ('3b')
+        builder.step("skeleton", "Drawing the inner skeleton...", writes=False)
         branch_config = {**config, "by_chain": True}
         skeleton = pd.concat([backbone_lines(polymer, True, builder.numbers),
                               sidechain_blocks(polymer, branch_config, builder.numbers)], ignore_index=True)
         if not skeleton.empty:
             skeleton['atom'] = skeleton['atom'].astype(str) + 'b'
             parts.append((skeleton, "branch", polymer))
-    builder.report(65)
 
     if config["show_hetatm"] and not het.empty:
+        builder.step("hetatm", "Placing the other molecules...", writes=False)
         radius = max(round(scale - 1), 0)
         spheres = pdbm.add_sphere_coordinates(pdbm.rasterized_sphere(radius), pdbm.sphere_center(radius),
                                               pdbm.element_atom_names(het.reset_index(drop=True)),
@@ -179,12 +196,14 @@ def build(builder):
         if not bonds.empty:
             bonds['block'] = 'gray_concrete'
             parts.append((bonds, "hetatm_bonds", df))
-    builder.report(75)
 
     # The surface reaches below the lowest atom; lift every part by the same amount so the model
     # starts at the placement height and the parts stay aligned
     lowest = min((blocks['Y'].min() for blocks, _, _ in parts if not blocks.empty), default=0)
+    builder.step("write", writes=False)
+    builder.plan({suffix: len(blocks) for blocks, suffix, _ in parts})
     for blocks, suffix, atoms in parts:
+        builder.step(suffix, "Writing the model...", compute=0.05)
         builder.write(blocks.assign(Y=blocks['Y'] - lowest), suffix, atoms=atoms.assign(Y=atoms['Y'] - lowest))
     builder.report(100)
 

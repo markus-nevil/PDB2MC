@@ -10,13 +10,14 @@ ModelBuilder.write() also applies the user's residue modifications ("Modify Resi
 colour list to every part, so each mode gets them without extra code.
 """
 import re
+import threading
 from collections import deque
 
 import numpy as np
 import pandas as pd
 from scipy.spatial import cKDTree
 
-from PDB2MC import minecraft_functions as mcf, pdb_manipulation as pdbm, variables
+from PDB2MC import minecraft_functions as mcf, pdb_manipulation as pdbm, triggers, variables
 
 # Atoms joined into the backbone line: protein N-CA-C and the nucleic acid sugar-phosphate chain
 BACKBONE_ATOMS = ['C', 'N', 'CA', 'P', "O5'", "C5'", "C4'", "C3'", "O3'"]
@@ -27,6 +28,44 @@ NOT_SIDECHAIN_ATOMS = ['N', 'P', "O5'", "C5'", "O3'"]
 DEFAULT_CHAIN_BLOCKS = [variables.chain_blocks[str(i)] for i in range(1, 11)]
 
 EMPTY_BLOCKS = pd.DataFrame(columns=['X', 'Y', 'Z', 'atom'])
+
+# Share of a build's 0-100 progress for each stage around the mode's own work
+PROGRESS_READ = 2
+PROGRESS_CLEAN = 3
+PROGRESS_COORDINATES = 8
+PROGRESS_MODE_END = 98
+# Share of a step spent working out its blocks; the rest is writing them to disk
+STEP_COMPUTE_SHARE = 0.25
+
+
+class Progress:
+    """
+    Progress of one build: a percentage that only rises, sent on when its whole number changes, and a line
+    saying what is happening. Structure files are written in parallel, so this may be called from any thread.
+    """
+
+    def __init__(self, on_progress=None, on_status=None):
+        self._on_progress = on_progress or (lambda value: None)
+        self._on_status = on_status or (lambda text: None)
+        self._value = -1
+        self._lock = threading.Lock()
+
+    def update(self, value, status=None):
+        with self._lock:
+            if status is not None:
+                self._on_status(status)
+            value = int(max(0, min(100, value)))
+            if value > self._value:
+                self._value = value
+                self._on_progress(value)
+
+    def status(self, text):
+        with self._lock:
+            self._on_status(text)
+
+    def span(self, start, end):
+        """A callback for a part of the work: its 0-100 maps onto start..end of this progress."""
+        return lambda value: self.update(start + (end - start) * value / 100)
 
 
 def prepare_coordinates(structure, scale):
@@ -308,18 +347,58 @@ def safe_name(text):
     return re.sub(r"[^a-z0-9_.-]", "_", str(text).lower())
 
 
+def custom_model_name(text):
+    """
+    A name typed by the user as a valid model name: lowercase letters, numbers, '.' and '-', "" if nothing is
+    left. '_' is not kept because it separates a model's name from its parts: files of a model called
+    "gfp_red" would count as parts of "gfp", and rebuilding "gfp" would delete them.
+    """
+    return re.sub(r"[^a-z0-9.-]+", "-", str(text).strip().lower()).strip(".-")
+
+
+def model_name(config_data, structure):
+    """The name given in the config, or the structure's own name."""
+    return custom_model_name(config_data.get('model_name') or "") or structure.name
+
+
+def part_work(df, config):
+    """
+    Expected size in blocks of each kind of part of the skeleton-based modes. Both working out and writing a
+    part take time in proportion to its blocks, so these share out the progress bar. Parts that are switched
+    off count for nothing.
+    """
+    bond = 1.5 * config['scale']
+    sphere = int(pdbm.rasterized_sphere(config['atom_scale']).sum())
+    if config.get('mesh'):
+        sphere = max(1, sphere // 3)
+    width = int(pdbm.rasterized_sphere(float(config['backbone_size']) / 2).sum())
+    het = int((df['row'] == 'HETATM').sum())
+    side = int((df['polymer'] & ~df['atom'].isin(NOT_SIDECHAIN_ATOMS)).sum())
+    return {
+        "backbone": int(df['segment'].notna().sum()) * bond * width if config["backbone"] else 0,
+        "sidechain": side * bond if config["sidechain"] else 0,
+        "atoms": int((df['row'] == 'ATOM').sum()) * sphere if config.get("show_atoms", True) else 0,
+        "hetatm": het * sphere if config["show_hetatm"] else 0,
+        "hetatm_bonds": het * bond if config["show_hetatm"] else 0,
+    }
+
+
 class ModelBuilder:
     """
     Everything a mode needs to build one model: the prepared atoms (`df`), chain colour numbers, the
     block lookup, residue modifications and write() to save a part as <name>_<suffix>.
     """
 
-    def __init__(self, config_data, structure, mc_dir, name=None, progress=None):
+    def __init__(self, config_data, structure, mc_dir, name=None, progress=None, status=None):
         self.config = config_data
         self.structure = structure
         self.mc_dir = mc_dir
         self.name = name or structure.name
         self._progress = progress or (lambda value: None)
+        self._status = status or (lambda text: None)
+        self._position = 0
+        self._steps = {}
+        self._write_range = None
         self.df = prepare_coordinates(structure, config_data['scale'])
         self.chain_blocks = valid_chain_blocks(config_data.get('chain_blocks'))
         polymer_chains = self.df.loc[self.df['polymer'], 'chain']
@@ -332,7 +411,33 @@ class ModelBuilder:
 
     def report(self, value):
         """Progress of the mode's own work, 0-100."""
+        self._position = value
         self._progress(value)
+
+    def plan(self, work):
+        """
+        Divide what is left of the mode's progress between steps, in proportion to their expected work
+        ({step: work}). A step with no work takes no room, so modes need not leave out disabled parts.
+        """
+        start = self._position
+        total = sum(work.values())
+        for name, amount in work.items():
+            end = start + (100 - self._position) * amount / total if total else start
+            self._steps[name] = (start, end)
+            start = end
+
+    def step(self, name, message=None, writes=True, compute=STEP_COMPUTE_SHARE):
+        """
+        Enter a planned step. When it `writes`, the `compute` share of it covers working out the blocks and
+        write() uses the rest. Returns a callback for the fraction of the working out that is done.
+        """
+        start, end = self._steps[name]
+        if message:
+            self._status(message)
+        self.report(start)
+        middle = start + (end - start) * (compute if writes else 1.0)
+        self._write_range = (middle, end) if writes else None
+        return lambda fraction: self.report(start + (middle - start) * min(1.0, fraction))
 
     def part_name(self, suffix):
         """
@@ -356,7 +461,14 @@ class ModelBuilder:
             return []
         blocks = self.mods.apply(blocks, self.df if atoms is None else atoms)
         lookup = self.blocks if block_lookup is None else {**chain_block_dict(self.chain_blocks), **block_lookup}
-        paths = mcf.create_nbt(blocks, self.part_name(suffix), air=False, dir=self.mc_dir, blocks=lookup)
+        written = None
+        if self._write_range is not None:
+            start, end = self._write_range
+            self.report(start)
+            written = lambda fraction: self.report(start + (end - start) * fraction)
+            self._write_range = (end, end)
+        paths = mcf.create_nbt(blocks, self.part_name(suffix), air=False, dir=self.mc_dir, blocks=lookup,
+                               progress=written)
         self.written.extend(paths)
         return paths
 
@@ -377,24 +489,37 @@ def mode_module(mode):
     return modules[mode]
 
 
-def build_model(mode, config_data, progress=None):
+def build_model(mode, config_data, progress=None, status=None, on_structure=None):
     """
     Build the model for config_data['pdb_file'] into the world at config_data['save_path'] with the given
-    mode. Returns the model name (use /function protein:build_<name>). progress gets 0-100.
+    mode. Returns the model name (use /function protein:build_<name>); config_data['model_name'] replaces
+    the structure's own name.
+
+    With config_data['triggers'] the model also gets the in-game commands of PDB2MC.triggers. That is for
+    worlds whose players may build and delete; the public server of web/ leaves it off.
+
+    progress gets 0-100 (rising, whole numbers), status a line saying what is happening, and on_structure
+    the StructureData once it has been read.
     """
-    report = progress or (lambda value: None)
+    tracker = Progress(progress, status)
+    tracker.update(0, "Reading structure file...")
     structure = pdbm.load_structure(config_data['pdb_file'])
-    name = structure.name
+    if on_structure is not None:
+        on_structure(structure)
+    name = model_name(config_data, structure)
     mc_dir = config_data['save_path']
-    report(5)
+    tracker.update(PROGRESS_READ, "Removing the old version of this model...")
     mcf.delete_old_files(mc_dir, name)
-    report(10)
-    builder = ModelBuilder(config_data, structure, mc_dir, name=name,
-                           progress=lambda value: report(10 + int(value * 0.75)))
+    tracker.update(PROGRESS_CLEAN, "Preparing the coordinates...")
+    builder = ModelBuilder(config_data, structure, mc_dir, name=name, status=tracker.status,
+                           progress=tracker.span(PROGRESS_COORDINATES, PROGRESS_MODE_END))
+    tracker.update(PROGRESS_COORDINATES, "Building model...")
     mode_module(mode).build(builder)
-    report(85)
+    tracker.update(PROGRESS_MODE_END, "Writing Minecraft functions...")
     mcf.finish_nbts(mc_dir, config_data, name)
     mcf.create_nbt_delete(name, mc_dir)
     mcf.finish_delete_nbts(mc_dir, name)
-    report(100)
+    if config_data.get('triggers'):
+        triggers.install_model(mc_dir, name, mode=mode, scale=config_data.get('scale'))
+    tracker.update(100, "Done!")
     return name

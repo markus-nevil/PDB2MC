@@ -7,7 +7,8 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 
 from PDB2MC import pdb_manipulation as pdbm
 import sys
-from PDB2MC import resources
+from PDB2MC import resources, user_settings
+from . import tooltips
 
 
 class MyComboBox(QtWidgets.QComboBox):
@@ -72,9 +73,15 @@ class InformationBox(QMainWindow):
         #self.label1.setMaximumSize(350, 100)
         self.label1.adjustSize()
 
+        # Make room for long messages; the button stays below the text
+        width = max(500, 210 + self.label1.width())
+        height = max(150, self.label1.height() + 80)
+        self.resize(width, height)
+        self.okayButton.move(250, height - 50)
+
         # Calculate the desired center position
-        center_x = 300
-        center_y = 50
+        center_x = 150 + (width - 150) // 2
+        center_y = (height - 50) // 2
 
         # Calculate the top-left position based on the center position and the size of the QLabel
         top_left_x = int(round(center_x - self.label1.width() / 2))
@@ -208,7 +215,7 @@ class FileExplorerPopup(QMainWindow):
         file_name, _ = QFileDialog.getOpenFileName(
             self,
             "Select PDB or mmCIF file",
-            "",
+            user_settings.structure_dir(),
             "Protein Databank files (*.pdb *.cif *.mmcif);;PDB files (*.pdb);;mmCIF files (*.cif *.mmcif);;All files (*)"
         )
         if file_name:
@@ -359,7 +366,7 @@ class SequenceSelectorPopup(QMainWindow):
                 # Store the true residue id for downstream references
                 item.setData(QtCore.Qt.ItemDataRole.UserRole, str(true_resid))
                 # Optionally show tooltip with true id to make it clear
-                item.setToolTip(f"True residue id: {true_resid}")
+                item.setToolTip(tooltips.tip(tooltips.RESIDUE_POPUP, "residue", resid=true_resid))
                 list_widget.addItem(item)
 
             # Connect selection change to track the last active chain reliably.
@@ -376,19 +383,22 @@ class SequenceSelectorPopup(QMainWindow):
         # Option buttons
         self.block_btn = QPushButton("Assign Block Type", self)
         self.block_btn.setGeometry(100, total_height - 60, 140, 35)
+        self.block_btn.setToolTip(tooltips.tip(tooltips.RESIDUE_POPUP, "block"))
         self.block_btn.clicked.connect(self.assign_block_type)
 
         self.hide_btn = QPushButton("Hide Selection", self)
         self.hide_btn.setGeometry(260, total_height - 60, 120, 35)
+        self.hide_btn.setToolTip(tooltips.tip(tooltips.RESIDUE_POPUP, "hide"))
         self.hide_btn.clicked.connect(self.assign_hide)
 
         self.clear_btn = QPushButton("Clear Changes", self)
         self.clear_btn.setGeometry(400, total_height - 60, 120, 35)
-        self.clear_btn.setToolTip("Undo the changes of the selected residues (of all residues when none are selected)")
+        self.clear_btn.setToolTip(tooltips.tip(tooltips.RESIDUE_POPUP, "clear"))
         self.clear_btn.clicked.connect(self.clear_changes)
 
         self.okay_btn = QPushButton("Okay", self)
         self.okay_btn.setGeometry(550, total_height - 60, 100, 35)
+        self.okay_btn.setToolTip(tooltips.tip(tooltips.RESIDUE_POPUP, "okay"))
         self.okay_btn.clicked.connect(self.finish_selection)
 
         self.options = {}

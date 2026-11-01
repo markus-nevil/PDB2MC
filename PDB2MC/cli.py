@@ -3,13 +3,14 @@ Build a model without the GUI:
 
     python -m PDB2MC.cli Skeleton path/to/model.pdb "C:/Users/me/AppData/Roaming/.minecraft/saves/My World"
 
-Uses each mode's default settings; --scale, --by-chain, --no-hetatm and --mesh change the common ones.
+Uses each mode's default settings and the metal ion blocks saved in the program; --scale, --by-chain,
+--no-hetatm, --mesh, --name and --sasa-radius change the common ones.
 """
 import argparse
 import os
 import sys
 
-from PDB2MC import build, defaults, minecraft_functions as mcf
+from PDB2MC import build, defaults, minecraft_functions as mcf, triggers, user_settings
 
 
 def datapack_dir(world):
@@ -34,16 +35,22 @@ def main(argv=None):
     parser.add_argument("--by-chain", action="store_true", help="colour by chain")
     parser.add_argument("--no-hetatm", action="store_true", help="leave out other molecules")
     parser.add_argument("--mesh", action="store_true", help="mesh-style atoms / surface")
+    parser.add_argument("--name", help="name of the model in Minecraft (default: the file name)")
+    parser.add_argument("--sasa-radius", type=float, help="probe radius of Space Filling in angstroms")
     args = parser.parse_args(argv)
 
     config = defaults.default_config(args.mode)
-    config.update(scale=args.scale, mesh=args.mesh, pdb_file=args.structure, save_path=datapack_dir(args.world))
+    config['atoms'].update(user_settings.metal_blocks())
+    config.update(scale=args.scale, mesh=args.mesh, pdb_file=args.structure, save_path=datapack_dir(args.world),
+                  model_name=args.name, triggers=True)
     if args.by_chain:
         config['by_chain'] = True
     if args.no_hetatm:
         config['show_hetatm'] = False
+    if args.sasa_radius is not None:
+        config['sasa_radius'] = args.sasa_radius
     name = build.build_model(args.mode, config, progress=lambda value: print(f"\r{value:3d}%", end=""))
-    print(f"\nDone. In Minecraft: /reload, then /function protein:build_{name}")
+    print(f"\nDone.\n{triggers.instructions(name, triggers.model_number(config['save_path'], name))}")
     return 0
 
 

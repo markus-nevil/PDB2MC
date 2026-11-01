@@ -44,14 +44,13 @@ setup(
         ],
     },
     package_data={
-        'PDB2MC': ['README.md', 'chains.txt', 'pack.mcmeta'],
+        'PDB2MC': ['README.md', 'chains.txt', 'pack.mcmeta', 'PDB2MC.zip'],
         'UI': ['images/*', 'presets/*', 'images/icons/*', '*.txt'],
     },
 )
 
 #############
-# For compiling
-# pyinstaller --onefile --windowed --name=PDB2MC --icon=UI/images/icons/logo.png --add-data "UI;UI" --add-data "PDB2MC/chains.txt;PDB2MC" --add-data "P
-# DB2MC/pack.mcmeta;PDB2MC" --add-data "README.md;." PDB2MC/run_PDB2MC.py
+# For compiling a Windows .exe. Run from the repository folder, in one line:
+# pyinstaller --onefile --windowed --name=PDB2MC --icon=UI/images/icons/logo.png --add-data "UI;UI" --add-data "PDB2MC/chains.txt;PDB2MC" --add-data "PDB2MC/pack.mcmeta;PDB2MC" --add-data "PDB2MC/PDB2MC.zip;PDB2MC" --add-data "README.md;." PDB2MC/run_PDB2MC.py
 #
 #############

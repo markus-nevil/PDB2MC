@@ -267,7 +267,10 @@ def DNA_vectors(df, width=1):
 # TODO
 
 # Function that will take the coordinates from a dataframe, match them with the vectors of another dataframe by "resid" column, and make two dataframes of each coordinate transformed by either the positive or negative of the matched vector. Then call bresenham_line function to fill the gaps. combine all 3 dataframes and return them.
-def flank_DNA(df, vector_df):
+def flank_DNA(df, vector_df, progress=None):
+    # progress, if given, gets the fraction done (0-1)
+    report = progress or (lambda fraction: None)
+
     # Create an empty list to store the positive coordinates
     positive_coordinates = []
 
@@ -281,7 +284,8 @@ def flank_DNA(df, vector_df):
     columns = ["atom_num", "atom", "residue", "chain", "resid", "X", "Y", "Z"]
 
     # Iterate over the rows of the dataframe
-    for i, row in df.iterrows():
+    for row_number, (i, row) in enumerate(df.iterrows()):
+        report(0.5 * row_number / len(df))
         #if df.loc[i, 'resid'] < df['resid'].max() - 1:
         if df.loc[i, 'resid'] <= df['resid'].max():
             # Find the matching row in the vector dataframe
@@ -350,6 +354,7 @@ def flank_DNA(df, vector_df):
 
     # iterate through each dataframe and call the bresenham_line function to fill in the gaps between each coordinate, add the new coordinates to a new dataframe, and return the new dataframe
     for i, row in positive_df.iterrows():
+        report(0.5 + 0.5 * i / len(positive_df))
 
         # assume that positive_df and negative_df have the same number of rows and order of rows
 

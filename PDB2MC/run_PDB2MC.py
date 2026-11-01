@@ -7,6 +7,7 @@ from PyQt6.QtGui import QDesktopServices, QIcon
 from PyQt6 import QtCore, QtGui, QtWidgets
 
 from PyQt6.QtCore import QThread, pyqtSignal
+from UI import tooltips
 from UI.base_mode_window import open_help, open_mode_window
 from UI.utilities import InformationBox
 
@@ -104,8 +105,7 @@ class MainWindow(QMainWindow):
         font.setBold(True)
         font.setWeight(75)
         self.comboBox.setFont(font)
-        self.comboBox.setToolTip("")
-        self.comboBox.setToolTipDuration(5)
+        self.comboBox.setToolTip(tooltips.tip(tooltips.MAIN_WINDOW, "comboBox"))
         self.comboBox.setWhatsThis("")
         self.comboBox.setFrame(True)
         self.comboBox.setObjectName("comboBox")
@@ -136,6 +136,7 @@ class MainWindow(QMainWindow):
         self.help.setFont(font)
         self.help.setObjectName("help")
         self.help.setGeometry(QtCore.QRect(755, 560, 150, 51))
+        self.help.setToolTip(tooltips.tip(tooltips.MAIN_WINDOW, "help"))
 
         # Labels for UI
         self.label_2 = QtWidgets.QLabel(parent=self.centralwidget)
