@@ -90,12 +90,9 @@ class InformationBox(QtWidgets.QDialog):
         layout.setSizeConstraint(QtWidgets.QLayout.SizeConstraint.SetFixedSize)
 
     def _longest_word_width(self):
-        document = QtGui.QTextDocument()
-        document.setDefaultFont(self.label1.font())
-        document.setHtml(self.label1.text())
-        document.setDocumentMargin(0)
-        document.setTextWidth(0)
-        return int(document.idealWidth()) + 2
+        # The label's own minimum: the width of its longest word, as the label itself lays it out. A separate
+        # QTextDocument measured this the same way until Qt 6.12, which reports far narrower widths for it
+        return self.label1.minimumSizeHint().width() + 2
 
     def _copy(self, text):
         QApplication.clipboard().setText(text)
