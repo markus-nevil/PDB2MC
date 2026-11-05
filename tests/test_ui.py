@@ -1041,9 +1041,9 @@ def test_preview_model_stands_like_the_build():
     from UI.voxel_view import GRID, model_voxels
     structure = StructureData.from_file(preset("DNA"))
     raw = pdbm.structure_to_df(structure)[['X', 'Y', 'Z']].to_numpy(dtype=float)
-    assert raw.ptp(axis=0).argmin() != 1             # this file's smallest side is not already upwards
+    assert np.ptp(raw, axis=0).argmin() != 1             # this file's smallest side is not already upwards
     positions, _ = model_voxels(structure)
     built = build.prepare_coordinates(structure, 1)[['X', 'Y', 'Z']].to_numpy(dtype=float)
-    voxel_sides = positions.ptp(axis=0) / (GRID - 1)
-    built_sides = built.ptp(axis=0) / built.ptp(axis=0).max()
+    voxel_sides = np.ptp(positions, axis=0) / (GRID - 1)
+    built_sides = np.ptp(built, axis=0) / np.ptp(built, axis=0).max()
     assert np.allclose(voxel_sides, built_sides, atol=0.08)
