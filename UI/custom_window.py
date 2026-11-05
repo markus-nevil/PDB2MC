@@ -1,5 +1,5 @@
-from PDB2MC import defaults
-from .base_mode_window import Check, Color, Gap, ModeWindow, Spin, set_enabled
+from PDB2MC import color_schemes, defaults
+from .base_mode_window import Check, Choice, Color, Gap, ModeWindow, Spin, set_enabled
 
 ELEMENT_ROWS = [("C", "cColorBox"), ("O", "oColorBox"), ("N", "nColorBox"), ("S", "sColorBox"), ("P", "pColorBox")]
 
@@ -20,7 +20,8 @@ def atom_column(colors):
 BACKBONE_COLUMN = [
     Color("backboneColorBox", "Select backbone color:", "gray_concrete"),
     Check("showBackboneCheck", "Show backbone", True),
-    Check("colorByChainCheck", "Color backbone by chain", False),
+    Check("colorByChainCheck", "Color backbone by:", False),
+    Choice("colorSchemeBox", "Color scheme:", list(color_schemes.SCHEMES), "Chain"),
     Spin("backboneScaleSpinBox", "Backbone scale:", 1.0),
     Gap(8),
     Color("sidechainColorBox", "Select sidechain color:", "gray_concrete"),

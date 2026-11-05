@@ -147,6 +147,7 @@ _COMMON = {
     'bar_style': False,
     'chain_blocks': list(DEFAULT_CHAIN_BLOCKS),
     'residue_mods': {},
+    'color_scheme': 'Chain',
 }
 
 

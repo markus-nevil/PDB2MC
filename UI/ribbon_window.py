@@ -1,4 +1,5 @@
-from .base_mode_window import Check, Color, Gap, ModeWindow, Spin, set_enabled
+from PDB2MC import color_schemes
+from .base_mode_window import Check, Choice, Color, Gap, ModeWindow, Spin, set_enabled
 
 
 class RibbonWindow(ModeWindow):
@@ -7,7 +8,8 @@ class RibbonWindow(ModeWindow):
     CHAIN_CHECK = "colorByChainCheck"
     OPTION_COLUMNS = [[
         Color("ribbonColorBox", "Select ribbon color:", "red_concrete"),
-        Check("colorByChainCheck", "Color backbone by chain", True),
+        Check("colorByChainCheck", "Color ribbons by:", True),
+        Choice("colorSchemeBox", "Color scheme:", list(color_schemes.SCHEMES), "Chain"),
         Check("barStyleCheck", "Alpha helices as rods", False),
         Gap(8),
         Color("backboneColorBox", "Select backbone color:", "gray_concrete"),

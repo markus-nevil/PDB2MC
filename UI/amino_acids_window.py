@@ -13,10 +13,11 @@ _RESIDUE_ROWS = [Color(residue_box(code), f"{defaults.AMINO_ACID_NAMES[code]}:",
 class AminoAcidsWindow(ModeWindow):
     MODE_NAME = "Amino Acids"
     TITLE = "Amino Acid Mode"
+    # The file and Minecraft controls sit under the first column of residues; the other options under the second
     OPTION_COLUMNS = [
         _RESIDUE_ROWS[:10],
-        _RESIDUE_ROWS[10:],
-        [
+        _RESIDUE_ROWS[10:] + [
+            Gap(14),
             Choice("colorStyleBox", "Color style:", list(defaults.AMINO_ACID_STYLES), "Residue"),
             Gap(8),
             Color("backboneColorBox", "Select backbone:", "gray_concrete"),

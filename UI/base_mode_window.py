@@ -15,7 +15,7 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 from PyQt6.QtCore import QThread, QUrl, pyqtSignal
 from PyQt6.QtGui import QColor, QDesktopServices, QIcon, QPainter, QPixmap
 
-from PDB2MC import build, minecraft_functions as mcf, pdb_manipulation as pdbm, resources, triggers, user_settings
+from PDB2MC import build, fetch, minecraft_functions as mcf, pdb_manipulation as pdbm, resources, triggers, user_settings
 from PDB2MC.variables import decorative_blocks, hex_dict
 from . import messages, tooltips
 from .chain_colors import ChainColorDialog
@@ -48,7 +48,7 @@ COLUMN_GAP = 20
 ROW_HEIGHT = 22
 CHECK_HEIGHT = 18
 ROW_SPACING = 6
-BOTTOM_HEIGHT = 174
+BOTTOM_HEIGHT = 202
 # Every mode window is at least this tall, so switching modes doesn't resize the window
 MIN_HEIGHT = 458
 
@@ -302,8 +302,10 @@ class ModeWindow(QtWidgets.QMainWindow):
         self.bg.setScaledContents(True)
 
         self.geometry_map = {}
-        width, height = self._build_options()
-        height = max(height + BOTTOM_HEIGHT + MARGIN, MIN_HEIGHT)
+        width, column_bottoms = self._build_options()
+        # The file and Minecraft controls go under the first column; later columns may reach down beside them
+        first = column_bottoms[0] if column_bottoms else MARGIN
+        height = max(first + BOTTOM_HEIGHT + MARGIN, max(column_bottoms, default=MARGIN) + MARGIN, MIN_HEIGHT)
         self._build_bottom(height - BOTTOM_HEIGHT - MARGIN)
         width = max(width, SIDEBAR_WIDTH + MARGIN + COLUMN_WIDTH + MARGIN)
         self.resize(width, height)
@@ -324,21 +326,25 @@ class ModeWindow(QtWidgets.QMainWindow):
         self.connect_options()
         self.refresh_enabled()
         if self.CHAIN_CHECK:
-            getattr(self, self.CHAIN_CHECK).clicked.connect(self.on_chain_check_clicked)
+            chain_check = getattr(self, self.CHAIN_CHECK)
+            chain_check.clicked.connect(self.on_chain_check_clicked)
+            if hasattr(self, "colorSchemeBox"):
+                chain_check.stateChanged.connect(self.refresh_scheme_box)
+                self.refresh_scheme_box()
         self.restore_session()
 
     # --- layout ---
     def _build_options(self):
-        """Create the option widgets column by column; returns the (width, height) they need."""
+        """Create the option widgets column by column; returns the width they need and where each column ends."""
         left = SIDEBAR_WIDTH + MARGIN
-        bottom = MARGIN
+        bottoms = []
         for column in self.OPTION_COLUMNS:
             y = MARGIN
             for row in column:
                 y = self._add_row(row, left, y)
-            bottom = max(bottom, y)
+            bottoms.append(y)
             left += COLUMN_WIDTH + COLUMN_GAP
-        return left - COLUMN_GAP + MARGIN, bottom
+        return left - COLUMN_GAP + MARGIN, bottoms
 
     def _place(self, name, widget, x, y, w, h):
         widget.setObjectName(name)
@@ -406,9 +412,9 @@ class ModeWindow(QtWidgets.QMainWindow):
             label.setStyleSheet("background-color: rgba(255, 255, 255, 140);")
             self._place(name, label, x + rect[0], top + rect[1], rect[2], rect[3])
 
-        button("selectPDBFileButton", "Select PDB File", (0, 0, 101, 23))
-        small_label("orText", "or", (101, 0, 25, 23))
-        button("selectIncludedPDBButton", "Select Included PDB File", (126, 0, 189, 23))
+        button("selectPDBFileButton", "Select PDB File", (0, 0, 103, 23))
+        button("selectIncludedPDBButton", "Included Model", (106, 0, 103, 23))
+        button("pdbIdButton", "Load PDB ID", (212, 0, 103, 23))
         path_label("selectedPDBLabel", (0, 24, COLUMN_WIDTH, 18))
         name_label = QtWidgets.QLabel("Model name:", parent=self.centralwidget)
         name_label.setToolTip(tooltips.option("modelNameEdit", self.MODE_NAME))
@@ -423,14 +429,17 @@ class ModeWindow(QtWidgets.QMainWindow):
         check = QtWidgets.QCheckBox("Simple output", parent=self.centralwidget)
         check.setChecked(True)
         check.setToolTip(tooltips.option("simpleOutputCheck", self.MODE_NAME))
-        self._place("simpleOutputCheck", check, x, top + 120, 110, 20)
-        button("modifyResiduesButton", "Modify Residues", (0, 142, 110, 26), point=9)
-        button("createFunctionsButton", "Create Minecraft\nFunctions", (120, 124, 195, 44), point=11, bold=True)
+        button("previewButton", "Preview Model and Size", (0, 120, COLUMN_WIDTH - 5, 24))
+        self._place("simpleOutputCheck", check, x, top + 148, 110, 20)
+        button("modifyResiduesButton", "Modify Residues", (0, 170, 110, 26), point=9)
+        button("createFunctionsButton", "Create Minecraft\nFunctions", (120, 152, 195, 44), point=11, bold=True)
 
         self.selectPDBFileButton.clicked.connect(self.handle_select_pdb_file_button)
         self.selectIncludedPDBButton.clicked.connect(self.handle_included_pdb_button)
+        self.pdbIdButton.clicked.connect(self.handle_pdb_id_button)
         self.selectMinecraftSaveButton.clicked.connect(self.handle_select_minecraft_button)
         self.modifyResiduesButton.clicked.connect(self.handle_modify_residues_button)
+        self.previewButton.clicked.connect(self.handle_preview_button)
         self.createFunctionsButton.clicked.connect(self.handle_make_function_button)
         self.modelNameEdit.textEdited.connect(self.on_model_name_edited)
         self.modelNameEdit.editingFinished.connect(self.tidy_model_name)
@@ -499,8 +508,16 @@ class ModeWindow(QtWidgets.QMainWindow):
         combobox.setCurrentIndex(combobox.findText(text))
 
     def on_chain_check_clicked(self, checked):
-        if checked:
+        # Only the chain and molecule schemes use the chain colour list
+        if checked and self.color_scheme() in ("Chain", "Molecule"):
             self.edit_chain_colors()
+
+    def color_scheme(self):
+        box = getattr(self, "colorSchemeBox", None)
+        return box.currentText() if box is not None else "Chain"
+
+    def refresh_scheme_box(self, *_):
+        self.colorSchemeBox.setEnabled(getattr(self, self.CHAIN_CHECK).isChecked())
 
     def edit_chain_colors(self):
         """Ask for the chain colour list; returns True when it was accepted."""
@@ -532,9 +549,32 @@ class ModeWindow(QtWidgets.QMainWindow):
     # --- file selection ---
     def handle_select_pdb_file_button(self):
         self.selectPDB = FileExplorerPopup()
-        path = self.selectPDB.selected_file
-        if not path:
+        if self.selectPDB.selected_file:
+            self.open_structure(self.selectPDB.selected_file)
+
+    def handle_pdb_id_button(self):
+        text, accepted = QtWidgets.QInputDialog.getText(self, messages.ASK_PDB_ID.title,
+                                                        messages.ASK_PDB_ID.body)
+        if not accepted or not text.strip():
             return
+        pdb_id = fetch.normalize_id(text)
+        if pdb_id is None:
+            show_message(self, messages.INVALID_PDB_ID, text=text.strip())
+            return
+        download_error = path = None
+        with showing_message(self, messages.DOWNLOADING, pdb_id=pdb_id):
+            try:
+                # Keep the window drawing while the file comes in
+                path = fetch.download(pdb_id, progress=lambda done, total: QtWidgets.QApplication.processEvents())
+            except fetch.DownloadError as e:
+                download_error = e
+        if download_error is not None:
+            show_message(self, messages.DOWNLOAD_ERROR, pdb_id=pdb_id, error=download_error)
+            return
+        self.open_structure(path)
+
+    def open_structure(self, path):
+        """Use a structure file: load it, set the scale, and tell the user the scale or what went wrong."""
         load_error = announce_scale = None
         # The next window opens only after this one has closed, so it isn't left behind this window
         with showing_message(self, messages.CALCULATING_SIZE):
@@ -595,6 +635,19 @@ class ModeWindow(QtWidgets.QMainWindow):
         SESSION.save_path = self.user_minecraft_save
         self.update_selection_labels()
 
+    def handle_preview_button(self):
+        if not self.user_pdb_file:
+            show_message(self, messages.NO_STRUCTURE)
+            return
+        from .preview import PreviewDialog
+        try:
+            structure = pdbm.load_structure(self.user_pdb_file)
+            self.preview = PreviewDialog(structure, self.build_config(), self.MODE_NAME, parent=self)
+        except Exception as e:
+            show_message(self, messages.FILE_LOAD_ERROR, block=True, error=e)
+            return
+        self.preview.show()
+
     def handle_modify_residues_button(self):
         if not self.user_pdb_file:
             show_message(self, messages.NO_STRUCTURE)
@@ -636,6 +689,7 @@ class ModeWindow(QtWidgets.QMainWindow):
             'save_path': self.user_minecraft_save,
             'model_name': build.custom_model_name(self.modelNameEdit.text()) or None,
             'triggers': True,
+            'color_scheme': self.color_scheme(),
         }
         self.mode_config(config)
         return config

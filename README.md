@@ -190,9 +190,11 @@ https://github.com/markus-nevil/mcpdb/issues.
 1. Change `Protein scale` to 4.0.
     - A future step will suggest a maximum size for this scale.
 2. Ensure that `Show Backbone` is checked
-3. Press `Select PDB` and choose the downloaded PDB file from your Downloads folder.
-    - **Note:** Select any ".pdb" file and press `Ok`, no other file type is accepted.
-    - *Alternative step:* Press `Select Included PDB` to select the included GFP model
+3. Press `Select PDB File` and choose the downloaded PDB file from your Downloads folder.
+    - **Note:** Select a ".pdb", ".cif" or ".mmcif" file and press `Ok`.
+    - *Alternative step:* Press `Included Model` to select the included GFP model
+    - *Alternative step:* Press `Load PDB ID` and type `1GFL` to download GFP from the RCSB Protein Data Bank
+    - Press `Preview Model and Size` at any time to see the model and how many blocks it will take up.
 4. Press `Select Minecraft Save` and choose the Minecraft world
     - **Note:** Double-click the name of the world and press `Ok`, no other folder is accepted.
     - A dialog box will appear with a suggested scaling factor for `Protein scale`.
@@ -345,6 +347,13 @@ or DNA/RNA chain to which they belong. This mode is useful for visualizing the s
    you switch to another mode.
    - `Tool tips: `Rest the mouse on any option for a short description. All of this text is in `UI/tooltips.py`, so it
    can be changed in one place.
+   - `Load PDB ID: `Type a PDB ID, such as 1GFL, to download that structure from the RCSB Protein Data Bank (this needs
+   an internet connection). Structures are downloaded as mmCIF files, which work for structures of any size, and are kept
+   in a "structures" folder next to the program's settings, so the same ID is only downloaded once. The command line
+   accepts a PDB ID in place of a file too.
+   - `Preview Model and Size: `Shows the model turning in a box, colored with the current settings, and about how many
+   blocks wide, deep and high it will be at the current `Protein Scale`, with a warning when it is too tall for the world
+   or so wide that loading it will be slow.
    - `Model name: `Selecting a structure fills in its PDB ID (the included examples use their own name). Type another
    name to use that instead; it can hold letters, numbers, dots and dashes, and anything else becomes a dash.
    - `Rotation of model: `Once the user starts generating the model, the model will rotate such that the shortest dimension
@@ -376,9 +385,20 @@ since `Atom Scale` will not change the distance between atoms and is a separate 
 group of atoms, or bond. The user may select a block from a curated list from the current version of
 Minecraft. "Other color" refers to atoms which are uncommon to PDB models.
 
-5. `Color backbone by chain`
-: If selected, the backbone or backbone and sidechain will be colored by the "chain" number. Single protein, DNA, or DNA
-molecules are considered chains. this option is useful to view the different subunits that make up a full complex or model.
+5. `Color backbone by` and `Color scheme`
+: If selected, the backbone (and sidechains, ribbons or surface, depending on the mode) is colored by the chosen scheme
+instead of one color:
+   - `Chain`: each chain its own color. Single protein, DNA, or RNA molecules are considered chains; useful to view the
+   different subunits that make up a full complex.
+   - `Molecule`: every copy of the same protein or nucleic acid gets the same color, so a complex of many copies of a few
+   proteins shows which protein is which.
+   - `Hydrophobicity`: each amino acid by how much it avoids water (Kyte-Doolittle scale), from blue (likes water) to
+   orange (avoids water). Water-avoiding residues usually sit inside a protein.
+   - `Charge`: positive amino acids blue, negative ones red, the rest white. DNA and RNA are negative.
+   - `Confidence`: blue where the structure is most sure of the atom positions, orange where it is least sure. This uses
+   the B-factor of experimental structures, and the pLDDT score of AlphaFold predictions.
+
+   The blocks of each scheme are set in `PDB2MC/color_schemes.py`.
 
 6. `Backbone _____`
 : References to a protein backbone refer to the atoms that make up the long chain of amino acids. The backbone are the

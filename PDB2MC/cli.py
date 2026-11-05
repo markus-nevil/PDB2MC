@@ -10,7 +10,7 @@ import argparse
 import os
 import sys
 
-from PDB2MC import build, defaults, minecraft_functions as mcf, triggers, user_settings
+from PDB2MC import build, defaults, fetch, minecraft_functions as mcf, triggers, user_settings
 
 
 def datapack_dir(world):
@@ -29,7 +29,7 @@ def datapack_dir(world):
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Turn a PDB / mmCIF file into a Minecraft model.")
     parser.add_argument("mode", choices=defaults.MODES)
-    parser.add_argument("structure", help=".pdb, .cif or .mmcif file")
+    parser.add_argument("structure", help=".pdb, .cif or .mmcif file, or a PDB ID such as 1GFL to download")
     parser.add_argument("world", help="Minecraft save folder (…/.minecraft/saves/<world>)")
     parser.add_argument("--scale", type=float, default=1.0)
     parser.add_argument("--by-chain", action="store_true", help="colour by chain")
@@ -38,6 +38,9 @@ def main(argv=None):
     parser.add_argument("--name", help="name of the model in Minecraft (default: the file name)")
     parser.add_argument("--sasa-radius", type=float, help="probe radius of Space Filling in angstroms")
     args = parser.parse_args(argv)
+    if not os.path.exists(args.structure) and fetch.normalize_id(args.structure):
+        print(f"Downloading {fetch.normalize_id(args.structure)}...")
+        args.structure = fetch.download(args.structure)
 
     config = defaults.default_config(args.mode)
     config['atoms'].update(user_settings.metal_blocks())

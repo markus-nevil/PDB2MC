@@ -1,8 +1,9 @@
 """
 The 3D animation of the progress window: a rotating voxel volume that fills with the model from the bottom up.
 
-The model is simply its atoms binned into a cube of GRID x GRID x GRID voxels; they are scaled to fit and not
-transformed in any other way, so this is not what the mode will build. It is drawn by numpy into an image rather
+The model is its atoms, turned upright the way the build turns them (rotate_to_y), binned into a cube of
+GRID x GRID x GRID voxels and scaled to fit: the shape and colours of the model, not every block the mode will
+build. It is drawn by numpy into an image rather
 than with OpenGL: PDB2MC needs no extra library for it, and it works on any computer, including over remote
 desktop. All voxels of a frame have the same orientation, so one cube is worked out per frame and then stamped
 at every voxel, furthest first.
@@ -12,8 +13,8 @@ import math
 import numpy as np
 from PyQt6 import QtCore, QtGui, QtWidgets
 
-from PDB2MC import pdb_manipulation as pdbm
-from PDB2MC.build import chain_numbers, valid_chain_blocks
+from PDB2MC import color_schemes, pdb_manipulation as pdbm
+from PDB2MC.build import chain_numbers, color_scheme, molecule_numbers, valid_chain_blocks
 from PDB2MC.variables import hex_dict
 
 # Voxels along each edge of the volume
@@ -47,15 +48,25 @@ def block_rgb(block):
     return tuple(int(COLOR_FLOOR + int(color[i:i + 2], 16) * (255 - COLOR_FLOOR) / 255) for i in (0, 2, 4))
 
 
-def atom_blocks(df, config):
+def atom_blocks(df, config, structure=None):
     """The block each atom would most nearly get with the window's settings, for colouring the voxels."""
     atoms = config.get('atoms', {})
     other = atoms.get('other_atom', 'pink_concrete')
     if config.get('amino_acids'):
         return df['residue'].map(config['amino_acids']).fillna(other).to_numpy(dtype=object)
     if config.get('by_chain'):
+        scheme = color_scheme(config)
+        if scheme in color_schemes.RESIDUE_SCHEMES:
+            predicted = bool(structure is not None and structure.metadata.get('predicted'))
+            labels = color_schemes.residue_labels(df, scheme, predicted)
+            keys = df['chain'].astype(str) + ":" + df['resid'].astype(int).astype(str)
+            return keys.map(lambda key: color_schemes.BLOCKS[labels.get(key, color_schemes.OTHER)]) \
+                .to_numpy(dtype=object)
         blocks = valid_chain_blocks(config.get('chain_blocks'))
-        numbers = chain_numbers(df['chain'], len(blocks))
+        if scheme == "Molecule":
+            numbers = molecule_numbers(df['chain'], structure, len(blocks))
+        else:
+            numbers = chain_numbers(df['chain'], len(blocks))
         return df['chain'].map(lambda chain: blocks[numbers[chain] - 1]).to_numpy(dtype=object)
     elements = df['element'].fillna('').astype(str).str.strip().str.upper()
     return elements.map(lambda element: atoms.get(element, other)).to_numpy(dtype=object)
@@ -70,6 +81,8 @@ def model_voxels(structure, config=None, grid=GRID):
     df = pdbm.structure_to_df(structure)
     if df.empty:
         return np.zeros((0, 3), dtype=int), np.zeros((0, 3), dtype=np.uint8)
+    # Turned the way the build turns the model (its smallest side upwards), worked out from the same atoms
+    df = pdbm.rotate_to_y(df)
     df = df[~df['residue'].isin(("HOH", "WAT", "DOD"))]
     if not config.get('show_hetatm', True):
         df = df[df['row'] == 'ATOM']
@@ -84,7 +97,7 @@ def model_voxels(structure, config=None, grid=GRID):
     positions = np.rint((xyz - low) * fit + offset).astype(int)
     keys = positions[:, 0] * grid * grid + positions[:, 1] * grid + positions[:, 2]
     _, first = np.unique(keys, return_index=True)
-    blocks = atom_blocks(df, config)[first]
+    blocks = atom_blocks(df, config, structure)[first]
     colours = {block: block_rgb(block) for block in set(blocks)}
     return positions[first], np.array([colours[block] for block in blocks], dtype=np.uint8).reshape(-1, 3)
 

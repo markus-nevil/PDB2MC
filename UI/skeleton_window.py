@@ -1,5 +1,6 @@
+from PDB2MC import color_schemes
 from .base_mode_window import (  # noqa: F401  (WorkerThread re-exported for older callers)
-    Check, Color, Gap, ModeWindow, Spin, WorkerThread, set_enabled,
+    Check, Choice, Color, Gap, ModeWindow, Spin, WorkerThread, set_enabled,
 )
 
 
@@ -10,7 +11,8 @@ class SkeletonWindow(ModeWindow):
     OPTION_COLUMNS = [[
         Color("backboneColorBox", "Select backbone color:", "gray_concrete"),
         Check("showBackboneCheck", "Show backbone", True),
-        Check("colorByChainCheck", "Color backbone by chain", False),
+        Check("colorByChainCheck", "Color backbone by:", False),
+        Choice("colorSchemeBox", "Color scheme:", list(color_schemes.SCHEMES), "Chain"),
         Spin("backboneScaleSpinBox", "Backbone scale:", 1.0),
         Spin("pScaleSpinBox", "Protein scale:", 1.0),
         Gap(8),

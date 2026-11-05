@@ -118,6 +118,51 @@ NO_MINECRAFT_SAVE = Message(
 )
 
 # --- choosing a structure ---
+PREVIEW = Message(
+    title="Preview",
+    button="Close",
+    body="<h3>About {width} x {depth} blocks, {height} high</h3>"
+         "<p>At protein scale {scale}, covering about {chunks} chunks. {atoms} atoms.</p>"
+         "<p>The turning model shows the shape and colours, not every block.</p>",
+)
+
+PREVIEW_TOO_TALL = Message(
+    title="Preview",
+    body="<p><b>Too tall:</b> {height} blocks is more than the {limit} the world has room for. Lower the "
+         "protein scale.</p>",
+)
+
+PREVIEW_LARGE = Message(
+    title="Preview",
+    body="<p><b>Very wide:</b> loading {chunks} chunks for the build can take minutes. A lower protein scale "
+         "builds much faster.</p>",
+)
+
+ASK_PDB_ID = Message(
+    title="Load by PDB ID",
+    # Shown as plain text in the question box
+    body="PDB ID of the structure (for example 1GFL or 4HHB):",
+)
+
+DOWNLOADING = Message(
+    title="Please wait",
+    button=None,
+    body="<p>Downloading {pdb_id} from the RCSB Protein Data Bank...</p>",
+)
+
+INVALID_PDB_ID = Message(
+    title="Not a PDB ID",
+    icon="bad",
+    body="<p>'{text}' is not a PDB ID.</p><p>PDB IDs are four characters, starting with a number, such as "
+         "1GFL. Search for structures at rcsb.org.</p>",
+)
+
+DOWNLOAD_ERROR = Message(
+    title="Download failed",
+    icon="bad",
+    body="<p>Could not download {pdb_id}.</p><p>{error}</p>",
+)
+
 CALCULATING_SIZE = Message(
     title="Please wait",
     button=None,

@@ -33,8 +33,14 @@ OPTIONS = {
     # Colours of the skeleton
     "backboneColorBox": "Block for the backbone. Not used while the model is coloured by chain.",
     "sidechainColorBox": "Block for the side chains. Not used while the model is coloured by chain.",
-    "colorByChainCheck": "Give each chain its own colour. Ticking this opens the list of chain colours; the "
-                         "list repeats when a model has more chains than colours.",
+    "colorByChainCheck": "Colour the backbone and side chains by the colour scheme below instead of one colour. "
+                         "Ticking this with the Chain or Molecule scheme opens the list of chain colours; the list "
+                         "repeats when a model has more chains than colours.",
+    "colorSchemeBox": "Chain: each chain its own colour. Molecule: every copy of the same protein or nucleic acid "
+                      "the same colour. Hydrophobicity: blue residues like water, orange ones avoid it. Charge: "
+                      "positive blue, negative red (DNA and RNA are negative). Confidence: blue where the "
+                      "structure is most sure of the atom positions, orange where it is least sure (B-factor, or "
+                      "pLDDT for AlphaFold models). The blocks are set in PDB2MC/color_schemes.py.",
 
     # Sizes
     "aScaleSpinBox": "Diameter of each atom in blocks, rounded up.",
@@ -62,24 +68,28 @@ OPTIONS = {
     "selectPDBFileButton": "Choose a .pdb, .cif or .mmcif structure file. Tools > Default PDB/CIF Folder sets "
                            "where this starts.",
     "selectIncludedPDBButton": "Choose one of the example structures that come with PDB2MC.",
+    "pdbIdButton": "Type a PDB ID, such as 1GFL, to download that structure from the RCSB Protein Data Bank "
+                   "(needs an internet connection). Find IDs at rcsb.org.",
     "selectMinecraftSaveButton": "Choose the Minecraft world the model is added to.",
     "simpleOutputCheck": "Make one command that builds the whole model. Untick to get a separate command for "
                          "each part of the model.",
     "modifyResiduesButton": "Give selected residues their own block, or hide them.",
+    "previewButton": "See the model turning, coloured with these settings, and how big it will be in Minecraft "
+                     "at this protein scale.",
     "createFunctionsButton": "Build the model and add it to the selected Minecraft world.",
 }
 
 # Options that mean something else in one mode
 MODE_OPTIONS = {
     "Space Filling": {
-        "colorByChainCheck": "Colour the surface by chain instead of by element. Ticking this opens the list of "
-                             "chain colours.",
+        "colorByChainCheck": "Colour the surface by the colour scheme below instead of by element. Ticking this "
+                             "with the Chain or Molecule scheme opens the list of chain colours.",
         "meshCheck": "Place only some of the surface blocks, so the skeleton inside shows through.",
         "otherColorBox": "Block for surface atoms of every other element.",
     },
     "Ribbon": {
-        "colorByChainCheck": "Give each chain its own ribbon and backbone colour. Ticking this opens the list of "
-                             "chain colours.",
+        "colorByChainCheck": "Colour the ribbons and backbone by the colour scheme below instead of one colour. "
+                             "Ticking this with the Chain or Molecule scheme opens the list of chain colours.",
         "showBackboneCheck": "Show the backbone between the ribbons.",
         "aScaleSpinBox": "Diameter in blocks, rounded up, of the atoms of other molecules.",
     },

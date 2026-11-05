@@ -952,3 +952,98 @@ def test_remove_function_files_updates_the_in_game_list(qtbot, mc_dir, monkeypat
     monkeypatch.setattr(tool_window, "MinecraftPopup", Picked)
     make_window(qtbot, "Tools").removeFunctionFiles.click()
     assert triggers.models(mc_dir) == {}
+
+
+# --- colour schemes, loading by PDB ID and preview ---
+
+@pytest.mark.parametrize("mode", ["Skeleton", "Custom", "Space Filling", "Ribbon"])
+def test_colour_scheme_follows_the_colour_by_check(qtbot, mode, monkeypatch):
+    from UI.base_mode_window import ModeWindow
+    monkeypatch.setattr(ModeWindow, "edit_chain_colors", lambda self: None)
+    window = make_window(qtbot, mode)
+    check = window.colorByChainCheck
+    if check.isChecked():
+        check.click()
+    assert not window.colorSchemeBox.isEnabled()
+    check.click()
+    assert window.colorSchemeBox.isEnabled()
+    window.colorSchemeBox.setCurrentText("Charge")
+    config = window.build_config()
+    assert config['color_scheme'] == "Charge" and config['by_chain'] is True
+
+
+def test_residue_schemes_do_not_ask_for_chain_colours(skeleton_window, monkeypatch):
+    from UI.base_mode_window import ModeWindow
+    asked = []
+    monkeypatch.setattr(ModeWindow, "edit_chain_colors", lambda self: asked.append(True))
+    skeleton_window.colorSchemeBox.setCurrentText("Hydrophobicity")
+    skeleton_window.colorByChainCheck.click()
+    assert asked == []
+    skeleton_window.colorByChainCheck.click()
+    skeleton_window.colorSchemeBox.setCurrentText("Molecule")
+    skeleton_window.colorByChainCheck.click()
+    assert asked == [True]
+
+
+def answer_pdb_id(monkeypatch, text):
+    monkeypatch.setattr(QtWidgets.QInputDialog, "getText", staticmethod(lambda *args, **kwargs: (text, True)))
+
+
+def test_load_pdb_id_downloads_and_opens(skeleton_window, monkeypatch, quiet_popups):
+    from PDB2MC import fetch
+    from UI import messages
+    answer_pdb_id(monkeypatch, " 1abc ")
+    asked = []
+    monkeypatch.setattr(fetch, "download", lambda pdb_id, progress=None: asked.append(pdb_id) or preset("GFP"))
+    skeleton_window.pdbIdButton.click()
+    assert asked == ["1ABC"]
+    assert skeleton_window.user_pdb_file == preset("GFP")
+    assert quiet_popups[-1] == messages.MAXIMUM_SCALE.title
+
+
+@pytest.mark.parametrize("text, title", [("GFP", "Not a PDB ID"), ("0zzz", "Download failed")])
+def test_load_pdb_id_explains_problems(skeleton_window, monkeypatch, quiet_popups, text, title):
+    from PDB2MC import fetch
+    answer_pdb_id(monkeypatch, text)
+    def fail(pdb_id, progress=None):
+        raise fetch.NoSuchEntry("The Protein Data Bank has no entry 0ZZZ.")
+    monkeypatch.setattr(fetch, "download", fail)
+    skeleton_window.pdbIdButton.click()
+    assert quiet_popups[-1] == title and skeleton_window.user_pdb_file is None
+
+
+def test_preview_shows_size_and_model(skeleton_window, monkeypatch, quiet_popups):
+    from UI import messages
+    skeleton_window.previewButton.click()
+    assert quiet_popups == [messages.NO_STRUCTURE.title]
+    skeleton_window.set_pdb_file(preset("GFP"), announce=False)
+    skeleton_window.previewButton.click()
+    preview = skeleton_window.preview
+    assert "blocks" in preview.label.text() and str(preview.size['height']) in preview.label.text()
+    assert len(preview.volume.positions) > 100
+    preview.close()
+    assert not preview.volume._timer.isActive()
+
+
+def test_preview_warns_about_huge_models(skeleton_window):
+    skeleton_window.set_pdb_file(preset("GFP"), announce=False)
+    skeleton_window.pScaleSpinBox.setValue(12)
+    skeleton_window.previewButton.click()
+    assert "Too tall" in skeleton_window.preview.label.text()
+    skeleton_window.preview.close()
+
+
+def test_preview_model_stands_like_the_build():
+    # The build turns a model's smallest side upwards; the voxels must stand the same way
+    import numpy as np
+    from PDB2MC import build, pdb_manipulation as pdbm
+    from PDB2MC.structure_data import StructureData
+    from UI.voxel_view import GRID, model_voxels
+    structure = StructureData.from_file(preset("DNA"))
+    raw = pdbm.structure_to_df(structure)[['X', 'Y', 'Z']].to_numpy(dtype=float)
+    assert raw.ptp(axis=0).argmin() != 1             # this file's smallest side is not already upwards
+    positions, _ = model_voxels(structure)
+    built = build.prepare_coordinates(structure, 1)[['X', 'Y', 'Z']].to_numpy(dtype=float)
+    voxel_sides = positions.ptp(axis=0) / (GRID - 1)
+    built_sides = built.ptp(axis=0) / built.ptp(axis=0).max()
+    assert np.allclose(voxel_sides, built_sides, atol=0.08)

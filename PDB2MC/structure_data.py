@@ -65,6 +65,14 @@ def _infer_pdb_element(line, hetatm):
     return raw[0].upper()
 
 
+def _number(text):
+    """A float from a file's text, or None when it is blank or not a number ('?', '.')."""
+    try:
+        return float(text)
+    except (TypeError, ValueError):
+        return None
+
+
 def _uses_two_character_chains(lines):
     """
     Whether a PDB file writes two-character chain IDs into columns 21-22. The format has one character
@@ -191,8 +199,9 @@ class StructureData:
         return cls.from_pdb(file_path)
 
     @staticmethod
-    def _atom_dict(atom_num, atom_name, residue, chain, resid, x, y, z, element, hetatm):
+    def _atom_dict(atom_num, atom_name, residue, chain, resid, x, y, z, element, hetatm, bfactor=None):
         return {
+            'bfactor': bfactor,
             'atom_num': atom_num,
             'name': atom_name,
             'atom': atom_name,
@@ -263,7 +272,7 @@ class StructureData:
                     atom_num = len(instance.atoms) + 1
                 atom = cls._atom_dict(atom_num, atom_name, line[17:20].strip(), chain, resid,
                                       float(line[30:38]), float(line[38:46]), float(line[46:54]),
-                                      element, hetatm)
+                                      element, hetatm, _number(line[60:66]))
                 instance.atoms.append(atom)
                 serial_to_atom.setdefault(atom_num, atom)
             elif record == 'MODEL ':
@@ -332,6 +341,8 @@ class StructureData:
         instance.bonds = complete_hetatm_bonds(instance.atoms, instance.bonds, links)
 
         instance._build_sequences()
+        # AlphaFold puts its pLDDT confidence where experimental files have B-factors
+        instance.metadata['predicted'] = 'ALPHAFOLD' in instance.metadata.get('title', '').upper()
         stem = os.path.splitext(os.path.basename(file_path))[0]
         instance.metadata['id'] = pdb_id if pdb_id else stem
         instance.metadata['name'] = minecraft_name(stem)
@@ -450,6 +461,10 @@ class StructureData:
         z_coords = mmcif_dict.get('_atom_site.Cartn_z', [])
         elements = column('_atom_site.type_symbol')
         groups = column('_atom_site.group_PDB')
+        b_factors = column('_atom_site.B_iso_or_equiv')
+        # ModelCIF files (AlphaFold and other predictions) carry quality metrics such as pLDDT
+        instance.metadata['predicted'] = any(key.startswith('_ma_qa_metric') for key in mmcif_dict) or \
+            'alphafold' in instance.metadata['title'].lower()
 
         altlocs = _AltlocFilter()
         first_model = models[0] if n else None
@@ -475,7 +490,7 @@ class StructureData:
                 continue
             atom = cls._atom_dict(atom_num, atom_names[i].strip(), res_names[i].strip(), chain, resid,
                                   float(x_coords[i]), float(y_coords[i]), float(z_coords[i]),
-                                  element, groups[i].strip() == "HETATM")
+                                  element, groups[i].strip() == "HETATM", _number(b_factors[i]))
             atom['label_asym_id'] = label_asym_ids[i].strip()
             instance.atoms.append(atom)
 

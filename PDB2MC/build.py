@@ -17,7 +17,7 @@ import numpy as np
 import pandas as pd
 from scipy.spatial import cKDTree
 
-from PDB2MC import minecraft_functions as mcf, pdb_manipulation as pdbm, triggers, variables
+from PDB2MC import color_schemes, minecraft_functions as mcf, pdb_manipulation as pdbm, triggers, variables
 
 # Atoms joined into the backbone line: protein N-CA-C and the nucleic acid sugar-phosphate chain
 BACKBONE_ATOMS = ['C', 'N', 'CA', 'P', "O5'", "C5'", "C4'", "C3'", "O3'"]
@@ -122,6 +122,106 @@ def valid_chain_blocks(chain_blocks):
     """The configured chain colour list, or the default list when it is empty or has no valid block."""
     blocks = [b for b in (chain_blocks or []) if b in variables.decorative_blocks]
     return blocks or list(DEFAULT_CHAIN_BLOCKS)
+
+
+# --- size of a model ---
+
+# Height a model may take up: blocks above the lowest place a model is built from
+WORLD_HEIGHT = 320
+CHUNK = 16
+# Wider or deeper than this, a model covers so many chunks that loading them for the build takes a long time
+LARGE_FOOTPRINT = 256
+WATERS = ('HOH', 'WAT', 'DOD', 'H2O')
+# Half the width of a ribbon in angstroms (it runs along each residue's C=O bond, 1.23 A, both ways)
+RIBBON_HALF_WIDTH = 1.23
+
+
+def _model_margin(mode, config):
+    """How far, in blocks, a mode's blocks reach beyond the atom centres on each side."""
+    scale = config.get('scale', 1.0)
+    if mode == "Space Filling":
+        from PDB2MC.space_filling import DEFAULT_VDW_RADIUS, SASA_radius
+        return (DEFAULT_VDW_RADIUS + config.get('sasa_radius', SASA_radius)) * scale
+    if mode == "Ribbon":
+        return max(RIBBON_HALF_WIDTH * scale, config.get('atom_scale', 1.5) / 2 if config.get('show_hetatm') else 0)
+    sizes = [config.get('backbone_size', 1.0)]
+    if config.get('show_atoms') and mode in ("Custom", "X-Ray") or config.get('show_hetatm'):
+        sizes.append(config.get('atom_scale', 1.5))
+    if mode == "Amino Acids":
+        sizes.append(config.get('atom_scale', 1.5))
+    return max(sizes) / 2
+
+
+def model_size(structure, config, mode):
+    """
+    About how big the model of `structure` will be with `config`: {'width', 'depth', 'height'} in blocks
+    (height is the model's smallest side, which is turned upwards), 'chunks' it covers, 'atoms', and whether it
+    is 'too_tall' for the world or 'large' enough to load slowly.
+    """
+    df = pdbm.structure_to_df(structure)
+    df = df[~df['residue'].isin(WATERS)]
+    if not config.get('show_hetatm', True):
+        df = df[df['row'] == 'ATOM']
+    if df.empty:
+        raise ValueError("The structure contains no atoms.")
+    xyz = df[['X', 'Y', 'Z']].to_numpy(dtype=float) * config.get('scale', 1.0)
+    margin = _model_margin(mode, config)
+    sides = sorted((np.ptp(xyz, axis=0) + 2 * margin + 1).round().astype(int).tolist())
+    height, width, depth = sides
+    chunks = -(-width // CHUNK) * -(-depth // CHUNK)
+    return {'width': width, 'depth': depth, 'height': height, 'chunks': chunks, 'atoms': len(df),
+            'too_tall': height > WORLD_HEIGHT, 'large': max(width, depth) > LARGE_FOOTPRINT}
+
+
+def molecule_numbers(chains, structure, count=10):
+    """Colour number 1..count for each chain by its molecule: copies of one molecule share a number."""
+    groups = color_schemes.molecule_groups(chains, structure)
+    order = {group: i for i, group in enumerate(dict.fromkeys(groups.values()))}
+    return {chain: (order[group] % count) + 1 for chain, group in groups.items()}
+
+
+def color_scheme(config_data):
+    """The colour scheme in use: only while colouring by chain, which is what a scheme replaces."""
+    scheme = config_data.get('color_scheme') or "Chain"
+    if scheme not in color_schemes.SCHEMES:
+        raise ValueError(f"Unknown colour scheme: {scheme}")
+    return scheme if config_data.get('by_chain') else "Chain"
+
+
+def scheme_block_dict():
+    """Block lookup for the residue scheme labels, and their darker partners ('<label>b')."""
+    return {**color_schemes.BLOCKS, **{f"{label}b": dark_block(block) for label, block in color_schemes.BLOCKS.items()}}
+
+
+# Labels of blocks coloured by chain: chain numbers, and 'b' for their darker partners
+CHAIN_LABEL = re.compile(r"\d+b?")
+
+
+def recolor_by_residue(part, atoms, labels):
+    """
+    part with every chain-coloured block given its residue's scheme label instead. A block's residue is
+    RESIDUE_COLUMN when the part has it, else the residue of the nearest atom in `atoms`.
+    """
+    if part is None or part.empty or 'atom' not in part.columns:
+        return part
+    names = part['atom'].astype(str).to_numpy()
+    coloured = np.array([bool(CHAIN_LABEL.fullmatch(name)) for name in names], dtype=bool)
+    if not coloured.any():
+        return part
+    if RESIDUE_COLUMN in part.columns:
+        owner = part[RESIDUE_COLUMN].to_numpy(dtype=object)[coloured]
+    else:
+        if atoms is None or atoms.empty:
+            return part
+        keys = (atoms['chain'].astype(str) + ":" + atoms['resid'].astype(int).astype(str)).to_numpy()
+        _, nearest = cKDTree(atoms[['X', 'Y', 'Z']].to_numpy(dtype=float)).query(
+            part.loc[coloured, ['X', 'Y', 'Z']].to_numpy(dtype=float))
+        owner = keys[nearest]
+    dark = np.char.endswith(names[coloured].astype(str), 'b')
+    new = [labels.get(key, color_schemes.OTHER) + ("b" if is_dark else "") for key, is_dark in zip(owner, dark)]
+    part = part.copy()
+    part.loc[coloured, 'atom'] = new
+    return part
 
 
 # --- residue modifications ---
@@ -402,9 +502,18 @@ class ModelBuilder:
         self.df = prepare_coordinates(structure, config_data['scale'])
         self.chain_blocks = valid_chain_blocks(config_data.get('chain_blocks'))
         polymer_chains = self.df.loc[self.df['polymer'], 'chain']
-        self.numbers = chain_numbers(polymer_chains if len(polymer_chains) else self.df['chain'],
-                                     len(self.chain_blocks))
-        self.blocks = {**config_data['atoms'], **chain_block_dict(self.chain_blocks)}
+        chains = polymer_chains if len(polymer_chains) else self.df['chain']
+        self.scheme = color_scheme(config_data)
+        if self.scheme == "Molecule":
+            self.numbers = molecule_numbers(chains, structure, len(self.chain_blocks))
+        else:
+            self.numbers = chain_numbers(chains, len(self.chain_blocks))
+        # {'chain:resid': label} when residues are coloured by a property instead of by chain
+        self.residue_labels = None
+        if self.scheme in color_schemes.RESIDUE_SCHEMES:
+            self.residue_labels = color_schemes.residue_labels(
+                self.df[self.df['polymer']], self.scheme, structure.metadata.get('predicted', False))
+        self.blocks = {**config_data['atoms'], **chain_block_dict(self.chain_blocks), **scheme_block_dict()}
         self.mods = ResidueModifications(config_data.get('residue_mods'))
         self.written = []
         self._part_names = set()
@@ -459,8 +568,11 @@ class ModelBuilder:
         """
         if blocks is None or blocks.empty:
             return []
+        if self.residue_labels is not None:
+            blocks = recolor_by_residue(blocks, self.df if atoms is None else atoms, self.residue_labels)
         blocks = self.mods.apply(blocks, self.df if atoms is None else atoms)
-        lookup = self.blocks if block_lookup is None else {**chain_block_dict(self.chain_blocks), **block_lookup}
+        lookup = self.blocks if block_lookup is None else {**chain_block_dict(self.chain_blocks), **scheme_block_dict(),
+                                                           **block_lookup}
         written = None
         if self._write_range is not None:
             start, end = self._write_range

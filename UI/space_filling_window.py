@@ -1,6 +1,6 @@
-from PDB2MC import defaults
+from PDB2MC import color_schemes, defaults
 from PDB2MC.space_filling import SASA_radius
-from .base_mode_window import Check, Color, Gap, ModeWindow, Spin, set_enabled
+from .base_mode_window import Check, Choice, Color, Gap, ModeWindow, Spin, set_enabled
 from .custom_window import ELEMENT_ROWS
 
 
@@ -13,7 +13,8 @@ class SpaceFillingWindow(ModeWindow):
           for element, name in ELEMENT_ROWS),
         Color("otherColorBox", "Select other color:", defaults.CONCRETE_ELEMENTS['other_atom']),
         Gap(8),
-        Check("colorByChainCheck", "Color model by chain", False),
+        Check("colorByChainCheck", "Color model by:", False),
+        Choice("colorSchemeBox", "Color scheme:", list(color_schemes.SCHEMES), "Chain"),
         Check("otherMoleculeCheck", "Show other molecules", True),
         Check("meshCheck", 'Use "mesh-style" atoms', False),
         Spin("pScaleSpinBox", "Protein scale:", 1.0),
