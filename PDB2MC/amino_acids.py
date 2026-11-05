@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 
 from PDB2MC import pdb_manipulation as pdbm
-from PDB2MC.build import ModelBuilder, backbone_blocks, hetatm_blocks
+from PDB2MC.build import ModelBuilder, backbone_blocks, hetatm_blocks, part_work
 
 # Nucleotides get fixed colours
 DNA_BASES = {
@@ -65,22 +65,25 @@ def build(builder):
     centre_xyz = centres[['X', 'Y', 'Z']].to_numpy(dtype=int)
     colours = {**config.get('amino_acids', {}), **DNA_BASES,
                'other_atom': config['atoms'].get('other_atom', 'pink_concrete')}
-    builder.report(10)
+    shell = shell_offsets(radius)
+    builder.plan({**part_work(df, config), "atoms": len(centres) * len(shell)})
 
-    spheres = place(shell_offsets(radius), centre_xyz, centres['residue'].to_numpy())
+    builder.step("atoms", "Placing the residues...")
+    spheres = place(shell, centre_xyz, centres['residue'].to_numpy())
     builder.write(spheres, "atoms", atoms=centres, block_lookup=colours)
-    builder.report(50)
 
     if config["backbone"]:
+        builder.step("backbone", "Drawing the backbone...")
         backbone = backbone_blocks(df, config, builder.numbers, builder.structure.bonds)
         # The backbone inside a residue sphere is hidden anyway; leaving it out saves blocks
         backbone = without(backbone, place(filled_offsets(radius), centre_xyz, np.zeros(len(centres))))
         builder.write(backbone, "backbone")
-    builder.report(75)
 
     if config["show_hetatm"]:
+        builder.step("hetatm", "Placing the other molecules...")
         spheres, bonds = hetatm_blocks(df, builder.structure, config)
         builder.write(spheres, "hetatm")
+        builder.step("hetatm_bonds")
         builder.write(bonds, "hetatm_bonds")
     builder.report(100)
 

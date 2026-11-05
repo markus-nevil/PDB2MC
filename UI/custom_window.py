@@ -1,5 +1,5 @@
-from PDB2MC import defaults
-from .base_mode_window import Check, Color, Gap, ModeWindow, Spin, set_enabled
+from PDB2MC import color_schemes, defaults
+from .base_mode_window import Check, Choice, Color, Gap, ModeWindow, Spin, set_enabled
 
 ELEMENT_ROWS = [("C", "cColorBox"), ("O", "oColorBox"), ("N", "nColorBox"), ("S", "sColorBox"), ("P", "pColorBox")]
 
@@ -10,25 +10,24 @@ def atom_column(colors):
     return rows + [
         Color("otherColorBox", "Select other color:", colors['other_atom']),
         Gap(8),
-        Check("showAtomsCheck", "Show model atoms", True, "Show the atoms of the main models."),
-        Check("otherMoleculeCheck", "Show other molecules", True,
-              "Check to show other non-protein, DNA, or RNA molecules."),
-        Check("meshCheck", 'Use "mesh-style" atoms', False, "Check to show mesh-style atoms: many fewer blocks"),
-        Spin("aScaleSpinBox", "Atom scale:", 1.5, "Change the diameter (rounded up) of each atom."),
+        Check("showAtomsCheck", "Show model atoms", True),
+        Check("otherMoleculeCheck", "Show other molecules", True),
+        Check("meshCheck", 'Use "mesh-style" atoms', False),
+        Spin("aScaleSpinBox", "Atom scale:", 1.5),
     ]
 
 
 BACKBONE_COLUMN = [
     Color("backboneColorBox", "Select backbone color:", "gray_concrete"),
-    Check("showBackboneCheck", "Show backbone", True, "Show the N-C-C backbone of the main models."),
-    Check("colorByChainCheck", "Color backbone by chain", False,
-          "Color the backbones of the main models by the molecule number."),
-    Spin("backboneScaleSpinBox", "Backbone scale:", 1.0, "Scale the width of the backbone by this factor."),
+    Check("showBackboneCheck", "Show backbone", True),
+    Check("colorByChainCheck", "Color backbone by:", False),
+    Choice("colorSchemeBox", "Color scheme:", list(color_schemes.SCHEMES), "Chain"),
+    Spin("backboneScaleSpinBox", "Backbone scale:", 1.0),
     Gap(8),
     Color("sidechainColorBox", "Select sidechain color:", "gray_concrete"),
-    Check("showSidechainCheck", "Show sidechain", True, "Show amino acid R-groups"),
+    Check("showSidechainCheck", "Show sidechain", True),
     Gap(8),
-    Spin("pScaleSpinBox", "Protein scale:", 1.0, "Scale the entire model by this factor."),
+    Spin("pScaleSpinBox", "Protein scale:", 1.0),
 ]
 
 

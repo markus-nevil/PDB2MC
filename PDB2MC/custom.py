@@ -1,5 +1,5 @@
 """Custom and X-Ray modes: atom spheres, backbone, sidechain bonds and HETATMs (X-Ray uses glass colours)."""
-from PDB2MC.build import ModelBuilder, atom_spheres, backbone_blocks, hetatm_blocks, sidechain_blocks
+from PDB2MC.build import ModelBuilder, atom_spheres, backbone_blocks, hetatm_blocks, part_work, sidechain_blocks
 
 
 def build(builder):
@@ -7,23 +7,25 @@ def build(builder):
     config = builder.config
     df = builder.df
     mesh = config.get('mesh', False)
-    builder.report(5)
+    builder.plan(part_work(df, config))
 
     if config["backbone"]:
+        builder.step("backbone", "Drawing the backbone...")
         builder.write(backbone_blocks(df, config, builder.numbers, builder.structure.bonds), "backbone")
-    builder.report(25)
 
     if config["sidechain"]:
+        builder.step("sidechain", "Drawing the side chains...")
         builder.write(sidechain_blocks(df, config, builder.numbers), "sidechain")
-    builder.report(45)
 
     if config.get("show_atoms", True):
+        builder.step("atoms", "Placing the atoms...")
         builder.write(atom_spheres(df[df['row'] == 'ATOM'], config['atom_scale'], mesh=mesh), "atoms")
-    builder.report(80)
 
     if config["show_hetatm"]:
+        builder.step("hetatm", "Placing the other molecules...")
         spheres, bonds = hetatm_blocks(df, builder.structure, config, mesh=mesh)
         builder.write(spheres, "hetatm")
+        builder.step("hetatm_bonds")
         builder.write(bonds, "hetatm_bonds")
     builder.report(100)
 

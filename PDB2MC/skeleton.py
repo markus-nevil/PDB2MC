@@ -1,6 +1,6 @@
 """Skeleton mode: backbone, sidechain bonds and HETATM ball-and-stick."""
 from PDB2MC.build import (  # noqa: F401  (re-exported for callers of the old skeleton API)
-    BACKBONE_ATOMS, NOT_SIDECHAIN_ATOMS, ModelBuilder, backbone_blocks, chain_numbers, hetatm_blocks,
+    BACKBONE_ATOMS, NOT_SIDECHAIN_ATOMS, ModelBuilder, backbone_blocks, chain_numbers, hetatm_blocks, part_work,
     prepare_coordinates, sidechain_blocks,
 )
 
@@ -10,19 +10,23 @@ def build(builder):
     config = builder.config
     df = builder.df
     bonds = builder.structure.bonds
-    builder.report(10)
+    work = part_work(df, config)
+    work.pop("atoms")
+    builder.plan(work)
 
     if config["backbone"]:
+        builder.step("backbone", "Drawing the backbone...")
         builder.write(backbone_blocks(df, config, builder.numbers, bonds), "backbone")
-    builder.report(40)
 
     if config["sidechain"]:
+        builder.step("sidechain", "Drawing the side chains...")
         builder.write(sidechain_blocks(df, config, builder.numbers), "sidechain")
-    builder.report(70)
 
     if config["show_hetatm"]:
+        builder.step("hetatm", "Placing the other molecules...")
         spheres, bond_blocks = hetatm_blocks(df, builder.structure, config)
         builder.write(spheres, "hetatm")
+        builder.step("hetatm_bonds")
         builder.write(bond_blocks, "hetatm_bonds")
     builder.report(100)
 

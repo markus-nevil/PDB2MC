@@ -5,6 +5,7 @@ from shutil import copy
 from zipfile import ZipFile
 import re
 import shutil
+import threading
 import numpy as np
 from concurrent.futures import ThreadPoolExecutor
 from PDB2MC.nbt_writer import write_structure, read_positions
@@ -182,7 +183,7 @@ def delete_nbt_mcfunctions_from_dir(save_directory):
                 if filename.endswith(".mcfunction"):
                     with open(os.path.join(directory, filename), 'r') as f:
                         contents = f.read()
-                    if "setblock" in contents or "place" in contents:
+                    if "setblock" in contents or "place" in contents or "pdb2mc:models/" in contents:
                         files_to_delete.append(os.path.join(directory, filename))
                 if filename.endswith(".nbt"):
                     files_to_delete.append(os.path.join(directory, filename))
@@ -389,15 +390,33 @@ def create_simple_function(name, directory):
     # create_structure_from_mcfunction(pdb_name, directory, functions)
 
 
-def _write_structure(coords, block_types, path):
-    return write_structure(path, coords, block_types)
+def _write_structure(coords, block_types, path, progress=None):
+    return write_structure(path, coords, block_types, progress=progress)
 
 
-def process_nbt_chunk(chunk, block_dict, air, dir, name, idx, delete_too=False):
+class _FileProgress:
+    """Overall fraction of several files being written at once; `callback` gets a value from 0 to 1."""
+
+    def __init__(self, files, callback):
+        self._fractions = [0.0] * files
+        self._callback = callback
+        self._lock = threading.Lock()
+
+    def file(self, index):
+        def report(fraction):
+            with self._lock:
+                self._fractions[index] = fraction
+                self._callback(sum(self._fractions) / len(self._fractions))
+        return report
+
+
+def process_nbt_chunk(chunk, block_dict, air, dir, name, idx, delete_too=False, progress=None):
     """
     Write one <name>_part<idx>.nbt into dir; with delete_too also the matching all-air
     delete_<name>_part<idx>.nbt used by the clear_ function. Returns the written paths.
+    progress(i) gives the fraction callback of file i of this chunk (0: the part, 1: its delete_ file).
     """
+    progress = progress or (lambda file: None)
     # np.array copies: under pandas copy-on-write, .values is read-only and += would fail
     coords = np.array(chunk[['X', 'Y', 'Z']].to_numpy(dtype=float).round(), dtype=int)
     coords[:, 0] += 40
@@ -423,40 +442,58 @@ def process_nbt_chunk(chunk, block_dict, air, dir, name, idx, delete_too=False):
     if air:
         block_types[:] = 'air'
 
-    paths = [_write_structure(coords, block_types, os.path.join(dir, f"{name.lower()}_part{idx}.nbt"))]
+    paths = [_write_structure(coords, block_types, os.path.join(dir, f"{name.lower()}_part{idx}.nbt"),
+                              progress=progress(0))]
     if delete_too and not air:
         paths.append(_write_structure(coords, np.full(len(coords), 'air', dtype=object),
-                                      os.path.join(dir, f"delete_{name.lower()}_part{idx}.nbt")))
+                                      os.path.join(dir, f"delete_{name.lower()}_part{idx}.nbt"),
+                                      progress=progress(1)))
     return paths
 
 
-def create_nbt(df, name, air, dir, blocks, num_threads=4):
+def create_nbt(df, name, air, dir, blocks, num_threads=4, progress=None):
     """
     Write df (X, Y, Z[, atom]) as up to num_threads structure parts <name>_part<i>.nbt, plus the matching
     delete_ structures, into every structure folder of the world. dir is the datapack functions folder.
-    Errors are raised rather than silently lost in the worker threads.
+    Errors are raised rather than silently lost in the worker threads. progress gets the fraction done (0-1).
     """
     dirs = structure_dirs(dir)
     if df is None or df.empty:
         return []
     # One block per position. Later rows win, matching the order the parts are placed in game
     df = df.drop_duplicates(subset=['X', 'Y', 'Z'], keep='last')
+    # Each part gets its own slice of the model along its longest side. After placing a structure, Minecraft
+    # walks every voxel of the structure's bounding box, so parts that all span the whole model freeze the
+    # server for many seconds on a wide model
+    extents = df[['X', 'Y', 'Z']].max() - df[['X', 'Y', 'Z']].min()
+    df = df.sort_values(extents.idxmax(), kind='stable')
     # Split by row position (np.array_split on a DataFrame no longer works with pandas 3)
     bounds = np.linspace(0, len(df), min(num_threads, len(df)) + 1).astype(int)
     chunks = [df.iloc[start:end] for start, end in zip(bounds[:-1], bounds[1:]) if end > start]
-    results = _run_all([(process_nbt_chunk, chunk, blocks, air, dirs[0], name, idx, True)
+    report = progress or (lambda fraction: None)
+    # Each chunk is written as a part and its delete_ structure; 10% is left for the copy to the other folders
+    files = _FileProgress(2 * len(chunks), lambda fraction: report(0.9 * fraction))
+
+    def chunk_files(idx):
+        return lambda file: files.file(2 * idx + file)
+
+    results = _run_all([(process_nbt_chunk, chunk, blocks, air, dirs[0], name, idx, True, chunk_files(idx))
                         for idx, chunk in enumerate(chunks)], max_workers=num_threads)
     written = [p for paths in results for p in paths]
     _mirror_files(written, dirs[0], dirs)
+    report(1.0)
     return written
 
 
-def create_nbt_function(mcfiles, pdb_name, directory):
-    lower_pdb_name = pdb_name.lower()
-
+def _sorted_structures(mcfiles):
     # sort df by the naming convention
-    mcfiles['group'] = mcfiles['group'].astype(str)
-    mcfiles = mcfiles.sort_values('group', key=lambda x: x.str.split('_').str[1])
+    mcfiles = mcfiles.assign(group=mcfiles['group'].astype(str))
+    return mcfiles.sort_values('group', key=lambda x: x.str.split('_').str[1])
+
+
+def nbt_function_text(mcfiles):
+    """The commands that build a model from its structures (backbone and sidechains last)."""
+    mcfiles = _sorted_structures(mcfiles)
 
     sidechain_backbone = mcfiles[mcfiles['group'].str.contains("sidechain|backbone")]
 
@@ -466,26 +503,28 @@ def create_nbt_function(mcfiles, pdb_name, directory):
     # Append the extracted rows to the end of the DataFrame
     mcfiles = pd.concat([mcfiles, sidechain_backbone], ignore_index=True)
 
-    with open(os.path.join(directory, f"build_{lower_pdb_name}.mcfunction"), 'w') as f:
-        #f.write(extract_remarks_from_pdb(pdb_file, lower_pdb_name))
-        #f.write(f'tp @s ~ ~ ~ facing {first_block[0]} {first_block[1]} {first_block[2]}\n')
-        f.write(f'setblock ~ ~-1 ~ minecraft:obsidian replace\n')
-        f.write(f'say Loading... please wait. May take some time.\n')
-        #f.write(f'place template mc:{lower_pdb_name}')
-        for item in mcfiles['group']:
-            f.write(f'place template {STRUCTURE_NAMESPACE}:{item}\n')
-    return [os.path.join(directory, f"build_{lower_pdb_name}.mcfunction")]
+    lines = ['setblock ~ ~-1 ~ minecraft:obsidian replace\n',
+             'say Loading... please wait. May take some time.\n']
+    lines += [f'place template {STRUCTURE_NAMESPACE}:{item}\n' for item in mcfiles['group']]
+    return "".join(lines)
+
+
+def create_nbt_function(mcfiles, pdb_name, directory):
+    path = os.path.join(directory, f"build_{pdb_name.lower()}.mcfunction")
+    with open(path, 'w') as f:
+        f.write(nbt_function_text(mcfiles))
+    return [path]
 
 
 def create_individual_nbt_functions(mcfiles, directory):
     mcfiles_list = mcfiles.values.flatten().tolist()
     written = []
     for file in mcfiles_list:
-        basename = os.path.splitext(file)[0]
-        path = os.path.join(directory, f"build_{basename}.mcfunction")
+        # These are structure names, not file names: a dot in a model's name does not start an extension
+        path = os.path.join(directory, f"build_{file}.mcfunction")
         with open(path, 'w') as f:
             f.write(f'setblock ~ ~-1 ~ minecraft:obsidian replace\n')
-            f.write(f'say Loading {basename}... please wait. May take some time.\n')
+            f.write(f'say Loading {file}... please wait. May take some time.\n')
             f.write(f'place template {STRUCTURE_NAMESPACE}:{file}\n')
         written.append(path)
     return written
@@ -520,18 +559,17 @@ def create_nbt_delete(pdb_name, mc_dir):
     _mirror_files(written, nbt_dir, dirs)
 
 
+def nbt_delete_function_text(mcfiles):
+    """The commands that place a model's all-air structures, clearing it around the current position."""
+    return "".join(f'place template {STRUCTURE_NAMESPACE}:{item}\n' for item in _sorted_structures(mcfiles)['group'])
+
+
 def create_nbt_delete_function(mcfiles, pdb_name, directory):
-    lower_pdb_name = pdb_name.lower()
-
-    # sort df by the naming convention
-    mcfiles['group'] = mcfiles['group'].astype(str)
-    mcfiles = mcfiles.sort_values('group', key=lambda x: x.str.split('_').str[1])
-
-    with open(os.path.join(directory, f"clear_{lower_pdb_name}.mcfunction"), 'w') as f:
-        f.write(f'say Removing... must be standing on original obsidian block.\n')
-        for item in mcfiles['group']:
-            f.write(f'place template {STRUCTURE_NAMESPACE}:{item}\n')
-    return [os.path.join(directory, f"clear_{lower_pdb_name}.mcfunction")]
+    path = os.path.join(directory, f"clear_{pdb_name.lower()}.mcfunction")
+    with open(path, 'w') as f:
+        f.write('say Removing... must be standing on original obsidian block.\n')
+        f.write(nbt_delete_function_text(mcfiles))
+    return [path]
 
 
 def copy_directory_contents(src, dest):

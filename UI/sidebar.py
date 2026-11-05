@@ -1,6 +1,8 @@
 from PyQt6 import QtCore, QtGui, QtWidgets
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QFrame, QLabel, QPushButton
 
+from . import tooltips
+
 # Master constants (change these to adjust sidebar globally)
 SIDEBAR_WIDTH = 110            # master sidebar width (px)
 SIDEBAR_PADDING = 12           # horizontal padding inside sidebar
@@ -213,6 +215,6 @@ class Sidebar(QWidget):
                 avail = max(8, btn.width() - 8)
                 elided = fm.elidedText(orig, QtCore.Qt.TextElideMode.ElideRight, avail)
                 btn.setText(elided)
-                btn.setToolTip(orig)
+                btn.setToolTip(tooltips.tip(tooltips.SIDEBAR, orig))
             except Exception:
                 pass

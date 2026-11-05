@@ -2,8 +2,9 @@
 import copy
 
 from PDB2MC.build import DEFAULT_CHAIN_BLOCKS
+from PDB2MC.space_filling import SASA_radius
 
-MODES = ["Custom", "Skeleton", "X-Ray", "Space Filling", "Ribbon", "Amino Acids"]
+MODES =["Custom", "Skeleton", "X-Ray", "Space Filling", "Ribbon", "Amino Acids"]
 
 # Fixed atom colours used where a mode has no colour choice for them
 BASE_ATOMS = {
@@ -96,6 +97,42 @@ AMINO_ACID_STYLES = {
 },
 }
 
+# Metal ions: element symbol as it appears in structure files -> (name, default block). Every mode colours a
+# metal with this block (Tools > Metal Ion Settings overrides it, see user_settings.metal_blocks).
+METAL_IONS = {
+    "LI": ("Lithium", "red_concrete"),
+    "NA": ("Sodium", "yellow_concrete"),
+    "K": ("Potassium", "purple_concrete"),
+    "RB": ("Rubidium", "magenta_concrete"),
+    "CS": ("Cesium", "orange_concrete"),
+    "MG": ("Magnesium", "lime_concrete"),
+    "CA": ("Calcium", "calcite"),
+    "SR": ("Strontium", "red_wool"),
+    "BA": ("Barium", "lime_wool"),
+    "AL": ("Aluminium", "light_gray_concrete"),
+    "V": ("Vanadium", "cyan_concrete"),
+    "CR": ("Chromium", "green_concrete"),
+    "MN": ("Manganese", "amethyst_block"),
+    "FE": ("Iron", "iron_block"),
+    "CO": ("Cobalt", "lapis_block"),
+    "NI": ("Nickel", "emerald_block"),
+    "CU": ("Copper", "copper_block"),
+    "ZN": ("Zinc", "prismarine"),
+    "MO": ("Molybdenum", "coal_block"),
+    "CD": ("Cadmium", "yellow_glazed_terracotta"),
+    "W": ("Tungsten", "netherite_block"),
+    "PT": ("Platinum", "quartz_block"),
+    "AU": ("Gold", "gold_block"),
+    "AG": ("Silver", "diamond_block"),
+    "HG": ("Mercury", "redstone_block"),
+    "PB": ("Lead", "gray_concrete"),
+}
+
+
+def default_metal_blocks():
+    return {metal: block for metal, (_, block) in METAL_IONS.items()}
+
+
 _COMMON = {
     'backbone_size': 1.0,
     'atom_scale': 1.5,
@@ -110,13 +147,14 @@ _COMMON = {
     'bar_style': False,
     'chain_blocks': list(DEFAULT_CHAIN_BLOCKS),
     'residue_mods': {},
+    'color_scheme': 'Chain',
 }
 
 
 def default_config(mode):
     """Build settings of a mode as its window starts out (without pdb_file / save_path)."""
     config = copy.deepcopy(_COMMON)
-    atoms = dict(BASE_ATOMS, other_atom='pink_concrete', backbone_atom='gray_concrete',
+    atoms = dict(BASE_ATOMS, **default_metal_blocks(), other_atom='pink_concrete', backbone_atom='gray_concrete',
                  sidechain_atom='gray_concrete')
     if mode == "Custom":
         atoms.update(CONCRETE_ELEMENTS)
@@ -124,7 +162,7 @@ def default_config(mode):
         atoms.update(GLASS_ELEMENTS)
     elif mode == "Space Filling":
         atoms.update(CONCRETE_ELEMENTS)
-        config.update(atom_scale=1.0)
+        config.update(atom_scale=1.0, sasa_radius=SASA_radius)
     elif mode == "Ribbon":
         atoms['ribbon_atom'] = 'red_concrete'
         config.update(sidechain=False, by_chain=True)

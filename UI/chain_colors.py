@@ -3,6 +3,7 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 
 from PDB2MC.build import DEFAULT_CHAIN_BLOCKS
 from PDB2MC.variables import decorative_blocks, hex_dict
+from . import tooltips
 
 
 def block_icon(block, size=16):
@@ -59,7 +60,10 @@ class ChainColorDialog(QtWidgets.QDialog):
         self.down_button = QtWidgets.QPushButton("Down", self)
         self.remove_button = QtWidgets.QPushButton("Remove", self)
         self.reset_button = QtWidgets.QPushButton("Default", self)
-        self.reset_button.setToolTip("Restore the preset chain colours")
+        for widget, name in ((self.list, "list"), (self.entry, "entry"), (self.add_button, "add"),
+                             (self.up_button, "up"), (self.down_button, "down"), (self.remove_button, "remove"),
+                             (self.reset_button, "reset")):
+            widget.setToolTip(tooltips.tip(tooltips.CHAIN_DIALOG, name))
         for button in (self.up_button, self.down_button, self.remove_button, self.reset_button):
             button_row.addWidget(button)
         layout.addLayout(button_row)

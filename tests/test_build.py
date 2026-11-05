@@ -331,3 +331,266 @@ def test_unknown_mode():
         build.mode_module("Nope")
     with pytest.raises(ValueError):
         defaults.default_config("Nope")
+
+
+# --- SASA radius ---
+
+def surface_blocks(mc_dir, radius):
+    config = defaults.default_config("Space Filling")
+    config.update(pdb_file=preset("Helix"), save_path=mc_dir, sasa_radius=radius)
+    build.build_model("Space Filling", config)
+    directory = mcf.structure_dirs(mc_dir)[0]
+    return sum(len(read_positions(os.path.join(directory, f))) for f in os.listdir(directory)
+               if f.startswith("helix_surface"))
+
+
+def test_sasa_radius_changes_the_surface(mc_dir):
+    assert surface_blocks(mc_dir, 3.0) > surface_blocks(mc_dir, 1.4) > surface_blocks(mc_dir, 0.0) > 0
+
+
+def test_sasa_radius_default_is_the_water_probe():
+    assert defaults.default_config("Space Filling")['sasa_radius'] == space_filling.SASA_radius == 1.4
+
+
+def test_sas_surface_uses_the_radius_it_is_given():
+    atoms = build.prepare_coordinates(pdbm.load_structure(preset("ALA")), 2.0).reset_index(drop=True)
+    small, _ = space_filling.sas_surface(atoms, 2.0, probe_radius=0.5)
+    large, _ = space_filling.sas_surface(atoms, 2.0, probe_radius=2.5)
+    assert np.ptp(large, axis=0).max() > np.ptp(small, axis=0).max()
+
+
+def test_faster_voxel_search_gives_the_same_result():
+    """sas_surface numbers the voxels instead of using np.unique(axis=0); which atom owns a voxel must not change."""
+    voxels = np.random.default_rng(0).integers(-50, 50, size=(5000, 3))
+    coords, first = np.unique(voxels, axis=0, return_index=True)
+    low = voxels.min(axis=0)
+    span = voxels.max(axis=0) - low + 1
+    keys = ((voxels[:, 0] - low[0]) * span[1] + voxels[:, 1] - low[1]) * span[2] + voxels[:, 2] - low[2]
+    _, fast = np.unique(keys, return_index=True)
+    assert (fast == first).all() and (voxels[fast] == coords).all()
+
+
+# --- model names ---
+
+@pytest.mark.parametrize("typed, expected", [
+    ("1UBQ", "1ubq"), ("My Model", "my-model"), ("gfp_red", "gfp-red"), ("  a  b ", "a-b"), ("../../x", "x"),
+    ("v1.2", "v1.2"), ("Ünï", "n"), ("---", ""), ("", ""),
+])
+def test_custom_model_names(typed, expected):
+    assert build.custom_model_name(typed) == expected
+
+
+def test_custom_name_replaces_the_structure_name(mc_dir, skeleton_config):
+    skeleton_config.update(pdb_file=preset("Helix"), save_path=mc_dir, model_name="My Helix")
+    assert build.build_model("Skeleton", skeleton_config) == "my-helix"
+    functions = os.listdir(mcf.function_dirs(mc_dir)[0])
+    assert "build_my-helix.mcfunction" in functions and "clear_my-helix.mcfunction" in functions
+    assert any(f.startswith("my-helix_") for f in os.listdir(mcf.structure_dirs(mc_dir)[0]))
+
+
+def test_blank_name_uses_the_structure_name(mc_dir, skeleton_config):
+    skeleton_config.update(pdb_file=preset("Helix"), save_path=mc_dir, model_name="  ")
+    assert build.build_model("Skeleton", skeleton_config) == "helix"
+
+
+def test_similar_custom_names_do_not_touch_each_other(mc_dir, skeleton_config):
+    """With '_' allowed, "gfp_red" would count as a part of "gfp" and be deleted when "gfp" is rebuilt."""
+    skeleton_config.update(pdb_file=preset("Helix"), save_path=mc_dir)
+    build.build_model("Skeleton", {**skeleton_config, 'model_name': "gfp_red"})
+    build.build_model("Skeleton", {**skeleton_config, 'model_name': "gfp"})
+    build.build_model("Skeleton", {**skeleton_config, 'model_name': "gfp"})
+    assert "build_gfp-red.mcfunction" in os.listdir(mcf.function_dirs(mc_dir)[0])
+
+
+def test_dotted_name_with_per_part_functions(mc_dir, skeleton_config):
+    """Each part needs its own function; os.path.splitext used to cut 'v1.2_backbone_part0' down to 'v1'."""
+    skeleton_config.update(pdb_file=preset("Helix"), save_path=mc_dir, model_name="v1.2", simple=False)
+    build.build_model("Skeleton", skeleton_config)
+    functions = os.listdir(mcf.function_dirs(mc_dir)[0])
+    assert "build_v1.2_backbone_part0.mcfunction" in functions
+    assert len([f for f in functions if f.startswith("build_")]) > 2
+
+
+# --- metal ions ---
+
+def all_blocks(mc_dir, prefix):
+    """The set of blocks in every structure part of a model whose name starts with prefix."""
+    directory = mcf.structure_dirs(mc_dir)[0]
+    blocks = set()
+    for filename in os.listdir(directory):
+        if filename.startswith(prefix):
+            blocks |= set(read_blocks(os.path.join(directory, filename)).values())
+    return blocks
+
+
+METAL_PDB = "".join(pdb_line("HETATM", i + 1, name, name, "A", 200 + i, 3.0 * i, 0, 0, element)
+                    for i, (name, element) in enumerate([("ZN", "ZN"), ("CA", "CA"), ("FE", "FE"), ("XE", "XE")]))
+PROTEIN_ATOM = pdb_line("ATOM", 10, "CA", "ALA", "A", 1, 20, 20, 20, "C")
+
+
+@pytest.mark.parametrize("mode", ["Custom", "Skeleton", "X-Ray", "Space Filling", "Ribbon", "Amino Acids"])
+def test_metal_ions_use_their_blocks_in_every_mode(mode, mc_dir, write_pdb):
+    config = defaults.default_config(mode)
+    config['atoms'].update(ZN="gold_block", CA="stone", other_atom="dirt")
+    # Ribbons need more than one atom, and this test is about the metals
+    pdb = METAL_PDB if mode == "Ribbon" else METAL_PDB + PROTEIN_ATOM
+    config.update(pdb_file=write_pdb(pdb), save_path=mc_dir, scale=3.0)
+    build.build_model(mode, config)
+    blocks = all_blocks(mc_dir, "test_hetatm")
+    assert {"gold_block", "stone", "iron_block", "dirt"} <= blocks       # xenon is not a metal: "other" colour
+
+
+def test_calcium_setting_leaves_alpha_carbons_alone(mc_dir, write_pdb):
+    """'CA' is both calcium and the alpha carbon atom name."""
+    config = defaults.default_config("Custom")
+    config['atoms'].update(CA="stone", C="black_wool")
+    pdb = pdb_line("ATOM", 1, "CA", "ALA", "A", 1, 0, 0, 0, "C") + pdb_line("ATOM", 2, "CB", "ALA", "A", 1, 1.5, 0, 0, "C")
+    config.update(pdb_file=write_pdb(pdb), save_path=mc_dir, atom_scale=1.0)
+    build.build_model("Custom", config)
+    assert all_blocks(mc_dir, "test_atoms") == {"black_wool"}
+
+
+# --- progress ---
+
+ALL_MODES = ["Custom", "Skeleton", "X-Ray", "Space Filling", "Ribbon", "Amino Acids"]
+
+
+def run_with_progress(mode, mc_dir, structure="Helix", **changes):
+    config = defaults.default_config(mode)
+    config.update(pdb_file=preset(structure), save_path=mc_dir, scale=2.0, **changes)
+    values, messages = [], []
+    build.build_model(mode, config, progress=values.append, status=messages.append)
+    return values, messages
+
+
+@pytest.mark.parametrize("mode", ALL_MODES)
+def test_progress_rises_steadily_to_100(mode, mc_dir):
+    values, messages = run_with_progress(mode, mc_dir)
+    assert values == sorted(set(values)) and values[0] == 0 and values[-1] == 100
+    assert all(isinstance(value, int) for value in values)
+    assert len(values) >= 12                                     # used to be about 8 steps
+    assert max(b - a for a, b in zip(values, values[1:])) <= 34  # no big jumps
+    assert messages[0] == "Reading structure file..." and messages[-1] == "Done!"
+    assert len(messages) >= 4
+
+
+def test_progress_handles_switched_off_parts(mc_dir):
+    values, _ = run_with_progress("Custom", mc_dir, backbone=False, sidechain=False, show_atoms=False,
+                                  show_hetatm=False)
+    assert values == sorted(set(values)) and values[-1] == 100
+
+
+def test_surface_search_reports_as_it_goes():
+    fractions = []
+    centres = np.random.default_rng(1).random((500, 3)) * 30
+    space_filling.accessible_points(centres, np.full(500, 3.0), progress=fractions.append)
+    assert len(fractions) >= space_filling.MIN_BATCHES and fractions == sorted(fractions) and fractions[-1] == 1.0
+
+
+def test_surface_search_with_fewer_atoms_than_batches():
+    points, owners = space_filling.accessible_points(np.zeros((1, 3)), np.array([2.0]))
+    assert len(points) >= space_filling.MIN_POINTS and set(owners) == {0}
+
+
+def test_chain_order_of_ribbon_work():
+    """A DNA strand is far slower than a protein chain of the same size; the bar has to know."""
+    from PDB2MC import ribbon
+    protein = pd.DataFrame({"residue": ["ALA"] * 100})
+    dna = pd.DataFrame({"residue": ["DA"] * 100})
+    assert ribbon.chain_work(dna) > 3 * ribbon.chain_work(protein) > 0
+    assert ribbon.chain_work(pd.DataFrame({"residue": ["XYZ"] * 100})) == 0
+
+
+def test_progress_object_never_falls_and_skips_repeats():
+    seen = []
+    progress = build.Progress(seen.append)
+    for value in (0, 10.2, 10.9, 5, 50, 500):
+        progress.update(value)
+    assert seen == [0, 10, 50, 100]
+
+
+def test_progress_span_maps_a_part_of_the_work():
+    seen = []
+    build.Progress(seen.append).span(20, 40)(50)
+    assert seen == [30]
+
+
+def test_plan_gives_steps_room_by_work():
+    class Host(build.ModelBuilder):
+        def __init__(self):
+            self._position, self._steps, self._write_range = 0, {}, None
+            self._progress, self._status = reported.append, messages.append
+
+    reported, messages = [], []
+    host = Host()
+    host.plan({"a": 1, "b": 0, "c": 3})
+    host.step("a", "first")
+    host.step("c")
+    assert reported == [0, 25] and messages == ["first"]
+    assert host._steps["b"] == (25, 25)
+
+
+def test_on_structure_receives_the_structure(mc_dir, skeleton_config):
+    skeleton_config.update(pdb_file=preset("Helix"), save_path=mc_dir)
+    seen = []
+    build.build_model("Skeleton", skeleton_config, on_structure=seen.append)
+    assert seen[0].name == "helix"
+
+
+# --- structure parts ---
+
+def test_parts_are_slices_of_the_model(mc_dir):
+    """Minecraft walks the bounding box of each placed structure: parts must not all span the whole model."""
+    x = np.random.default_rng(2).permutation(1000)
+    df = pd.DataFrame({'X': x, 'Y': 0, 'Z': 0, 'atom': 'C'})
+    mcf.create_nbt(df, "wide_atoms", False, mc_dir, {'C': 'stone'})
+    directory = mcf.structure_dirs(mc_dir)[0]
+    spans = [np.ptp(read_positions(os.path.join(directory, f"wide_atoms_part{i}.nbt"))[:, 0]) for i in range(4)]
+    assert max(spans) < 300
+
+
+def test_read_positions_matches_the_slow_reader(tmp_path):
+    from nbt import nbt
+    from PDB2MC.nbt_writer import write_structure
+    coords = np.array([[0, 1, 2], [-5, 70, 300], [7, 7, 7]])
+    path = write_structure(str(tmp_path / "s.nbt"), coords, ["stone", "dirt", "stone"])
+    slow = [[int(v.value) for v in block["pos"]] for block in nbt.NBTFile(path)["blocks"]]
+    assert read_positions(path).tolist() == slow == coords.tolist()
+
+
+def test_read_positions_of_an_empty_structure(tmp_path):
+    from PDB2MC.nbt_writer import write_structure
+    path = write_structure(str(tmp_path / "s.nbt"), np.zeros((0, 3), dtype=int), [])
+    assert read_positions(path).shape == (0, 3)
+
+
+def test_read_positions_of_a_file_saved_by_minecraft(tmp_path):
+    """Vanilla structure files have their keys in another order."""
+    from nbt import nbt
+    root = nbt.NBTFile()
+    root.name = ""
+    block = nbt.TAG_Compound()
+    block.tags.append(nbt.TAG_Int(name="state", value=0))
+    pos = nbt.TAG_List(name="pos", type=nbt.TAG_Int)
+    pos.tags.extend(nbt.TAG_Int(value=v) for v in (1, 2, 3))
+    block.tags.append(pos)
+    blocks = nbt.TAG_List(name="blocks", type=nbt.TAG_Compound)
+    blocks.tags.append(block)
+    root.tags.append(blocks)
+    path = str(tmp_path / "vanilla.nbt")
+    root.write_file(path)
+    assert read_positions(path).tolist() == [[1, 2, 3]]
+
+
+def test_write_structure_reports_up_to_one(tmp_path):
+    from PDB2MC.nbt_writer import write_structure
+    seen = []
+    write_structure(str(tmp_path / "s.nbt"), np.zeros((50000, 3), dtype=int), ["stone"] * 50000, progress=seen.append)
+    assert seen == sorted(seen) and seen[-1] == 1.0 and len(seen) >= 2
+
+
+def test_create_nbt_reports_up_to_one(mc_dir):
+    seen = []
+    df = pd.DataFrame({'X': range(1000), 'Y': 0, 'Z': 0})
+    mcf.create_nbt(df, "m_backbone", False, mc_dir, {'backbone_atom': 'stone'}, progress=seen.append)
+    assert seen[-1] == 1.0 and max(seen) == 1.0

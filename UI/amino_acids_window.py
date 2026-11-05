@@ -13,21 +13,20 @@ _RESIDUE_ROWS = [Color(residue_box(code), f"{defaults.AMINO_ACID_NAMES[code]}:",
 class AminoAcidsWindow(ModeWindow):
     MODE_NAME = "Amino Acids"
     TITLE = "Amino Acid Mode"
+    # The file and Minecraft controls sit under the first column of residues; the other options under the second
     OPTION_COLUMNS = [
         _RESIDUE_ROWS[:10],
-        _RESIDUE_ROWS[10:],
-        [
-            Choice("colorStyleBox", "Color style:", list(defaults.AMINO_ACID_STYLES), "Residue",
-                   "Fill in the residue colours from a preset style"),
+        _RESIDUE_ROWS[10:] + [
+            Gap(14),
+            Choice("colorStyleBox", "Color style:", list(defaults.AMINO_ACID_STYLES), "Residue"),
             Gap(8),
             Color("backboneColorBox", "Select backbone:", "gray_concrete"),
-            Check("showBackboneCheck", "Show backbone", True, "Show the N-C-C backbone of the main models."),
-            Spin("backboneScaleSpinBox", "Backbone scale:", 1.0, "Scale the width of the backbone by this factor."),
+            Check("showBackboneCheck", "Show backbone", True),
+            Spin("backboneScaleSpinBox", "Backbone scale:", 1.0),
             Gap(8),
-            Spin("aScaleSpinBox", "Residue scale:", 1.5, "Change the diameter (rounded up) of each residue."),
-            Spin("pScaleSpinBox", "Protein scale:", 1.0, "Scale the entire model by this factor."),
-            Check("otherMoleculeCheck", "Show other molecules", True,
-                  "Check to show other non-protein, DNA, or RNA molecules."),
+            Spin("aScaleSpinBox", "Residue scale:", 1.5),
+            Spin("pScaleSpinBox", "Protein scale:", 1.0),
+            Check("otherMoleculeCheck", "Show other molecules", True),
         ],
     ]
 

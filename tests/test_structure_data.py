@@ -52,6 +52,56 @@ def test_conect_bonds_deduplicated_and_hetatm_only(write_pdb):
     assert pairs == [(1, 3), (3, 4)]   # ATOM-ATOM bond 1-2 skipped, 3-4 listed twice kept once
 
 
+def wide_chain(line, chain):
+    """A pdb_line with a two-character chain ID in columns 21-22, the way large structures are saved."""
+    return line[:20] + f"{chain:>2}" + line[22:]
+
+
+def record(text, **columns):
+    """An 80-column record: `text` at the start, then each value at its 1-based column ({column: value})."""
+    line = list(f"{text:<80}")
+    for column, value in columns.items():
+        start = int(column[1:]) - 1
+        line[start:start + len(value)] = value
+    return "".join(line).rstrip() + "\n"
+
+
+def test_two_character_chain_ids_stay_separate(write_pdb):
+    text = (pdb_line("ATOM", 1, "CA", "LYS", "A", 1, 0, 0, 0, "C")
+            + wide_chain(pdb_line("ATOM", 2, "CA", "LYS", "A", 1, 50, 0, 0, "C"), "AA")
+            + wide_chain(pdb_line("ATOM", 3, "CA", "TRP", "B", 554, 90, 0, 0, "C"), "DB")
+            + wide_chain(pdb_line("HETATM", 4, "C1", "NAG", "A", 601, 60, 0, 0, "C"), "AA"))
+    s = StructureData.from_pdb(write_pdb(text))
+    assert [a['chain'] for a in s.atoms] == ["A", "AA", "DB", "AA"]
+
+
+def test_two_character_chain_ids_in_helices_sheets_and_links(write_pdb):
+    text = (record("HELIX    1   1 ALAFE   53  ARGFE   74  1")
+            + record("HELIX    2   2 LYS F  514  ASP F  543  1")
+            + record("SHEET    1   A 2 ARGEF  72  METEF  73  0")
+            + record("LINK", c13=" C1 ", c18="NAG", c21="AA", c23=" 601", c43=" ND2", c48="ASN", c51="AA", c53="  10")
+            + wide_chain(pdb_line("ATOM", 1, "CA", "ALA", "A", 53, 0, 0, 0, "C"), "FE")
+            + wide_chain(pdb_line("ATOM", 2, "ND2", "ASN", "A", 10, 0, 0, 0, "N"), "AA")
+            + wide_chain(pdb_line("HETATM", 3, "C1", "NAG", "A", 601, 1.4, 0, 0, "C"), "AA")
+            + wide_chain(pdb_line("HETATM", 4, "C2", "NAG", "A", 601, 2.8, 0, 0, "C"), "AA"))
+    s = StructureData.from_pdb(write_pdb(text))
+    info = s.structural_info
+    assert list(zip(info['chain'], info['resid1'], info['structure'])) == [
+        ("FE", 53, "helix"), ("F", 514, "helix"), ("EF", 72, "sheet")]
+    assert {'atom_num1': 2, 'atom_num2': 3} in s.bonds or {'atom_num1': 3, 'atom_num2': 2} in s.bonds
+
+
+def test_one_character_chain_ids_read_as_before(write_pdb):
+    # Column 21 holding the fourth character of a residue name (TIP3) is not a chain ID
+    water = pdb_line("HETATM", 2, "OH2", "TIP", "W", 1, 9, 9, 9, "O")
+    text = (pdb_line("ATOM", 1, "CA", "LYS", "A", 1, 0, 0, 0, "C")
+            + water[:20] + "3" + water[21:]
+            + record("HELIX    1   1 LYS A    1  LYS A    1  1"))
+    s = StructureData.from_pdb(write_pdb(text))
+    assert [a['chain'] for a in s.atoms] == ["A", "W"]
+    assert list(s.structural_info['chain']) == ["A"]
+
+
 def test_secondary_structure_and_metadata():
     s = StructureData.from_pdb(preset("Hemoglobin"))
     assert s.metadata['id'] == "3BJ1"

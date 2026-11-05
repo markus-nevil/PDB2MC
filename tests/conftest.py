@@ -20,6 +20,12 @@ def pdb_line(record, serial, name, resname, chain, resid, x, y, z, element="", a
             f"{x:8.3f}{y:8.3f}{z:8.3f}{1.0:6.2f}{0.0:6.2f}          {element:>2}\n")
 
 
+@pytest.fixture(autouse=True)
+def separate_settings(tmp_path, monkeypatch):
+    """Tests get empty settings, and never see or change the real ones of whoever runs them."""
+    monkeypatch.setenv("PDB2MC_SETTINGS_DIR", str(tmp_path / "settings"))
+
+
 @pytest.fixture
 def write_pdb(tmp_path):
     """write_pdb(text, name='test.pdb') -> path"""

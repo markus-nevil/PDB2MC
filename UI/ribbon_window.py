@@ -1,4 +1,5 @@
-from .base_mode_window import Check, Color, Gap, ModeWindow, Spin, set_enabled
+from PDB2MC import color_schemes
+from .base_mode_window import Check, Choice, Color, Gap, ModeWindow, Spin, set_enabled
 
 
 class RibbonWindow(ModeWindow):
@@ -7,18 +8,16 @@ class RibbonWindow(ModeWindow):
     CHAIN_CHECK = "colorByChainCheck"
     OPTION_COLUMNS = [[
         Color("ribbonColorBox", "Select ribbon color:", "red_concrete"),
-        Check("colorByChainCheck", "Color backbone by chain", True,
-              "Color the backbones of the main models by the molecule number."),
-        Check("barStyleCheck", "Alpha helices as rods", False,
-              "Check to show Alpha Helices as a rod or bar instead of a spiraling ribbon."),
+        Check("colorByChainCheck", "Color ribbons by:", True),
+        Choice("colorSchemeBox", "Color scheme:", list(color_schemes.SCHEMES), "Chain"),
+        Check("barStyleCheck", "Alpha helices as rods", False),
         Gap(8),
         Color("backboneColorBox", "Select backbone color:", "gray_concrete"),
-        Check("showBackboneCheck", "Show backbone", True, "Show the backbone between the ribbons."),
-        Spin("pScaleSpinBox", "Protein scale:", 1.0, "Scale the entire model by this factor."),
+        Check("showBackboneCheck", "Show backbone", True),
+        Spin("pScaleSpinBox", "Protein scale:", 1.0),
         Gap(8),
-        Check("otherMoleculeCheck", "Show other molecules", True,
-              "Check to show other non-protein, DNA, or RNA molecules."),
-        Spin("aScaleSpinBox", "Atom scale:", 1.5, "Change the diameter (rounded up) of each atom."),
+        Check("otherMoleculeCheck", "Show other molecules", True),
+        Spin("aScaleSpinBox", "Atom scale:", 1.5),
     ]]
 
     def refresh_enabled(self, *_):
