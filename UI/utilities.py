@@ -1,6 +1,7 @@
 import os
+from contextlib import contextmanager
 from shutil import copyfile
-from PyQt6.QtWidgets import QFileDialog, QApplication, QListWidget, QPushButton, QMainWindow, QMessageBox, QLabel
+from PyQt6.QtWidgets import QFileDialog, QApplication, QListWidget, QPushButton, QMainWindow, QLabel
 from PyQt6.QtGui import QFont, QIcon
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6 import QtCore, QtGui, QtWidgets
@@ -8,7 +9,7 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 from PDB2MC import pdb_manipulation as pdbm
 import sys
 from PDB2MC import resources, user_settings
-from . import tooltips
+from . import messages, tooltips
 
 
 class MyComboBox(QtWidgets.QComboBox):
@@ -17,117 +18,121 @@ class MyComboBox(QtWidgets.QComboBox):
         super().focusOutEvent(event)
         self.focusOut.emit()
 
-class InformationBox(QMainWindow):
-    def __init__(self):
-        super().__init__()
+class InformationBox(QtWidgets.QDialog):
+    """
+    A message window: an icon, text that can be selected and scrolls when long, and its buttons.
+    The wording and look come from a messages.Message; `values` fill in its placeholders.
+    """
+    MARGIN = 20
 
-        # Set window properties
-        self.setWindowTitle("Custom Popup")
+    def __init__(self, message, parent=None, **values):
+        super().__init__(parent)
+        self.setWindowTitle(message.title)
         self.setWindowIcon(QIcon(resources.image('icons', 'logo.png')))
-        self.setStyleSheet(background_style())
-        self.resize(500, 150)
+        apply_message_style(self)
 
-        self.icon_label = QtWidgets.QLabel(self)
+        self.icon_label = QLabel(self)
         self.icon_label.setScaledContents(True)
-        self.icon_label.setGeometry(QtCore.QRect(37, 37, 75, 75))
-        self.set_icon(resources.image('icons', 'icon_info.png'))
+        self.icon_label.setFixedSize(messages.ICON_SIZE, messages.ICON_SIZE)
+        self.icon_label.setPixmap(QtGui.QPixmap(resources.image('icons', f'icon_{message.icon}.png')))
 
-        # Create labels
-        self.label1 = QLabel("test", self)
-        self.label1.setScaledContents(True)
-        self.label1.adjustSize()
-        self.label1.move(250, 20)  # Adjust position as needed
+        self.label1 = QLabel(self)
+        self.label1.setTextFormat(Qt.TextFormat.RichText)
+        self.label1.setFont(QFont(messages.FONT_FAMILY, message.font_size))
+        self.label1.setWordWrap(True)
+        self.label1.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+        self.label1.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse
+                                            | Qt.TextInteractionFlag.TextSelectableByKeyboard)
+        self.label1.setText(message.render(**values))
 
-        # Create "Okay" button
-        self.okayButton = QPushButton("Okay", self)
-        self.okayButton.setStyleSheet("background-color: rgba(0, 0, 0, 99);")
-        self.okayButton.move(250, 100)  # Adjust position as needed
-        self.okayButton.clicked.connect(self.close)
+        self.scroll = QtWidgets.QScrollArea(self)
+        self.scroll.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
+        self.scroll.setWidgetResizable(True)
+        self.scroll.viewport().setAutoFillBackground(False)
+        self.scroll.setWidget(self.label1)
+        self.label1.setAutoFillBackground(False)
 
+        # Fit the text: wider for a word that cannot wrap, taller up to the height where it scrolls
+        margins_and_icon = 2 * self.MARGIN + messages.ICON_SIZE + self.MARGIN
+        text_width = max(message.width - margins_and_icon, self._longest_word_width())
+        text_height = self.label1.heightForWidth(text_width)
+        if text_height > messages.MAX_TEXT_HEIGHT:
+            text_width += self.scroll.verticalScrollBar().sizeHint().width()
+        self.scroll.setFixedSize(text_width, max(messages.ICON_SIZE, min(text_height, messages.MAX_TEXT_HEIGHT)))
 
-    def set_text(self, text1):
-        self.label1.setText(text1)
+        content = QtWidgets.QHBoxLayout()
+        content.setSpacing(self.MARGIN)
+        content.addWidget(self.icon_label, alignment=Qt.AlignmentFlag.AlignTop)
+        content.addWidget(self.scroll)
 
-        # Center justify the text
-        self.label1.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        buttons = QtWidgets.QHBoxLayout()
+        buttons.addStretch()
+        self.copyButton = None
+        copy_text = message.plain_copy_text(**values)
+        if copy_text:
+            self.copyButton = QPushButton(message.copy_button, self)
+            self.copyButton.setAutoDefault(False)
+            self.copyButton.clicked.connect(lambda: self._copy(copy_text))
+            buttons.addWidget(self.copyButton)
+        self.okayButton = None
+        if message.button:
+            self.okayButton = QPushButton(message.button, self)
+            self.okayButton.setDefault(True)
+            self.okayButton.clicked.connect(self.close)
+            buttons.addWidget(self.okayButton)
+        buttons.addStretch()
 
-        # Create a QFont object
-        font1 = QFont()
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.setContentsMargins(self.MARGIN, self.MARGIN, self.MARGIN, self.MARGIN)
+        layout.setSpacing(self.MARGIN)
+        layout.addLayout(content)
+        layout.addLayout(buttons)
+        layout.setSizeConstraint(QtWidgets.QLayout.SizeConstraint.SetFixedSize)
 
-        #Calculate the length of the longest part of the text when separated by \n characters
-        longest = 0
-        for i in text1.split("\n"):
-            if len(i) > longest:
-                longest = len(i)
+    def _longest_word_width(self):
+        document = QtGui.QTextDocument()
+        document.setDefaultFont(self.label1.font())
+        document.setHtml(self.label1.text())
+        document.setDocumentMargin(0)
+        document.setTextWidth(0)
+        return int(document.idealWidth()) + 2
 
-        # Calculate the optimal font size based on the length of the text
-        # and the width of the label (you may need to adjust the formula)
-        font_size1 = min(14, max(8, 600 // longest))
-
-        # Set the font size
-        font1.setPointSize(font_size1)
-
-        # Apply the font to the labels
-        self.label1.setFont(font1)
-        #self.label1.setScaledContents(True)
-        #self.label1.setMaximumSize(350, 100)
-        self.label1.adjustSize()
-
-        # Make room for long messages; the button stays below the text
-        width = max(500, 210 + self.label1.width())
-        height = max(150, self.label1.height() + 80)
-        self.resize(width, height)
-        self.okayButton.move(250, height - 50)
-
-        # Calculate the desired center position
-        center_x = 150 + (width - 150) // 2
-        center_y = (height - 50) // 2
-
-        # Calculate the top-left position based on the center position and the size of the QLabel
-        top_left_x = int(round(center_x - self.label1.width() / 2))
-        top_left_y = int(round(center_y - self.label1.height() / 2))
-
-        # Set the position of the QLabel
-        self.label1.move(top_left_x, top_left_y)
-
-    # function that changes the icon image between 3 choices: icon_good, icon_bad, icon_info
-    def set_icon(self, icon):
-        # Relative paths such as 'images/icons/icon_bad.png' are relative to the UI folder
-        if not os.path.isabs(icon):
-            icon = os.path.join(get_images_path(), icon)
-        self.icon_label.setPixmap(QtGui.QPixmap(icon).scaled(200, 200))
-
-    #Function to change the window title
-    def set_title(self, title):
-        self.setWindowTitle(title)
-
-    # class InformationBox(QMessageBox):
-#     def __init__(self):
-#         super().__init__()
-#         self.setIcon(QMessageBox.Icon.Information)
-#         self.setWindowIcon(QIcon('images/icons/logo.png'))
-#
-#         self.setStyleSheet("QMessageBox {background-image: url(images/MC2PDB bg.png);}")
-
-    # def show_message(self, title, message):
-    #     self.setWindowTitle(title)
-    #     self.setText(message)
-    #     self.exec()
+    def _copy(self, text):
+        QApplication.clipboard().setText(text)
+        self.copyButton.setText("Copied!")
 
 
-#Quick dialog window that says "Nothing selected!"
-class NothingSelected(QMainWindow):
-    def __init__(self):
-        super().__init__()
-        self.setWindowTitle("Nothing Selected")
-        self.resize(150, 75)
-        self.label = QLabel(self)
-        self.label.setText("Nothing selected!")
-        self.label.move(25, 10)
-        self.label.adjustSize()
-        self.okayButton = QPushButton("Okay", self)
-        self.okayButton.move(25, 30)
-        self.okayButton.clicked.connect(self.close)
+def show_message(owner, message, block=False, **values):
+    """
+    Show a messages.Message, keeping a reference on `owner` so it is not garbage-collected.
+    With block=True this returns only once the window is closed, for code that continues after the answer.
+    """
+    box = InformationBox(message, parent=owner if block and owner.isVisible() else None, **values)
+    owner.info_box = box
+    if block:
+        box.exec()
+    else:
+        box.show()
+    return box
+
+
+@contextmanager
+def showing_message(owner, message, **values):
+    """Keep a message in front of `owner` during slow work on the GUI thread, which stops the window from drawing."""
+    box = InformationBox(message, parent=owner, **values)
+    box.show()
+    QApplication.processEvents()    # draw it now: nothing else will until the work is done
+    try:
+        yield box
+    finally:
+        box.close()
+
+
+def apply_message_style(window):
+    """The look shared by the message windows; only this window gets the background, not what is inside it."""
+    window.setObjectName("messageWindow")
+    window.setStyleSheet(f"#messageWindow {{ {background_style()} }} QPushButton {{ {messages.BUTTON_STYLE} }}")
+
 
 #A new popup menu that will show several text options in a list. It has two buttons: "Okay" and "Cancel"
 class IncludedPDBPopup(QMainWindow):
@@ -191,8 +196,7 @@ class IncludedPDBPopup(QMainWindow):
         selected_text = self.listWidget.currentItem().text()
 
         if selected_text == '-none-':
-            self.nothing = NothingSelected()
-            self.nothing.show()
+            show_message(self, messages.NOTHING_SELECTED)
         else:
             # The window that receives `selected` checks the size and sets the scale
             self.selected.emit(selected_text)
@@ -205,12 +209,7 @@ class IncludedPDBPopup(QMainWindow):
 class FileExplorerPopup(QMainWindow):
     def __init__(self):
         super().__init__()
-        message_box = QMessageBox()
-        message_box.setWindowTitle("Please wait")
-        message_box.setText("Calculating model size...")
         self.setWindowIcon(QIcon(os.path.join(get_images_path(), 'images', 'icons', 'logo.png')))
-        message_box.setStandardButtons(QMessageBox.StandardButton.NoButton)  # No buttons
-        message_box.show()
         # Allow both .pdb and .cif files
         file_name, _ = QFileDialog.getOpenFileName(
             self,
@@ -218,18 +217,8 @@ class FileExplorerPopup(QMainWindow):
             user_settings.structure_dir(),
             "Protein Databank files (*.pdb *.cif *.mmcif);;PDB files (*.pdb);;mmCIF files (*.cif *.mmcif);;All files (*)"
         )
-        if file_name:
-            try:
-                # Load the file now to catch errors early; the parsed result is cached for later steps
-                pdbm.load_structure(file_name)
-            except Exception as e:
-                QMessageBox.critical(self, "File Error", f"Failed to load file:\n{e}")
-                file_name = None
-            finally:
-                message_box.close()
-        else:
-            message_box.close()
-            QMessageBox.warning(self, "No file selected", f"Please select a file.")
+        if not file_name:
+            show_message(self, messages.NO_FILE_SELECTED, block=True)
         self.selected_file = file_name
 
 
@@ -248,7 +237,7 @@ class MinecraftPopup(QMainWindow):
                 if os.path.basename(os.path.dirname(save_path)) == "saves":
                     good_dir = True
                 else:
-                    QMessageBox.warning(self, "Invalid directory", "Please select a valid Minecraft save directory.")
+                    show_message(self, messages.INVALID_DIRECTORY, block=True)
             else:
                 return
         directory_path = os.path.join(save_path, "datapacks/mcPDB/data/protein/functions")
@@ -436,7 +425,7 @@ class SequenceSelectorPopup(QMainWindow):
     def assign_block_type(self):
         chain, selected = self._get_current_selection()
         if chain is None or not selected:
-            QMessageBox.warning(self, "No selection", "Please select a sequence region.")
+            show_message(self, messages.NO_SEQUENCE_SELECTION, block=True)
             return
         from PDB2MC.variables import decorative_blocks, hex_dict
         block_dialog = QtWidgets.QDialog(self)
@@ -467,7 +456,7 @@ class SequenceSelectorPopup(QMainWindow):
         if block_dialog.exec() == QtWidgets.QDialog.DialogCode.Accepted:
             block_type = combo.currentText().strip().lower().replace(' ', '_')
             if block_type not in decorative_blocks:
-                QMessageBox.warning(self, "Invalid block", f"{block_type} is not a valid block option.")
+                show_message(self, messages.INVALID_BLOCK, block=True, block_name=block_type)
                 return
             for resnum in selected:
                 self._remove_block_assignment(chain, resnum)
@@ -487,7 +476,7 @@ class SequenceSelectorPopup(QMainWindow):
     def assign_hide(self):
         chain, selected = self._get_current_selection()
         if chain is None or not selected:
-            QMessageBox.warning(self, "No selection", "Please select a sequence region.")
+            show_message(self, messages.NO_SEQUENCE_SELECTION, block=True)
             return
         for resnum in selected:
             self._add_option(chain, resnum, "hide")

@@ -290,3 +290,12 @@ def test_instructions_name_both_kinds_of_command():
     for command in ("/reload", "/function protein:build_gfp", "/trigger build set 3", "/trigger build_gfp",
                     "/trigger models", "/trigger delete_gfp"):
         assert command in text
+
+
+def test_instructions_are_plain_text_for_the_command_line():
+    assert "<" not in triggers.instructions("gfp", 3)
+
+
+def test_instructions_leave_out_a_missing_model_number():
+    text = triggers.instructions("gfp")
+    assert "/trigger build_gfp\n" in text and "set None" not in text and " or \n" not in text

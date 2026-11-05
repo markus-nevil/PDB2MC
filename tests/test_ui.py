@@ -1,3 +1,4 @@
+import ast
 import math
 import os
 
@@ -6,7 +7,8 @@ import pytest
 pytest.importorskip("pytestqt")
 
 from PyQt6 import QtWidgets
-from PyQt6.QtCore import QRect
+from PyQt6.QtCore import QRect, Qt
+from PyQt6.QtWidgets import QApplication
 
 from PDB2MC import defaults, minecraft_functions as mcf, pdb_manipulation as pdbm
 from conftest import preset
@@ -26,9 +28,10 @@ def fresh_session():
 @pytest.fixture(autouse=True)
 def quiet_popups(monkeypatch):
     """Information boxes are recorded instead of shown."""
-    from UI import base_mode_window
+    from UI import utilities
     shown = []
-    monkeypatch.setattr(base_mode_window.InformationBox, "show", lambda self: shown.append(self.windowTitle()))
+    monkeypatch.setattr(utilities.InformationBox, "show", lambda self: shown.append(self.windowTitle()))
+    monkeypatch.setattr(utilities.InformationBox, "exec", lambda self: shown.append(self.windowTitle()))
     return shown
 
 
@@ -504,6 +507,75 @@ def test_file_dialog_starts_in_the_default_folder(qtbot, tmp_path, monkeypatch):
     assert started == [str(tmp_path)] and popup.selected_file == preset("Helix")
 
 
+def pick_file(monkeypatch, path, events):
+    """The file dialog answers with path, noting what is on screen when it opens."""
+    from PyQt6.QtWidgets import QApplication as App
+    from UI import utilities
+
+    def fake_dialog(parent, title, folder, filters):
+        events.append(("picker", [w.windowTitle() for w in App.topLevelWidgets()
+                                  if isinstance(w, utilities.InformationBox) and w.isVisible()]))
+        return path, ""
+    monkeypatch.setattr(utilities.QFileDialog, "getOpenFileName", staticmethod(fake_dialog))
+
+
+def test_size_message_stays_in_front_from_loading_until_the_size_is_known(skeleton_window, monkeypatch, quiet_popups):
+    from UI import base_mode_window, messages, utilities
+    events = []
+    pick_file(monkeypatch, preset("Helix"), events)
+    monkeypatch.setattr(utilities.InformationBox, "show", lambda self: QtWidgets.QDialog.show(self))
+    real_load, real_scale = pdbm.load_structure, base_mode_window.suggested_scale
+
+    def waiting():
+        return [box for box in skeleton_window.findChildren(utilities.InformationBox)
+                if box.isVisible() and box.windowTitle() == messages.CALCULATING_SIZE.title]
+
+    def load(path):
+        events.append(("load", len(waiting())))
+        return real_load(path)
+
+    def scale(path):
+        events.append(("scale", len(waiting())))
+        return real_scale(path)
+    monkeypatch.setattr(pdbm, "load_structure", load)
+    monkeypatch.setattr(base_mode_window, "suggested_scale", scale)
+    skeleton_window.handle_select_pdb_file_button()
+    assert ("picker", []) == events[0]                  # not shown while the user is still choosing
+    assert ("load", 1) in events and ("scale", 1) in events
+    assert waiting() == []
+    assert skeleton_window.info_box.windowTitle() == messages.MAXIMUM_SCALE.title
+
+
+def test_scale_is_announced_after_the_size_message_has_closed(skeleton_window, monkeypatch):
+    from UI import messages, utilities
+    pick_file(monkeypatch, preset("Helix"), [])
+    order = []
+    monkeypatch.setattr(utilities.InformationBox, "show", lambda self: order.append(f"show {self.windowTitle()}"))
+    monkeypatch.setattr(utilities.InformationBox, "close", lambda self: order.append(f"close {self.windowTitle()}"))
+    skeleton_window.handle_select_pdb_file_button()
+    wait, scale = messages.CALCULATING_SIZE.title, messages.MAXIMUM_SCALE.title
+    assert order == [f"show {wait}", f"close {wait}", f"show {scale}"]
+
+
+def test_file_that_cannot_be_loaded_is_reported_and_not_used(skeleton_window, monkeypatch, quiet_popups):
+    from UI import messages
+    pick_file(monkeypatch, "broken.pdb", [])
+    def fail(path):
+        raise ValueError("not a structure")
+    monkeypatch.setattr(pdbm, "load_structure", fail)
+    skeleton_window.handle_select_pdb_file_button()
+    assert quiet_popups[-1] == messages.FILE_LOAD_ERROR.title
+    assert skeleton_window.user_pdb_file is None
+    assert "not a structure" in skeleton_window.info_box.label1.text()
+
+
+def test_cancelling_the_file_dialog_shows_no_size_message(skeleton_window, monkeypatch, quiet_popups):
+    from UI import messages
+    pick_file(monkeypatch, "", [])
+    skeleton_window.handle_select_pdb_file_button()
+    assert quiet_popups == [messages.NO_FILE_SELECTED.title]
+
+
 # --- model names ---
 
 def test_included_model_keeps_the_example_name(skeleton_window):
@@ -590,19 +662,158 @@ def test_create_button_uses_the_custom_name(skeleton_window, qtbot, mc_dir, quie
     skeleton_window.createFunctionsButton.click()
     qtbot.waitUntil(lambda: skeleton_window.createFunctionsButton.isEnabled(), timeout=120000)
     assert quiet_popups[-1] == "Model generated"
-    assert "/trigger build set 1" in skeleton_window.info_box.label1.text()
     assert "/trigger build_custom-helix" in skeleton_window.info_box.label1.text()
     assert triggers.model_number(mc_dir, "custom-helix") == 1
 
 
-def test_finished_message_fits_in_its_box(qtbot):
+def finished_box(qtbot, name="gfp", number=3):
     from PDB2MC import triggers
+    from UI import messages
     from UI.utilities import InformationBox
-    box = InformationBox()
+    box = InformationBox(messages.MODEL_FINISHED, name=name, **triggers.commands(name, number))
     qtbot.addWidget(box)
-    box.set_text("Finished!\n" + triggers.instructions("a-rather-long-model-name", 12))
-    label = box.label1.geometry()
-    assert label.left() >= 112 and label.right() <= box.width() and label.bottom() < box.okayButton.y()
+    show_for_real(box)
+    return box
+
+
+def show_for_real(box):
+    """Past quiet_popups, and let the layout set the scroll bars."""
+    QtWidgets.QDialog.show(box)
+    QApplication.processEvents()
+
+
+@pytest.mark.parametrize("name", ["gfp", "a-rather-long-model-name", "x" * 90])
+def test_finished_message_shows_all_its_text(qtbot, name):
+    box = finished_box(qtbot, name)
+    assert box.scroll.verticalScrollBar().maximum() == 0 and box.scroll.horizontalScrollBar().maximum() == 0
+    assert box.scroll.geometry().right() <= box.width() and box.scroll.geometry().bottom() < box.okayButton.y()
+
+
+def test_long_message_scrolls_instead_of_growing_off_the_screen(qtbot):
+    from UI import messages
+    from UI.utilities import InformationBox
+    box = InformationBox(messages.BUILD_ERROR, error="line\n" * 200)
+    qtbot.addWidget(box)
+    show_for_real(box)
+    assert box.scroll.height() == messages.MAX_TEXT_HEIGHT and box.scroll.verticalScrollBar().maximum() > 0
+    assert box.scroll.horizontalScrollBar().maximum() == 0
+
+
+def test_message_text_can_be_selected(qtbot):
+    box = finished_box(qtbot)
+    assert box.label1.textInteractionFlags() & Qt.TextInteractionFlag.TextSelectableByMouse
+
+
+def test_copy_button_copies_the_commands_as_plain_text(qtbot):
+    box = finished_box(qtbot)
+    box.copyButton.click()
+    copied = QApplication.clipboard().text()
+    assert "/function protein:build_gfp" in copied and "<" not in copied
+
+
+def test_only_messages_that_ask_for_it_have_a_copy_button(qtbot):
+    from UI import messages
+    from UI.utilities import InformationBox
+    box = InformationBox(messages.MODEL_TOO_LARGE)
+    qtbot.addWidget(box)
+    assert box.copyButton is None and box.okayButton.text() == "Okay"
+
+
+def test_message_without_a_button(qtbot):
+    from UI import messages
+    from UI.utilities import InformationBox
+    box = InformationBox(messages.CALCULATING_SIZE)
+    qtbot.addWidget(box)
+    assert box.okayButton is None
+
+
+def test_invalid_minecraft_folder_waits_for_the_message_before_asking_again(qtbot, tmp_path, monkeypatch, quiet_popups):
+    from UI import messages, utilities
+    good = tmp_path / "saves" / "world"
+    good.mkdir(parents=True)
+    answers = [str(tmp_path), str(good)]
+    def fake_dialog(parent, title, folder):
+        assert quiet_popups == ([] if len(answers) == 2 else [messages.INVALID_DIRECTORY.title])
+        return answers.pop(0)
+    monkeypatch.setattr(utilities.QFileDialog, "getExistingDirectory", staticmethod(fake_dialog))
+    executed = []
+    monkeypatch.setattr(utilities.InformationBox, "show", lambda self: executed.append("show"))
+    monkeypatch.setattr(utilities.InformationBox, "exec",
+                        lambda self: (executed.append("exec"), quiet_popups.append(self.windowTitle())))
+    popup = utilities.MinecraftPopup()
+    qtbot.addWidget(popup)
+    assert executed == ["exec"] and popup.selected_directory is not None
+
+
+def test_values_in_a_message_are_shown_as_written():
+    from UI import messages
+    text = messages.BUILD_ERROR.render(error="a < b & <b>c</b>\nnext")
+    assert "a &lt; b &amp; &lt;b&gt;c&lt;/b&gt;<br>next" in text
+
+
+def all_messages():
+    from UI import messages
+    return {name: value for name, value in vars(messages).items() if isinstance(value, messages.Message)}
+
+
+def ui_sources():
+    repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    for folder in ("UI", "PDB2MC"):
+        for filename in sorted(os.listdir(os.path.join(repo, folder))):
+            if filename.endswith(".py"):
+                with open(os.path.join(repo, folder, filename), encoding="utf-8") as file:
+                    yield f"{folder}/{filename}", file.read()
+
+
+def show_message_calls():
+    """(file, line, message name, value names, whether ** adds more) of each show_message call."""
+    for filename, source in ui_sources():
+        for node in ast.walk(ast.parse(source)):
+            if isinstance(node, ast.Call) and getattr(node.func, "id", None) == "show_message":
+                message = node.args[1]
+                names = {keyword.arg for keyword in node.keywords} - {"block", None}
+                spread = any(keyword.arg is None for keyword in node.keywords)
+                yield filename, node.lineno, message.attr, names, spread
+
+
+def test_every_shown_message_gets_exactly_its_values():
+    from PDB2MC import triggers
+    known = all_messages()
+    calls = list(show_message_calls())
+    assert len(calls) >= 20
+    for filename, line, name, values, spread in calls:
+        where = f"{filename}:{line} {name}"
+        assert name in known, where
+        if spread:      # the only ** in use: the commands of a model, which a message need not all use
+            assert known[name].placeholders() <= values | set(triggers.commands("x", 1)), where
+        else:
+            assert known[name].placeholders() == values, where
+
+
+def test_every_message_renders_and_its_icon_exists():
+    from PDB2MC import resources
+    for name, message in all_messages().items():
+        values = {placeholder: "value" for placeholder in message.placeholders()}
+        assert "{" not in message.render(**values).split("</style>")[1], name
+        assert os.path.exists(resources.image('icons', f'icon_{message.icon}.png')), name
+
+
+def test_message_windows_do_not_bypass_messages():
+    for filename, source in ui_sources():
+        tree = ast.parse(source)
+        names = {node.id for node in ast.walk(tree) if isinstance(node, ast.Name)}
+        names |= {node.attr for node in ast.walk(tree) if isinstance(node, ast.Attribute)}
+        assert not names & {"QMessageBox", "set_text", "show_information_box"}, filename
+
+
+def test_new_version_is_announced(qtbot, monkeypatch, quiet_popups):
+    from PDB2MC import run_PDB2MC
+    monkeypatch.setattr(run_PDB2MC.MainWindow, "is_outdated", lambda self: None)
+    window = run_PDB2MC.MainWindow()
+    qtbot.addWidget(window)
+    window.announce_update("9.9.9")
+    assert quiet_popups == ["New Version Available!"]
+    assert "v9.9.9" in window.info_box.label1.text()
 
 
 # --- progress window ---

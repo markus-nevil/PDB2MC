@@ -7,9 +7,9 @@ from PyQt6.QtGui import QDesktopServices, QIcon
 from PyQt6 import QtCore, QtGui, QtWidgets
 
 from PyQt6.QtCore import QThread, pyqtSignal
-from UI import tooltips
+from UI import messages, tooltips
 from UI.base_mode_window import open_help, open_mode_window
-from UI.utilities import InformationBox
+from UI.utilities import show_message
 
 # Version handling
 from packaging import version as packaging_version
@@ -174,23 +174,7 @@ class MainWindow(QMainWindow):
             self.update_check.start()
 
     def announce_update(self, remote_version):
-        self.show_information_box(
-            title_text="New Version Available!",
-            text=f"There is a new PDB2MC version available.\n"
-                 f"Download Release v{remote_version} from Github.\n"
-                 f"https://github.com/markus-nevil/PDB2MC",
-            icon_path="images/icons/icon_good.png"
-        )
-
-    def show_information_box(self, title_text, text, icon_path):
-        """
-        Shows an information popup window.
-        """
-        self.info_box = InformationBox()
-        self.info_box.set_text(text)
-        self.info_box.set_title(title_text)
-        self.info_box.set_icon(icon_path)
-        self.info_box.show()
+        show_message(self, messages.NEW_VERSION, version=remote_version)
 
     def handle_help_button(self):
         """Opens the help window, centred on the screen."""

@@ -17,12 +17,12 @@ from PyQt6.QtGui import QColor, QDesktopServices, QIcon, QPainter, QPixmap
 
 from PDB2MC import build, minecraft_functions as mcf, pdb_manipulation as pdbm, resources, triggers, user_settings
 from PDB2MC.variables import decorative_blocks, hex_dict
-from . import tooltips
+from . import messages, tooltips
 from .chain_colors import ChainColorDialog
 from .session import SESSION
 from .sidebar import Sidebar, SIDEBAR_WIDTH
-from .utilities import (FileExplorerPopup, IncludedPDBPopup, InformationBox, MinecraftPopup, MyComboBox,
-                        SequenceSelectorPopup, get_presets_path)
+from .utilities import (FileExplorerPopup, IncludedPDBPopup, MinecraftPopup, MyComboBox, SequenceSelectorPopup,
+                        apply_message_style, get_presets_path, show_message, showing_message)
 from .voxel_view import VoxelVolume, model_voxels
 
 GITHUB_URL = "https://github.com/markus-nevil/PDB2MC"
@@ -161,11 +161,12 @@ class PleaseWaitDialog(QtWidgets.QDialog):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Building your model")
+        self.setWindowTitle(messages.BUILD_PROGRESS.title)
+        apply_message_style(self)
         layout = QtWidgets.QVBoxLayout()
         self.volume = VoxelVolume(self)
         layout.addWidget(self.volume, alignment=QtCore.Qt.AlignmentFlag.AlignHCenter)
-        self.status_label = QtWidgets.QLabel("Processing, please wait...")
+        self.status_label = QtWidgets.QLabel(messages.BUILD_PROGRESS.body)
         layout.addWidget(self.status_label)
         self.progress_bar = QtWidgets.QProgressBar(self)
         self.progress_bar.setRange(0, 100)
@@ -241,17 +242,6 @@ def open_help(parent=None):
         frame_geometry.moveCenter(parent.screen().availableGeometry().center())
         help_window.move(frame_geometry.topLeft())
     return help_window
-
-
-def show_information_box(owner, title_text, text, icon_path):
-    """Show an InformationBox, keeping a reference on `owner` so it is not garbage-collected."""
-    box = InformationBox()
-    box.set_text(text)
-    box.set_title(title_text)
-    box.set_icon(icon_path)
-    box.show()
-    owner.info_box = box
-    return box
 
 
 def connect_sidebar(window, sidebar):
@@ -501,9 +491,7 @@ class ModeWindow(QtWidgets.QMainWindow):
     def check_input(self, combobox, valid_options):
         text = combobox.currentText().lower().replace(' ', '_')
         if text not in valid_options:
-            self.show_information_box(title_text="Invalid block input",
-                                      text=f"{text} is not a valid block option.",
-                                      icon_path=icon_path("icon_bad.png"))
+            show_message(self, messages.INVALID_BLOCK, block_name=text)
             combobox.setCurrentIndex(0)
             return
         if combobox.findText(text) < 0:
@@ -544,8 +532,23 @@ class ModeWindow(QtWidgets.QMainWindow):
     # --- file selection ---
     def handle_select_pdb_file_button(self):
         self.selectPDB = FileExplorerPopup()
-        if self.selectPDB.selected_file:
-            self.set_pdb_file(self.selectPDB.selected_file)
+        path = self.selectPDB.selected_file
+        if not path:
+            return
+        load_error = announce_scale = None
+        # The next window opens only after this one has closed, so it isn't left behind this window
+        with showing_message(self, messages.CALCULATING_SIZE):
+            try:
+                # Load the file now to catch errors early; the parsed result is cached for later steps
+                pdbm.load_structure(path)
+            except Exception as e:
+                load_error = e
+            else:
+                announce_scale = self.use_pdb_file(path)
+        if load_error is not None:
+            show_message(self, messages.FILE_LOAD_ERROR, block=True, error=load_error)
+        else:
+            announce_scale()
 
     def handle_included_pdb_button(self):
         self.includedPDB = IncludedPDBPopup()
@@ -556,9 +559,15 @@ class ModeWindow(QtWidgets.QMainWindow):
         self.set_pdb_file(os.path.join(get_presets_path(), f"{text}.pdb"))
 
     def set_pdb_file(self, path, announce=True):
+        """Use the structure at path, and optionally tell the user the protein scale that came with it."""
+        announce_scale = self.use_pdb_file(path)
+        if announce:
+            announce_scale()
+
+    def use_pdb_file(self, path):
         """
         Use the structure at path: shared with the other modes, and the protein scale is set to the
-        largest whole number that fits in the world.
+        largest whole number that fits in the world. Returns a function that shows the result to the user.
         """
         self.user_pdb_file = path
         SESSION.set_pdb_file(path)
@@ -569,30 +578,18 @@ class ModeWindow(QtWidgets.QMainWindow):
         try:
             fits, maximum = suggested_scale(path)
         except Exception as e:
-            if announce:
-                self.show_information_box("Scale error", f"Could not determine recommended scale.\nError: {e}",
-                                          icon_path("icon_bad.png"))
-            return
+            return lambda error=e: show_message(self, messages.SCALE_ERROR, error=error)
         if not fits:
-            if announce:
-                self.show_information_box("Model too large!", "The chosen model is too large for Minecraft.",
-                                          icon_path("icon_bad.png"))
-            return
+            return lambda: show_message(self, messages.MODEL_TOO_LARGE)
         if hasattr(self, "pScaleSpinBox"):
             self.pScaleSpinBox.setValue(max(1, math.floor(maximum)))
-        if announce:
-            self.show_information_box(
-                "Maximum scale",
-                f"The suggested maximum protein scale is: {maximum}x\n\n"
-                f"'Protein Scale' has been set to {self.pScaleSpinBox.value():g}.",
-                icon_path("icon_info.png"))
+        return lambda: show_message(self, messages.MAXIMUM_SCALE, maximum=maximum,
+                                    scale=f"{self.pScaleSpinBox.value():g}")
 
     def handle_select_minecraft_button(self):
         self.selectMinecraft = MinecraftPopup()
         if self.selectMinecraft.selected_directory is None:
-            self.show_information_box(title_text="Error",
-                                      text="Remember to select a Minecraft save.",
-                                      icon_path=icon_path("icon_bad.png"))
+            show_message(self, messages.SAVE_REMINDER)
             return
         self.user_minecraft_save = self.selectMinecraft.selected_directory
         SESSION.save_path = self.user_minecraft_save
@@ -600,14 +597,12 @@ class ModeWindow(QtWidgets.QMainWindow):
 
     def handle_modify_residues_button(self):
         if not self.user_pdb_file:
-            self.show_information_box(title_text="No structure selected",
-                                      text="Please select a PDB or mmCIF file first.",
-                                      icon_path=icon_path("icon_bad.png"))
+            show_message(self, messages.NO_STRUCTURE)
             return
         try:
             structure = pdbm.load_structure(self.user_pdb_file)
         except Exception as e:
-            QtWidgets.QMessageBox.critical(self, "File Error", f"Failed to load structure for sequence selection:\n{e}")
+            show_message(self, messages.STRUCTURE_LOAD_ERROR, block=True, error=e)
             return
         popup = SequenceSelectorPopup(structure, self.residue_mods)
         popup.selection_made.connect(self.set_residue_mods)
@@ -647,14 +642,10 @@ class ModeWindow(QtWidgets.QMainWindow):
 
     def handle_make_function_button(self):
         if self.user_pdb_file is None:
-            self.show_information_box(title_text="Error: No PDB file",
-                                      text="Please select a PDB file.",
-                                      icon_path=icon_path("icon_bad.png"))
+            show_message(self, messages.NO_PDB_FILE)
             return
         if self.user_minecraft_save is None:
-            self.show_information_box(title_text="Error: No Minecraft save",
-                                      text="Please select a Minecraft save.",
-                                      icon_path=icon_path("icon_bad.png"))
+            show_message(self, messages.NO_MINECRAFT_SAVE)
             return
         if self.worker is not None and self.worker.isRunning():
             return
@@ -676,18 +667,9 @@ class ModeWindow(QtWidgets.QMainWindow):
         if result.get("result") == "done":
             lower = result.get("lower", "")
             number = triggers.model_number(self.user_minecraft_save, lower)
-            self.show_information_box(
-                title_text="Model generated",
-                text="<b>Finished!</b><br>\n\n" + triggers.instructions(lower, number),
-                icon_path=icon_path("icon_good.png"))
+            show_message(self, messages.MODEL_FINISHED, name=lower, **triggers.commands(lower, number))
         else:
-            self.show_information_box(
-                title_text="Error encountered",
-                text=f"Model has not generated! \nError: {result.get('error', '')}",
-                icon_path=icon_path("icon_bad.png"))
-
-    def show_information_box(self, title_text, text, icon_path):
-        return show_information_box(self, title_text, text, icon_path)
+            show_message(self, messages.BUILD_ERROR, error=result.get('error', ''))
 
     @staticmethod
     def icon(name):

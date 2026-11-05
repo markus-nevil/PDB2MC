@@ -68,6 +68,8 @@ There is an online-only version of PDB2MC that has limited functionality, but al
 
 To run the test suite: `pip install ".[test]"` then `python -m pytest`.
 
+The wording and formatting of every message window is in `UI/messages.py`.
+
 Models can also be built without the window, with each mode's default settings:
 `python -m PDB2MC.cli Skeleton path/to/model.pdb "<path to>/.minecraft/saves/<world>" --scale 2`
 (options: `--by-chain`, `--no-hetatm`, `--mesh`, `--name`, `--sasa-radius`).

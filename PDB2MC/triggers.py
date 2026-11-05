@@ -458,16 +458,29 @@ def install_model(mc_dir, name, mode=None, scale=None):
     return sync(mc_dir)["models"][name]["number"]
 
 
-def instructions(name, number=None):
-    """The in-game commands of a model, for showing to the user."""
-    number_text = f"/trigger build set {number}" if number is not None else ""
+def commands(name, number=None):
+    """The in-game commands of a model. The desktop window lays them out in UI/messages.py."""
+    build_trigger = f"/trigger build_{name}"
+    return {
+        "reload": "/reload",
+        "function": f"/function protein:build_{name}",
+        "build_trigger": build_trigger,
+        "build_triggers": build_trigger if number is None else f"{build_trigger} or /trigger build set {number}",
+        #"build_triggers": build_trigger,
+        "list_models": "/trigger models",
+        "delete": f"/trigger delete_{name}",
+        "teleport": f"/trigger plot_{name}",
+    }
 
-    body = (f"<b>INSTRUCTIONS for {name}:</b><br>\n"
-            f"First reload the world with /reload, then build it with:<br>\n"
-            f"\t/function protein:build_{name} (works in all Minecraft versions)<br><br>\n"
-            f"<b>or use Trigger functions:</b><br>\n"
-            f"\t/trigger build_{name} or {number_text}<br>\n"
-            f"\tList your models with /trigger models<br>\n"
-            f"\tDelete it from anywhere with /trigger delete_{name}<br>\n"
-            f"\tTeleport to it with /trigger plot_{name}<br>\n")
-    return f"<div style='text-align:left;'>{body}</div>"
+
+def instructions(name, number=None):
+    """The in-game commands of a model as plain text, for the command line."""
+    command = commands(name, number)
+    return (f"INSTRUCTIONS for {name}:\n"
+            f"First reload the world with {command['reload']}, then build it with:\n"
+            f"    {command['function']} (works in all Minecraft versions)\n\n"
+            f"or use Trigger functions:\n"
+            f"    {command['build_triggers']}\n"
+            f"    List your models with {command['list_models']}\n"
+            f"    Delete it from anywhere with {command['delete']}\n"
+            f"    Teleport to it with {command['teleport']}\n")

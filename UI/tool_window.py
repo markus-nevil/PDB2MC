@@ -5,12 +5,12 @@ from PyQt6.QtGui import QDesktopServices, QIcon
 from PyQt6.QtWidgets import QApplication, QMainWindow
 
 from PDB2MC import minecraft_functions as mcf, resources, triggers
-from UI import tooltips
-from UI.base_mode_window import connect_sidebar, icon_path, show_information_box
+from UI import messages, tooltips
+from UI.base_mode_window import connect_sidebar, icon_path
 from UI.session import SESSION
 from UI.settings_dialogs import DefaultFolderDialog, MetalIonDialog
 from UI.sidebar import Sidebar, SIDEBAR_WIDTH
-from UI.utilities import MinecraftPopup, get_presets_path
+from UI.utilities import MinecraftPopup, get_presets_path, show_message
 
 TOOL_BUTTONS = [
     ("metalIonSettings", "Metal Ion Settings"),
@@ -87,9 +87,7 @@ class ToolWindow(QMainWindow):
         save = self.selectMinecraft.selected_directory
         mcf.delete_nbt_mcfunctions_from_dir(save)
         triggers.sync(save)
-        self.show_information_box("Files removed",
-                                  f"Removed the PDB2MC models from\n{mcf.world_dir(save)}",
-                                  icon_path("icon_good.png"))
+        show_message(self, messages.FILES_REMOVED, folder=mcf.world_dir(save))
 
     def handle_open_function_dir(self):
         save = self.choose_save()
@@ -99,13 +97,7 @@ class ToolWindow(QMainWindow):
     def handle_move_preset_button(self):
         wd = os.path.join(os.path.expanduser("~"), "AppData", "Roaming", ".minecraft", "saves")
         mcf.copy_blank_world(wd)
-        self.show_information_box(title_text="Blank World Copied!",
-                                  text="The blank world will now be found in your saves.\n"
-                                       "Run again to overwrite with this world.",
-                                  icon_path=icon_path("icon_good.png"))
-
-    def show_information_box(self, title_text, text, icon_path):
-        return show_information_box(self, title_text, text, icon_path)
+        show_message(self, messages.BLANK_WORLD_COPIED)
 
 
 if __name__ == "__main__":
