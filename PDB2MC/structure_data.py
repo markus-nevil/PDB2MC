@@ -65,6 +65,19 @@ def _infer_pdb_element(line, hetatm):
     return raw[0].upper()
 
 
+def _uses_two_character_chains(lines):
+    """
+    Whether a PDB file writes two-character chain IDs into columns 21-22. The format has one character
+    (column 22) for the chain, so programs saving structures with more chains than that, such as 8VKR with
+    204, put the extra character in column 21, which the format leaves blank. Only atoms of standard residues
+    are looked at: some programs fill column 21 with the fourth character of a residue name such as TIP3.
+    """
+    for line in lines:
+        if line.startswith(('ATOM  ', 'HETATM')) and line[20:21].strip() and three_to_one(line[17:20].strip()) != '?':
+            return True
+    return False
+
+
 class _AltlocFilter:
     """
     Keep a single conformer per residue: atoms without an altloc, plus the first altloc
@@ -220,66 +233,73 @@ class StructureData:
         serial_to_atom = {}
 
         with open(file_path) as f:
-            for line in f:
-                record = line[:6]
-                if record in ('ATOM  ', 'HETATM'):
-                    if atoms_done:
-                        continue
-                    hetatm = record == 'HETATM'
-                    atom_name = line[12:16].strip()
-                    chain = line[21].strip()
-                    resid = int(line[22:26])
-                    if not altlocs.keep((chain, resid, line[26]), line[16]):
-                        continue
-                    element = line[76:78].strip().upper() if len(line) >= 78 else ''
-                    if not element:
-                        element = _infer_pdb_element(line, hetatm)
-                    # Ignore hydrogens
-                    if element in HYDROGEN_ELEMENTS:
-                        continue
-                    try:
-                        atom_num = int(line[6:11])
-                    except ValueError:  # hybrid-36 serials in very large files
-                        atom_num = len(instance.atoms) + 1
-                    atom = cls._atom_dict(atom_num, atom_name, line[17:20].strip(), chain, resid,
-                                          float(line[30:38]), float(line[38:46]), float(line[46:54]),
-                                          element, hetatm)
-                    instance.atoms.append(atom)
-                    serial_to_atom.setdefault(atom_num, atom)
-                elif record == 'MODEL ':
-                    model_count += 1
-                    # Only the first model of multi-model (e.g. NMR) files is used
-                    atoms_done = model_count > 1
-                elif record == 'ENDMDL':
-                    atoms_done = True
-                elif record == 'CONECT':
-                    conect.append(line)
-                elif record == 'LINK  ':
-                    try:
-                        links.append(((line[21].strip(), int(line[22:26]), line[12:16].strip()),
-                                      (line[51].strip(), int(line[52:56]), line[42:46].strip())))
-                    except (ValueError, IndexError):
-                        pass
-                elif record == 'HEADER':
-                    instance.metadata['header'] = line[10:].strip()
-                    if len(line) >= 66:
-                        pdb_id = line[62:66].strip() or None
-                elif record == 'TITLE ':
-                    instance.metadata['title'] = instance.metadata.get('title', '') + line[10:].strip() + ' '
-                elif record == 'AUTHOR':
-                    instance.metadata['author'] = instance.metadata.get('author', '') + line[10:].strip() + ' '
-                elif line.startswith("REMARK   2 RESOLUTION."):
-                    instance.metadata['resolution'] = line[22:].strip()
-                elif record == 'EXPDTA':
-                    instance.metadata['experimental_method'] = line[10:].strip()
-                elif record == 'COMPND':
-                    cmpnd_lines.append(line[10:].strip())
-                elif record == 'HELIX ':
-                    structural_rows.append([line[19].strip(), line[15:18].strip(), line[21:25].strip(),
-                                            line[27:30].strip(), line[33:37].strip(), 'helix'])
-                elif record == 'SHEET ':
-                    structural_rows.append([line[21].strip(), line[17:20].strip(), line[22:26].strip(),
-                                            line[28:31].strip(), line[33:37].strip(), 'sheet'])
+            lines = f.readlines()
+        two_character_chains = _uses_two_character_chains(lines)
+
+        def chain_at(line, column):
+            """The chain ID whose one-character form is at line[column]; two-character IDs start one before it."""
+            return (line[column - 1:column + 1] if two_character_chains else line[column:column + 1]).strip()
+
+        for line in lines:
+            record = line[:6]
+            if record in ('ATOM  ', 'HETATM'):
+                if atoms_done:
+                    continue
+                hetatm = record == 'HETATM'
+                atom_name = line[12:16].strip()
+                chain = chain_at(line, 21)
+                resid = int(line[22:26])
+                if not altlocs.keep((chain, resid, line[26]), line[16]):
+                    continue
+                element = line[76:78].strip().upper() if len(line) >= 78 else ''
+                if not element:
+                    element = _infer_pdb_element(line, hetatm)
+                # Ignore hydrogens
+                if element in HYDROGEN_ELEMENTS:
+                    continue
+                try:
+                    atom_num = int(line[6:11])
+                except ValueError:  # hybrid-36 serials in very large files
+                    atom_num = len(instance.atoms) + 1
+                atom = cls._atom_dict(atom_num, atom_name, line[17:20].strip(), chain, resid,
+                                      float(line[30:38]), float(line[38:46]), float(line[46:54]),
+                                      element, hetatm)
+                instance.atoms.append(atom)
+                serial_to_atom.setdefault(atom_num, atom)
+            elif record == 'MODEL ':
+                model_count += 1
+                # Only the first model of multi-model (e.g. NMR) files is used
+                atoms_done = model_count > 1
+            elif record == 'ENDMDL':
+                atoms_done = True
+            elif record == 'CONECT':
+                conect.append(line)
+            elif record == 'LINK  ':
+                try:
+                    links.append(((chain_at(line, 21), int(line[22:26]), line[12:16].strip()),
+                                  (chain_at(line, 51), int(line[52:56]), line[42:46].strip())))
+                except (ValueError, IndexError):
+                    pass
+            elif record == 'HEADER':
+                instance.metadata['header'] = line[10:].strip()
+                if len(line) >= 66:
+                    pdb_id = line[62:66].strip() or None
+            elif record == 'TITLE ':
+                instance.metadata['title'] = instance.metadata.get('title', '') + line[10:].strip() + ' '
+            elif record == 'AUTHOR':
+                instance.metadata['author'] = instance.metadata.get('author', '') + line[10:].strip() + ' '
+            elif line.startswith("REMARK   2 RESOLUTION."):
+                instance.metadata['resolution'] = line[22:].strip()
+            elif record == 'EXPDTA':
+                instance.metadata['experimental_method'] = line[10:].strip()
+            elif record == 'COMPND':
+                cmpnd_lines.append(line[10:].strip())
+            elif record == 'HELIX ':
+                structural_rows.append([chain_at(line, 19), line[15:18].strip(), line[21:25].strip(),
+                                        line[27:30].strip(), line[33:37].strip(), 'helix'])
+            elif record == 'SHEET ':
+                structural_rows.append([chain_at(line, 21), line[17:20].strip(), line[22:26].strip(),
+                                        line[28:31].strip(), line[33:37].strip(), 'sheet'])
 
         instance.structural_info = _clean_structural_info(structural_rows)
 
