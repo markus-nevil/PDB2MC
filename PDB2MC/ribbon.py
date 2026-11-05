@@ -65,6 +65,11 @@ def nucleic_backbone(chain_df, dna_vectors, progress=None):
     return pdbm.flank_DNA(trace, dna_vectors, progress=progress)[['X', 'Y', 'Z']]
 
 
+def split_chains(df):
+    """{chain: its rows}, the same rows in the same order as pdbm.get_chain gives."""
+    return {chain: rows for chain, rows in df.groupby('chain', sort=False)}
+
+
 def chain_work(chain_df):
     """Expected work of a chain's ribbon and backbone."""
     residues = chain_df["residue"]
@@ -87,18 +92,21 @@ def build(builder):
     vectors = pdbm.CO_vectors(df, width=1)
     dna_vectors = pdbm.DNA_vectors(df, width=1)
     chains = pdbm.enumerate_chains(df)
+    # Each chain's rows, split off once: looking every chain up in the whole model is slow with many chains
+    chain_frames = split_chains(df)
+    chain_vectors = split_chains(vectors)
     het_work = part_work(atoms, config)
     builder.report(4)
-    builder.plan({**{chain: chain_work(pdbm.get_chain(df, chain)) for chain in chains},
+    builder.plan({**{chain: chain_work(chain_frames[chain]) for chain in chains},
                   "hetatm": het_work["hetatm"] * HETATM_WORK, "hetatm_bonds": het_work["hetatm_bonds"] * HETATM_WORK})
 
     for chain in chains:
-        chain_df = pdbm.get_chain(df, chain)
+        chain_df = chain_frames[chain]
         colour = str(builder.numbers.get(chain, 1))
         residues = chain_df["residue"]
         within = builder.step(chain, f"Drawing chain {chain}...", compute=0.95)
         if residues.isin(AMINO_ACIDS).any():
-            ribbon = protein_ribbon(chain_df, pdbm.get_chain(vectors, chain), bar_helix, config['scale'],
+            ribbon = protein_ribbon(chain_df, chain_vectors.get(chain, vectors.iloc[0:0]), bar_helix, config['scale'],
                                     progress=lambda fraction: within(0.6 * fraction))
             backbone = None
             if config["backbone"]:
