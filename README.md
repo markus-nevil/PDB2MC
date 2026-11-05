@@ -35,7 +35,7 @@ The purpose of the stand-alone `PDB2MC` program is to make a fun and accessible 
 can be loaded by the popular video game Minecraft.
 
 <p align = "center">
-<img src="UI/images/bg.gif" width="500">
+<img src="docs/images/bg.gif" width="500">
 </p>
 
 The `PDB2MC` program comes with several models, but also can use any PDB file downloaded from RCSB Protein Data Bank. 

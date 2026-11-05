@@ -9,6 +9,7 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 from PyQt6.QtCore import QThread, pyqtSignal
 from UI import messages, tooltips
 from UI.base_mode_window import open_help, open_mode_window
+from UI.slideshow import Slideshow
 from UI.utilities import show_message
 
 # Version handling
@@ -65,19 +66,12 @@ class MainWindow(QMainWindow):
 
         self.setWindowIcon(QIcon('images/icons/logo.png'))
 
-        # Central widget and background GIF
+        # Central widget and the example models fading behind it
         self.centralwidget = QtWidgets.QWidget(parent=self)
         self.centralwidget.setObjectName("centralwidget")
 
-        self.label = QtWidgets.QLabel(parent=self.centralwidget)
-        self.label.setGeometry(QtCore.QRect(-130, 0, 1161, 631))
-        font = QtGui.QFont()
-        font.setPointSize(10)
-        self.label.setFont(font)
-        self.label.setText("")
-        movie = QtGui.QMovie("images/bg.gif")
-        self.label.setMovie(movie)
-        movie.start()
+        self.label = Slideshow(parent=self.centralwidget)
+        self.label.setGeometry(QtCore.QRect(0, 0, 929, 621))
 
         # Version label
         self.version_label = QLabel(f'Version: {version}', self)
@@ -93,8 +87,6 @@ class MainWindow(QMainWindow):
         self.layout().addWidget(self.version_label)
         self.version_label.setObjectName("version_label")
 
-        self.label.setScaledContents(True)
-        self.label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         self.label.setObjectName("label")
 
         # Mode selection combo box
@@ -198,7 +190,7 @@ class MainWindow(QMainWindow):
 
 def get_images_path():
     """
-    Returns the UI directory (relative paths such as 'images/bg.gif' resolve against it),
+    Returns the UI directory (relative paths such as 'images/icons/logo.png' resolve against it),
     for a source checkout, an installed package or a PyInstaller build.
     """
     return resources.ui_dir()

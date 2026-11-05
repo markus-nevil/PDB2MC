@@ -126,7 +126,17 @@ class HelpWindow(QMainWindow):
 #         # Use the sub function to replace the img tags
 #         html = re.sub(pattern, replacer, html)
 #     return html
+# README images that live outside UI/, which the .exe doesn't include, and what Help shows instead
+HELP_IMAGE_SUBSTITUTES = {
+    # The animation is only for the GitHub page; the welcome window plays it from these pictures
+    "docs/images/bg.gif": "UI/images/welcome/welcome_1.jpg",
+}
+
+
 def adjust_image_paths(html):
+    for readme_path, substitute in HELP_IMAGE_SUBSTITUTES.items():
+        html = html.replace(f'<img src="{readme_path}"', f'<img src="{substitute}"')
+
     # Define a regular expression pattern for the img tags
     pattern = r'<img src="(UI/images/[^"]+)"'
 

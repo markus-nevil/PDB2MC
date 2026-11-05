@@ -1047,3 +1047,30 @@ def test_preview_model_stands_like_the_build():
     voxel_sides = np.ptp(positions, axis=0) / (GRID - 1)
     built_sides = np.ptp(built, axis=0) / np.ptp(built, axis=0).max()
     assert np.allclose(voxel_sides, built_sides, atol=0.08)
+
+
+# --- welcome window ---
+
+def test_welcome_slideshow_has_the_pictures_and_their_timing():
+    from UI import slideshow
+    assert len(slideshow.welcome_pictures()) == 9
+    show = slideshow.Slideshow()
+    assert len(show.pixmaps) == 9 and show.pixmaps[0].width() == 929
+    cycle = slideshow.HOLD_MS + slideshow.FADE_MS
+    assert show.state(0) == (0, 1, 0.0)
+    assert show.state(slideshow.HOLD_MS + slideshow.FADE_MS / 2) == (0, 1, 0.5)
+    assert show.state(8 * cycle + 1) == (8, 0, 0.0)          # the last picture fades back into the first
+    show.stop()
+
+
+def test_help_shows_every_readme_image():
+    import re
+    from UI import help_window
+    window = help_window.HelpWindow()
+    html = window.textBrowser.toHtml()
+    sources = re.findall(r'<img src="([^"]+)"', html)
+    assert sources
+    ui = help_window.get_images_path()
+    missing = [src for src in sources if not src.startswith("http") and not os.path.isfile(os.path.join(ui, src))]
+    assert missing == []
+    window.close()

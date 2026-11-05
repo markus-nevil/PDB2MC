@@ -45,7 +45,7 @@ setup(
     },
     package_data={
         'PDB2MC': ['README.md', 'chains.txt', 'pack.mcmeta', 'PDB2MC.zip'],
-        'UI': ['images/*', 'presets/*', 'images/icons/*', '*.txt'],
+        'UI': ['images/*', 'presets/*', 'images/icons/*', 'images/welcome/*', '*.txt'],
     },
 )
 
