@@ -8,3 +8,4 @@ numpy>=1.24
 scipy
 biopython
 NBT
+requests>=2.31
