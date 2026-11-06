@@ -50,6 +50,12 @@ Report findings with how serious they are; fix real problems as part of the chan
 - Message window wording lives in `UI/messages.py`, tool tips in `UI/tooltips.py`, colour schemes in
   `PDB2MC/color_schemes.py`.
 - Large structures (more than about 60 chains) should be loaded as .cif; the .pdb format can't name that many chains.
+- **Version number: every change raises it.** When making a change while `PDB2MC/version.py` still holds the
+  latest released version (`gh release list`), raise the last number by one (2.0.4 -> 2.0.5) in the same change.
+  If the version is already ahead of the latest release, the next release isn't out yet: keep it. Update every
+  mention together: `PDB2MC/version.py` and the `Version:` line at the top of `README.md` (setup.py, the welcome
+  window, the update check and the release workflow read version.py). `tests/test_version.py` checks they agree.
+  A bigger jump (2.1.0, 3.0.0) only when asked. `web/frontend/package.json` has its own version; leave it.
 - Releases are tagged `v<version>` from `PDB2MC/version.py`; the program's update check reads the latest release.
   Pushing the tag runs `.github/workflows/release.yml`, which tests, builds PDB2MC.exe from the exact versions in
   `requirements-build.txt` and attaches it to the release. Changing a dependency means updating that file too (see
