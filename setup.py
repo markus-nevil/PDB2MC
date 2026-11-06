@@ -51,9 +51,11 @@ setup(
 
 #############
 # For compiling a Windows .exe. Run from the repository folder, in one line:
-# venv/Scripts/python -m PyInstaller --clean --noconfirm --onefile --windowed --name=PDB2MC --icon=UI/images/icons/logo.png --exclude-module PyQt5 --exclude-module matplotlib --exclude-module PIL --add-data "UI;UI" --add-data "PDB2MC/chains.txt;PDB2MC" --add-data "PDB2MC/pack.mcmeta;PDB2MC" --add-data "PDB2MC/PDB2MC.zip;PDB2MC" --add-data "README.md;." PDB2MC/run_PDB2MC.py
+# venv/Scripts/python -m PyInstaller --clean --noconfirm --onefile --windowed --name=PDB2MC --icon=UI/images/icons/PDB2MC.ico --exclude-module PyQt5 --exclude-module matplotlib --exclude-module PIL --add-data "UI;UI" --add-data "PDB2MC/chains.txt;PDB2MC" --add-data "PDB2MC/pack.mcmeta;PDB2MC" --add-data "PDB2MC/PDB2MC.zip;PDB2MC" --add-data "README.md;." PDB2MC/run_PDB2MC.py
 #
 # PDB2MC.zip is needed by "Copy Blank World to Minecraft". PyQt5, matplotlib and Pillow (PIL) are in the venv but not
-# used by the app; Pillow only turns the .png icon into an .ico while building.
+# used by the app.
+#
+# Releases are built by .github/workflows/release.yml with this command, from the versions in requirements-build.txt.
 #
 #############

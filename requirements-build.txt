@@ -1,0 +1,34 @@
+# Exact package versions the Windows .exe is built and tested with (by .github/workflows/release.yml).
+# Pinned so every release is built the same way; setup.py keeps the loose requirements for `pip install`.
+#
+# To update: in a fresh Python 3.11 venv, `pip install ".[test]" pyinstaller`, then `pip freeze` here
+# (without PDB2MC itself), run the tests and `pip-audit -r requirements-build.txt`, and build the .exe.
+altgraph==0.17.5
+biopython==1.88
+certifi==2026.10.23
+charset-normalizer==3.5.2
+colorama==0.4.6
+idna==3.20
+iniconfig==2.3.1
+Markdown==3.11.3
+NBT==1.5.1
+numpy==2.4.6
+packaging==26.3
+pandas==3.1.1
+pefile==2024.8.26
+pluggy==1.7.0
+Pygments==2.21.0
+pyinstaller==6.22.3
+pyinstaller-hooks-contrib==2026.9
+PyQt6==6.12.0
+PyQt6-Qt6==6.12.0
+PyQt6_sip==13.13.0
+pytest==9.2.0
+pytest-qt==4.5.0
+python-dateutil==4.0.0
+pywin32-ctypes==0.2.3
+requests==2.34.2
+scipy==1.17.1
+typing_extensions==4.16.0
+tzdata==2026.6
+urllib3==2.8.0

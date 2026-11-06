@@ -51,3 +51,6 @@ Report findings with how serious they are; fix real problems as part of the chan
   `PDB2MC/color_schemes.py`.
 - Large structures (more than about 60 chains) should be loaded as .cif; the .pdb format can't name that many chains.
 - Releases are tagged `v<version>` from `PDB2MC/version.py`; the program's update check reads the latest release.
+  Pushing the tag runs `.github/workflows/release.yml`, which tests, builds PDB2MC.exe from the exact versions in
+  `requirements-build.txt` and attaches it to the release. Changing a dependency means updating that file too (see
+  its header), with a pip-audit of it.

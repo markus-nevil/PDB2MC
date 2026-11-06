@@ -1,0 +1,114 @@
+# Builds the Windows .exe and attaches it to a GitHub release.
+#
+# Release: set the version in PDB2MC/version.py, merge that to main, then push a tag for it (git tag v2.0.5,
+# git push origin v2.0.5) or create the release with that tag on GitHub. This workflow tests the code, builds
+# PDB2MC.exe from the exact versions in requirements-build.txt, checks that it starts, and attaches it to the
+# release (making the release when it doesn't exist yet).
+#
+# Pull requests that change the build, and "Run workflow" on the Actions tab, build and check the .exe without
+# releasing it; it can be downloaded from the run's Artifacts.
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+  pull_request:
+    paths:
+      - ".github/workflows/release.yml"
+      - "requirements-build.txt"
+      - "setup.py"
+      - "PDB2MC/run_PDB2MC.py"
+      - "UI/images/icons/PDB2MC.ico"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    env:
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements-build.txt
+
+      - name: Install the pinned packages
+        run: python -m pip install -r requirements-build.txt
+
+      - name: Check the tag matches PDB2MC/version.py
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          $version = python -c "from PDB2MC.version import version; print(version)"
+          if ("v$version" -ne $env:TAG) { throw "Tag $env:TAG does not match version $version in PDB2MC/version.py" }
+          Write-Output "Releasing version $version"
+
+      - name: Test
+        run: python -m pytest -q
+
+      - name: Build PDB2MC.exe
+        # The same command as at the bottom of setup.py
+        run: >-
+          python -m PyInstaller --clean --noconfirm --onefile --windowed --name=PDB2MC
+          --icon=UI/images/icons/PDB2MC.ico
+          --exclude-module PyQt5 --exclude-module matplotlib --exclude-module PIL
+          --add-data "UI;UI" --add-data "PDB2MC/chains.txt;PDB2MC" --add-data "PDB2MC/pack.mcmeta;PDB2MC"
+          --add-data "PDB2MC/PDB2MC.zip;PDB2MC" --add-data "README.md;."
+          PDB2MC/run_PDB2MC.py
+
+      - name: Check that PDB2MC.exe starts
+        # On the real Windows desktop, not offscreen: the welcome window has to appear
+        env:
+          QT_QPA_PLATFORM: ""
+          PDB2MC_SETTINGS_DIR: ${{ runner.temp }}\pdb2mc-settings
+        run: |
+          $exe = Start-Process -FilePath dist\PDB2MC.exe -PassThru
+          $started = $false
+          foreach ($i in 1..90) {
+            Start-Sleep -Seconds 1
+            if (Get-Process -Name PDB2MC -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowTitle -eq "Welcome to PDB2MC" }) {
+              $started = $true
+              break
+            }
+          }
+          $titles = (Get-Process -Name PDB2MC -ErrorAction SilentlyContinue | ForEach-Object { $_.MainWindowTitle }) -join ", "
+          taskkill /PID $exe.Id /T /F | Out-Null
+          if (-not $started) { throw "The welcome window did not appear within 90 seconds (windows: $titles)" }
+          Write-Output "The welcome window appeared after $i seconds"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PDB2MC-exe
+          path: dist/PDB2MC.exe
+          if-no-files-found: error
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: PDB2MC-exe
+
+      - name: Attach PDB2MC.exe to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release upload "$TAG" PDB2MC.exe --clobber
+          else
+            gh release create "$TAG" PDB2MC.exe --title "PDB2MC $TAG" --generate-notes --verify-tag
+          fi
