@@ -1,7 +1,6 @@
 import pandas as pd
 import os
 from PDB2MC import variables
-from shutil import copy
 from zipfile import ZipFile
 import re
 import shutil
@@ -285,21 +284,23 @@ def find_delete_nbt(directory, name):
     return df
 
 
-# Function that will move the PDB2MC directory from within the program directory into the Minecraft save directory
+# The ready-made world, zipped (1.8 MB instead of 31 MB) so the program and the .exe stay small
+BLANK_WORLD_ZIP = 'PDB2MC.zip'
+
+
 def copy_blank_world(mc_dir):
-    # Get the current directory of the program
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-
-    # Construct the path to the PDB2MC directory
-    pdb2mc_zip = os.path.join(current_dir, 'PDB2MC.zip')
-
-    copy(pdb2mc_zip, mc_dir)
-
-    dst_file = os.path.join(mc_dir, 'PDB2MC.zip')
-
-    # Unzip the file
-    with ZipFile(dst_file, 'r') as zip_ref:
+    """
+    Unpack the ready-made PDB2MC world into the Minecraft saves folder mc_dir, replacing its files if it is there
+    already. It is unpacked straight from the program's own copy: nothing else is left in the saves folder.
+    """
+    from PDB2MC import resources
+    os.makedirs(mc_dir, exist_ok=True)
+    with ZipFile(resources.package_file(BLANK_WORLD_ZIP), 'r') as zip_ref:
         zip_ref.extractall(mc_dir)
+    # Earlier versions copied the zip into the saves folder first and left it there
+    leftover = os.path.join(mc_dir, BLANK_WORLD_ZIP)
+    if os.path.isfile(leftover):
+        os.remove(leftover)
 
 
 def check_permissions(directory):

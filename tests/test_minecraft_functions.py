@@ -149,3 +149,14 @@ def test_delete_all_keeps_unrelated_functions(mc_dir):
     mcf.delete_nbt_mcfunctions_from_dir(mc_dir)
     assert os.listdir(funcs) == ["hello.mcfunction"]
     assert os.listdir(mcf.structure_dirs(mc_dir)[1]) == []
+
+
+def test_blank_world_unpacks_into_the_saves_folder_without_leaving_the_zip(tmp_path):
+    saves = tmp_path / "saves"
+    saves.mkdir()
+    (saves / "PDB2MC.zip").write_bytes(b"left by an earlier version")
+    mcf.copy_blank_world(str(saves))
+    assert os.listdir(saves) == ["PDB2MC"]
+    assert (saves / "PDB2MC" / "level.dat").is_file()
+    mcf.copy_blank_world(str(saves))                     # again: replaces the world's files
+    assert os.listdir(saves) == ["PDB2MC"]
