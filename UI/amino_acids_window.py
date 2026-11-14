@@ -24,7 +24,7 @@ class AminoAcidsWindow(ModeWindow):
             Check("showBackboneCheck", "Show backbone", True),
             Spin("backboneScaleSpinBox", "Backbone scale:", 1.0),
             Gap(8),
-            Spin("aScaleSpinBox", "Residue scale:", 1.5),
+            Spin("aScaleSpinBox", "Residue scale:", defaults.residue_scale(1.0)),
             Spin("pScaleSpinBox", "Protein scale:", 1.0),
             Check("otherMoleculeCheck", "Show other molecules", True),
         ],
@@ -32,6 +32,25 @@ class AminoAcidsWindow(ModeWindow):
 
     def connect_options(self):
         self.colorStyleBox.currentTextChanged.connect(self.apply_color_style)
+        # The residue scale follows the protein scale until the user sets it themselves
+        self.residue_scale_follows = True
+        self._setting_residue_scale = False
+        self.pScaleSpinBox.valueChanged.connect(self.follow_protein_scale)
+        self.aScaleSpinBox.valueChanged.connect(self.on_residue_scale_changed)
+        self.follow_protein_scale(self.pScaleSpinBox.value())
+
+    def follow_protein_scale(self, scale):
+        if not self.residue_scale_follows:
+            return
+        self._setting_residue_scale = True
+        try:
+            self.aScaleSpinBox.setValue(defaults.residue_scale(scale))
+        finally:
+            self._setting_residue_scale = False
+
+    def on_residue_scale_changed(self, value):
+        if not self._setting_residue_scale:
+            self.residue_scale_follows = False
 
     def apply_color_style(self, style):
         for code, block in defaults.AMINO_ACID_STYLES.get(style, {}).items():

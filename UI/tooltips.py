@@ -98,7 +98,8 @@ MODE_OPTIONS = {
         "aScaleSpinBox": "Diameter in blocks, rounded up, of the atoms of other molecules.",
     },
     "Amino Acids": {
-        "aScaleSpinBox": "Diameter of each residue sphere in blocks, rounded up.",
+        "aScaleSpinBox": "Diameter of each residue sphere in blocks, rounded up. Follows the protein scale "
+                         "(the same number) until you change it yourself.",
     },
 }
 

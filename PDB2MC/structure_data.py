@@ -512,7 +512,7 @@ class StructureData:
                             if a1['atom_num'] != a2['atom_num']:
                                 bonds.append({'atom_num1': a1['atom_num'], 'atom_num2': a2['atom_num']})
 
-        # Covalent links (the mmCIF version of PDB LINK records)
+        # Links between molecules (the mmCIF version of PDB LINK records)
         links = []
         conn_fields = ['_struct_conn.conn_type_id',
                        '_struct_conn.ptnr1_auth_asym_id', '_struct_conn.ptnr1_auth_seq_id',
@@ -521,7 +521,8 @@ class StructureData:
                        '_struct_conn.ptnr2_label_atom_id']
         if all(field in mmcif_dict for field in conn_fields):
             for kind, c1, r1, n1, c2, r2, n2 in zip(*(mmcif_dict[f] for f in conn_fields)):
-                if not kind.lower().startswith('covale'):
+                # Covalent and metal links, as PDB files have them in LINK records (heme iron to histidine is metalc)
+                if not kind.lower().startswith(('covale', 'metalc')):
                     continue
                 try:
                     links.append(((c1, int(r1), n1), (c2, int(r2), n2)))
