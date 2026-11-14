@@ -1074,3 +1074,17 @@ def test_help_shows_every_readme_image():
     missing = [src for src in sources if not src.startswith("http") and not os.path.isfile(os.path.join(ui, src))]
     assert missing == []
     window.close()
+
+
+# --- residue size in Amino Acids mode ---
+
+def test_residue_scale_follows_protein_scale_until_changed(qtbot):
+    window = make_window(qtbot, "Amino Acids")
+    window.pScaleSpinBox.setValue(4)
+    assert window.aScaleSpinBox.value() == 4.0
+    window.set_pdb_file(preset("GFP"), announce=False)           # the suggested scale is set as well
+    assert window.aScaleSpinBox.value() == window.pScaleSpinBox.value()
+    window.aScaleSpinBox.setValue(2.5)                            # the user's own size stays
+    window.pScaleSpinBox.setValue(3)
+    assert window.aScaleSpinBox.value() == 2.5
+    assert window.build_config()['atom_scale'] == 2.5

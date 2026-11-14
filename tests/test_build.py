@@ -456,8 +456,9 @@ ALL_MODES = ["Custom", "Skeleton", "X-Ray", "Space Filling", "Ribbon", "Amino Ac
 
 
 def run_with_progress(mode, mc_dir, structure="Helix", **changes):
-    config = defaults.default_config(mode)
-    config.update(pdb_file=preset(structure), save_path=mc_dir, scale=2.0, **changes)
+    # Settings as the program makes them at this scale (residue spheres follow the protein scale)
+    config = defaults.scaled_config(mode, 2.0)
+    config.update(pdb_file=preset(structure), save_path=mc_dir, **changes)
     values, messages = [], []
     build.build_model(mode, config, progress=values.append, status=messages.append)
     return values, messages

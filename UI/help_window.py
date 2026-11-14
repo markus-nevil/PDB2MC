@@ -175,7 +175,9 @@ def convert_alert_boxes(markdown_text):
     alert_boxes = {
         '[!NOTE]': '<div style="border: 1px solid blue; padding: 10px; background-color: #e8f5ff;"><strong>Note:</strong>',
         '[!TIP]': '<div style="border: 1px solid green; padding: 10px; background-color: #e8ffe8;"><strong>Tip:</strong>',
-        '[!WARNING]': '<div style="border: 1px solid red; padding: 10px; background-color: #ffe8e8;"><strong>Warning:</strong>'
+        '[!WARNING]': '<div style="border: 1px solid red; padding: 10px; background-color: #ffe8e8;"><strong>Warning:</strong>',
+        '[!IMPORTANT]': '<div style="border: 1px solid purple; padding: 10px; background-color: #f3e8ff;"><strong>Important:</strong>',
+        '[!CAUTION]': '<div style="border: 1px solid red; padding: 10px; background-color: #ffe8e8;"><strong>Caution:</strong>'
     }
 
     # Replace each alert box type with its corresponding HTML
@@ -200,7 +202,7 @@ def replace_mermaid_diagram(markdown_text):
     # If the Mermaid diagram was found, replace it with the statement and link
     if start != -1 and end != -1:
         # Define the replacement text
-        replacement = "**Cannot display here, please visit the GitHub page for the program flowchart**\n\n[GitHub Page](https://github.com/markus-nevil/mcpdb#generalized-flowchart-of-program-procedure)"
+        replacement = "**Cannot display here, please visit the GitHub page for the program flowchart**\n\n[GitHub Page](https://github.com/markus-nevil/PDB2MC#generalized-flowchart-of-program-procedure)"
 
         # Replace the Mermaid diagram with the replacement text
         markdown_text = markdown_text[:start] + replacement + markdown_text[end + len(end_marker):]

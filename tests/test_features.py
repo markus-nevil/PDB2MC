@@ -34,16 +34,13 @@ def capture(mode, name, scale=1, **settings):
     return builder
 
 
-# --- ribbon speed: the same blocks as before ---
+# --- ribbon speed: the same blocks as before (protein ribbons were redrawn since; see test_ribbon.py) ---
 
 @pytest.mark.parametrize("name, scale, settings, blocks", [
-    ("Helix", 2, {}, 260),
-    ("GFP", 1, {}, 825),
-    ("GFP", 1, {"bar_style": True}, 701),
     ("DNA", 2, {}, 6602),
 ])
 def test_ribbon_blocks_unchanged(name, scale, settings, blocks):
-    # Block counts of the ribbon parts as built before the calculations were sped up
+    # Block counts of the nucleic acid ribbon parts as built before the calculations were sped up
     parts = capture("Ribbon", name, scale, **settings).parts
     unique = sum(len(part.drop_duplicates(subset=['X', 'Y', 'Z'])) for suffix, part in parts.items()
                  if suffix.endswith(("_ribbon", "_backbone")))

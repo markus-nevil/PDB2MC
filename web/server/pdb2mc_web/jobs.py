@@ -227,8 +227,8 @@ class Builder:
         name = self.store.new_model_name()
         source = os.path.join(self._models_dir(), name + summary["ext"])
         shutil.copyfile(summary["path"], source)
-        config = defaults.default_config(job.mode)
-        config.update(job.options, scale=job.scale, pdb_file=source, save_path=self.world.functions_dir)
+        config = defaults.scaled_config(job.mode, job.scale)
+        config.update(job.options, pdb_file=source, save_path=self.world.functions_dir)
 
         self._set(job, status="building", message="Building the model", progress=1)
         error = self._build(job, config)

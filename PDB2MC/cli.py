@@ -42,9 +42,9 @@ def main(argv=None):
         print(f"Downloading {fetch.normalize_id(args.structure)}...")
         args.structure = fetch.download(args.structure)
 
-    config = defaults.default_config(args.mode)
+    config = defaults.scaled_config(args.mode, args.scale)
     config['atoms'].update(user_settings.metal_blocks())
-    config.update(scale=args.scale, mesh=args.mesh, pdb_file=args.structure, save_path=datapack_dir(args.world),
+    config.update(mesh=args.mesh, pdb_file=args.structure, save_path=datapack_dir(args.world),
                   model_name=args.name, triggers=True)
     if args.by_chain:
         config['by_chain'] = True

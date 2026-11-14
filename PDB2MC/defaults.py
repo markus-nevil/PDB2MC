@@ -151,6 +151,24 @@ _COMMON = {
 }
 
 
+# Amino Acids mode: residue spheres grow with the model, as big as the protein scale (1:1)
+RESIDUE_SCALE_PER_PROTEIN_SCALE = 1.0
+
+
+def residue_scale(scale):
+    """The residue sphere size (blocks) that suits a protein scale in Amino Acids mode."""
+    return round(RESIDUE_SCALE_PER_PROTEIN_SCALE * float(scale), 1)
+
+
+def scaled_config(mode, scale):
+    """default_config(mode) at a protein scale, with the sizes that follow the scale (residue spheres)."""
+    config = default_config(mode)
+    config['scale'] = scale
+    if mode == "Amino Acids":
+        config['atom_scale'] = residue_scale(scale)
+    return config
+
+
 def default_config(mode):
     """Build settings of a mode as its window starts out (without pdb_file / save_path)."""
     config = copy.deepcopy(_COMMON)
@@ -167,7 +185,7 @@ def default_config(mode):
         atoms['ribbon_atom'] = 'red_concrete'
         config.update(sidechain=False, by_chain=True)
     elif mode == "Amino Acids":
-        config.update(sidechain=False, color_style="Residue",
+        config.update(sidechain=False, color_style="Residue", atom_scale=residue_scale(config['scale']),
                       amino_acids=dict(AMINO_ACID_STYLES["Residue"]))
     elif mode != "Skeleton":
         raise ValueError(f"Unknown mode: {mode}")
